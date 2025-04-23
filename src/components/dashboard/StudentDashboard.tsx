@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { Book, Calendar, Clock, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { formatDate } from "@/lib/utils";
 
 interface EnrolledCourse {
   id: string;
