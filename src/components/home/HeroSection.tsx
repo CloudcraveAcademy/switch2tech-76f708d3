@@ -5,10 +5,10 @@ import { ArrowRight } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <div className="relative min-h-[600px] flex items-center bg-brand-dark overflow-hidden">
+    <div className="relative min-h-[600px] flex items-center bg-brand-dark w-full overflow-hidden">
       {/* Background image with overlay */}
       <div 
-        className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80')] 
+        className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80')] 
         bg-cover bg-center bg-no-repeat opacity-10"
       />
       
