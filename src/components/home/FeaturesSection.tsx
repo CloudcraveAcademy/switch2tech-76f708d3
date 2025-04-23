@@ -1,3 +1,4 @@
+
 import { Book, Users, Briefcase, Medal } from "lucide-react";
 
 const features = [
@@ -25,17 +26,17 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <div className="py-24 bg-[#F8FBFF]">
+    <div className="py-24 bg-brand-dark w-full">
       <div className="container mx-auto px-6">
-        <h2 className="text-3xl font-bold text-foreground text-center mb-12">Why Choose Our Platform?</h2>
+        <h2 className="text-3xl font-bold text-white text-center mb-12">Why Choose Our Platform?</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, index) => (
-            <div key={index} className="bg-card p-6 rounded-lg shadow-sm hover:shadow-md transition-all">
+            <div key={index} className="bg-brand/10 p-6 rounded-lg shadow-sm hover:shadow-md transition-all">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 text-primary">
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
+              <h3 className="text-xl font-semibold mb-2 text-white">{feature.title}</h3>
+              <p className="text-white/80">{feature.description}</p>
             </div>
           ))}
         </div>
