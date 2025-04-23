@@ -1,5 +1,5 @@
 
-import { Code, Shield, Database, Cloud, Mobile, ArrowRight } from "lucide-react";
+import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Layers, PenTool } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const categories = [
@@ -12,7 +12,7 @@ const categories = [
   {
     name: "Testing",
     description: "Master software testing, QA, and test automation",
-    icon: Code,
+    icon: Layers,
     courses: 18
   },
   {
@@ -24,19 +24,19 @@ const categories = [
   {
     name: "DevOps",
     description: "Combine software development and IT operations",
-    icon: Code,
+    icon: Layers,
     courses: 12
   },
   {
     name: "UI/UX Design",
     description: "Create beautiful, intuitive user interfaces and experiences",
-    icon: Code,
+    icon: PenTool,
     courses: 10
   },
   {
     name: "Mobile Development",
     description: "Build native and cross-platform mobile applications",
-    icon: Mobile,
+    icon: Smartphone,
     courses: 14
   },
   {
