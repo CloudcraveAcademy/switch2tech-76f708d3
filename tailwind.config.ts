@@ -94,6 +94,10 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out'
+      },
+      backgroundColor: {
+        'section-navy': '#1E2A4A',
+        'section-light': '#F0F7FF',
       }
     }
   },

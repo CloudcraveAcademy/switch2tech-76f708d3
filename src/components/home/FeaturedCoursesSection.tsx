@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getFeaturedCourses } from "@/utils/mockData";
@@ -9,14 +8,14 @@ const FeaturedCoursesSection = () => {
   const featuredCourses = getFeaturedCourses().slice(0, 3);
 
   return (
-    <section className="py-24 bg-gradient-to-b from-background via-background to-muted/50">
+    <section className="py-24 bg-section-navy text-white">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-brand font-semibold">FEATURED COURSES</span>
-          <h2 className="text-4xl font-bold mt-2 mb-6 bg-gradient-to-r from-brand-dark to-brand bg-clip-text text-transparent">
+          <span className="text-brand-light font-semibold">FEATURED COURSES</span>
+          <h2 className="text-4xl font-bold mt-2 mb-6">
             Learn From Industry Experts
           </h2>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-xl text-white/80">
             Explore our most popular courses designed to help you build practical skills 
             and advance your career.
           </p>

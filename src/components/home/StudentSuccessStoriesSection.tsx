@@ -27,11 +27,11 @@ const testimonials = [
 
 const StudentSuccessStoriesSection = () => {
   return (
-    <section className="py-24 bg-gradient-to-b from-background to-brand/5">
+    <section className="py-24 bg-section-light">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4 gradient-text">Student Success Stories</h2>
-          <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
+          <h2 className="text-4xl font-bold mb-4 text-section-navy">Student Success Stories</h2>
+          <p className="max-w-2xl mx-auto text-lg text-gray-600">
             Real stories from real students who transformed their careers with our guidance
           </p>
         </div>
