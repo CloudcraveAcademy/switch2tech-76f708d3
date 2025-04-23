@@ -21,22 +21,22 @@ const steps = [
 
 const HowSwitchToTechWorksSection = () => {
   return (
-    <section className="py-24 bg-section-navy text-white">
+    <section className="py-24 bg-background">
       <div className="container mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center mb-12">How Switch2Tech Works</h2>
-        <p className="text-center text-white/80 mb-8">
+        <h2 className="text-3xl font-bold text-center mb-12 text-foreground">How Switch2Tech Works</h2>
+        <p className="text-center text-muted-foreground mb-8">
           Our unique approach combines learning, mentorship, and real-world experience to ensure your successful transition into tech.
         </p>
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((step, index) => (
             <div 
               key={index} 
-              className="bg-white/10 backdrop-blur-sm p-6 rounded-lg shadow-sm text-center border border-white/10"
+              className="bg-card backdrop-blur-sm p-6 rounded-lg shadow-sm text-center border border-border"
             >
               <div className="flex justify-center mb-4">
                 {step.icon}
               </div>
-              <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{step.title}</h3>
               <p className="text-muted-foreground">{step.description}</p>
             </div>
           ))}

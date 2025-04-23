@@ -27,11 +27,11 @@ const testimonials = [
 
 const StudentSuccessStoriesSection = () => {
   return (
-    <section className="py-24 bg-section-light">
+    <section className="py-24 bg-muted/30">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4 text-section-navy">Student Success Stories</h2>
-          <p className="max-w-2xl mx-auto text-lg text-gray-600">
+          <h2 className="text-4xl font-bold mb-4 text-foreground">Student Success Stories</h2>
+          <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
             Real stories from real students who transformed their careers with our guidance
           </p>
         </div>
@@ -48,11 +48,11 @@ const StudentSuccessStoriesSection = () => {
                   alt={testimonial.name}
                   className="w-full h-full object-cover object-center"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/90 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
               </div>
               
               <div className="p-6 flex flex-col flex-grow">
-                <div className="mb-4 text-brand">
+                <div className="mb-4 text-primary">
                   <Quote className="h-6 w-6" />
                 </div>
                 <blockquote className="text-foreground mb-6 flex-grow italic">

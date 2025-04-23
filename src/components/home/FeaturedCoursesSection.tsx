@@ -8,14 +8,14 @@ const FeaturedCoursesSection = () => {
   const featuredCourses = getFeaturedCourses().slice(0, 3);
 
   return (
-    <section className="py-24 bg-section-navy text-white">
+    <section className="py-24 bg-background">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-brand-light font-semibold">FEATURED COURSES</span>
-          <h2 className="text-4xl font-bold mt-2 mb-6">
+          <span className="text-primary font-semibold">FEATURED COURSES</span>
+          <h2 className="text-4xl font-bold mt-2 mb-6 text-foreground">
             Learn From Industry Experts
           </h2>
-          <p className="text-xl text-white/80">
+          <p className="text-xl text-muted-foreground">
             Explore our most popular courses designed to help you build practical skills 
             and advance your career.
           </p>

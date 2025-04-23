@@ -55,22 +55,22 @@ const categories = [
 
 const ExploreCategoriesSection = () => {
   return (
-    <section className="py-24 bg-section-navy text-white">
+    <section className="py-24 bg-background">
       <div className="container mx-auto px-6">
-        <h2 className="text-4xl font-bold text-center mb-4">
+        <h2 className="text-4xl font-bold text-center mb-4 text-foreground">
           Explore By Categories
         </h2>
-        <p className="text-center text-white/80 mb-16 text-lg">
+        <p className="text-center text-muted-foreground mb-16 text-lg">
           Find the perfect course by exploring our diverse range of tech categories.
         </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {categories.map((category) => (
             <div 
               key={category.name} 
-              className="bg-white/10 backdrop-blur-sm p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-white/10"
+              className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border"
             >
               <div className="flex justify-start mb-6">
-                <category.icon className="h-8 w-8 text-brand" />
+                <category.icon className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-foreground">
                 {category.name}
