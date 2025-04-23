@@ -1,4 +1,3 @@
-
 import { User, GraduationCap, Lightbulb } from "lucide-react";
 
 const steps = [
@@ -21,7 +20,7 @@ const steps = [
 
 const HowSwitchToTechWorksSection = () => {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-[#D3E4FD]">
       <div className="container mx-auto px-6">
         <h2 className="text-3xl font-bold text-center mb-12 text-foreground">How Switch2Tech Works</h2>
         <p className="text-center text-muted-foreground mb-8">

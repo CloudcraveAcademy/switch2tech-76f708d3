@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getFeaturedCourses } from "@/utils/mockData";
@@ -9,7 +8,7 @@ const FeaturedCoursesSection = () => {
   const featuredCourses = getFeaturedCourses().slice(0, 3);
 
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-[#D3E4FD]">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-primary font-semibold">FEATURED COURSES</span>

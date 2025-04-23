@@ -1,4 +1,3 @@
-
 import { Book, Users, Briefcase, Medal } from "lucide-react";
 
 const features = [
@@ -26,7 +25,7 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <div className="py-24 bg-muted/30">
+    <div className="py-24 bg-[#F8FBFF]">
       <div className="container mx-auto px-6">
         <h2 className="text-3xl font-bold text-foreground text-center mb-12">Why Choose Our Platform?</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">

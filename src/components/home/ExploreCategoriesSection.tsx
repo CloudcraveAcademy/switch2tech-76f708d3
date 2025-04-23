@@ -1,4 +1,3 @@
-
 import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Layers, PenTool } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -55,7 +54,7 @@ const categories = [
 
 const ExploreCategoriesSection = () => {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-[#D3E4FD]">
       <div className="container mx-auto px-6">
         <h2 className="text-4xl font-bold text-center mb-4 text-foreground">
           Explore By Categories
