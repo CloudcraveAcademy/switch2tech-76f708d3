@@ -1,13 +1,21 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import type { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
 export type UserRole = "student" | "instructor" | "admin" | "super_admin";
 
+// Extended user type with additional profile information
+export interface UserWithProfile extends User {
+  name?: string;
+  avatar?: string;
+  role?: UserRole;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: UserWithProfile | null;
+  session: Session | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
@@ -25,25 +33,65 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithProfile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Helper function to enrich user data with profile information
+  const enrichUserWithProfile = async (user: User | null): Promise<UserWithProfile | null> => {
+    if (!user) return null;
+    
+    try {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('first_name, last_name, role, avatar_url')
+        .eq('id', user.id)
+        .single();
+      
+      if (error || !profile) {
+        console.error("Error fetching user profile:", error);
+        return user as UserWithProfile;
+      }
+      
+      return {
+        ...user,
+        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+        avatar: profile.avatar_url,
+        role: profile.role as UserRole
+      };
+    } catch (error) {
+      console.error("Error enriching user data:", error);
+      return user as UserWithProfile;
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
+      async (event, newSession) => {
+        setSession(newSession);
+        
+        // Enrich user data
+        const enrichedUser = await enrichUserWithProfile(newSession?.user ?? null);
+        setUser(enrichedUser);
         setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    const initSession = async () => {
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      setSession(existingSession);
+      
+      // Enrich user data
+      const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
+      setUser(enrichedUser);
       setLoading(false);
-    });
+    };
 
+    initSession();
+    
     return () => subscription.unsubscribe();
   }, []);
 
@@ -69,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
+  const register = async (name: string, password: string, email: string, role: UserRole) => {
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
@@ -117,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, session, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

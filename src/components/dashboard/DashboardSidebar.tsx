@@ -2,12 +2,15 @@
 import { Link, useLocation } from "react-router-dom";
 import { 
   Home, 
-  Book, 
+  BookOpen, 
   GraduationCap,
   User,
   Settings,
   Bell,
   LogOut,
+  Users,
+  BookPlus,
+  CircleDollarSign
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -55,7 +58,7 @@ const DashboardSidebar = () => {
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >
-              <Book className="w-5 h-5 mr-3" />
+              <BookOpen className="w-5 h-5 mr-3" />
               My Courses
             </Link>
             
@@ -76,6 +79,18 @@ const DashboardSidebar = () => {
         {user?.role === "instructor" && (
           <>
             <Link
+              to="/dashboard/create-course"
+              className={`flex items-center px-4 py-2 text-sm ${
+                isActive("/dashboard/create-course")
+                  ? "text-brand-700 bg-brand-50 font-medium"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <BookPlus className="w-5 h-5 mr-3" />
+              Create Course
+            </Link>
+            
+            <Link
               to="/dashboard/my-courses"
               className={`flex items-center px-4 py-2 text-sm ${
                 isActive("/dashboard/my-courses")
@@ -83,7 +98,7 @@ const DashboardSidebar = () => {
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >
-              <Book className="w-5 h-5 mr-3" />
+              <BookOpen className="w-5 h-5 mr-3" />
               My Courses
             </Link>
             
@@ -95,8 +110,20 @@ const DashboardSidebar = () => {
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >
-              <User className="w-5 h-5 mr-3" />
+              <Users className="w-5 h-5 mr-3" />
               Students
+            </Link>
+            
+            <Link
+              to="/dashboard/revenue"
+              className={`flex items-center px-4 py-2 text-sm ${
+                isActive("/dashboard/revenue")
+                  ? "text-brand-700 bg-brand-50 font-medium"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <CircleDollarSign className="w-5 h-5 mr-3" />
+              Revenue
             </Link>
           </>
         )}
@@ -123,7 +150,7 @@ const DashboardSidebar = () => {
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >
-              <Book className="w-5 h-5 mr-3" />
+              <BookOpen className="w-5 h-5 mr-3" />
               Courses
             </Link>
           </>
