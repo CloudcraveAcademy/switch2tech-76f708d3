@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,8 @@ const Navbar = () => {
                 src="/logo.svg"
                 alt="Switch2Tech Academy"
               />
-              <span className="ml-2 text-xl font-bold text-brand-700 hidden md:block">
-                Switch2Tech Academy
+              <span className="ml-2 text-xl font-bold text-[#03045E] hidden md:block">
+                Switch2Tech
               </span>
             </Link>
           </div>
