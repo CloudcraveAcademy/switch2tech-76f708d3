@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -97,17 +96,11 @@ const Register = () => {
 
     try {
       await register(name, email, password, role);
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created successfully.",
-      });
-      navigate("/dashboard");
+      // Don't navigate immediately as we want users to verify their email first
+      // The success message is shown in the AuthContext
     } catch (error) {
-      toast({
-        title: "Registration failed",
-        description: "There was an error creating your account. Please try again.",
-        variant: "destructive",
-      });
+      // Error is already handled in the AuthContext
+      console.error("Registration error:", error);
     }
   };
 

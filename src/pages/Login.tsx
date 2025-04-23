@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -53,11 +52,7 @@ const Login = () => {
       });
       navigate("/dashboard");
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Login error:", error);
     }
   };
 
