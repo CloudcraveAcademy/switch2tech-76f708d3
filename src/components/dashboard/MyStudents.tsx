@@ -59,6 +59,13 @@ interface InviteForm {
   message: string;
 }
 
+interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
 const MyStudents = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -125,35 +132,31 @@ const MyStudents = () => {
         // Get student profiles
         const { data: profiles, error: profilesError } = await supabase
           .from("user_profiles")
-          .select("id, first_name, last_name, avatar_url, user_id")
-          .in("user_id", uniqueStudentIds);
+          .select("id, first_name, last_name, avatar_url");
 
         if (profilesError) throw profilesError;
 
-        // Get user emails
-        const { data: users, error: usersError } = await supabase.auth.admin
-          .listUsers();
-
-        if (usersError) throw usersError;
-
-        // Create consolidated student data
-        const studentData = profiles.map((profile) => {
-          const matchingUser = users.users.find(
-            (u) => u.id === profile.user_id
-          );
+        // Since we can't use admin methods in client-side code, we'll use mock data for emails
+        // In a real application, you'd need a server endpoint to get this data
+        const studentData = uniqueStudentIds.map((studentId) => {
+          const matchingProfile = profiles?.find(
+            (profile) => profile.id === studentId
+          ) || { first_name: "Unknown", last_name: "User", avatar_url: null };
+          
           const studentEnrollments = enrollments.filter(
-            (enrollment) => enrollment.student_id === profile.user_id
+            (enrollment) => enrollment.student_id === studentId
           );
+          
           const lastActive = new Date().toISOString(); // Placeholder for last active
 
           return {
-            id: profile.user_id,
-            user_id: profile.user_id,
-            name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim(),
-            email: matchingUser?.email || "N/A",
+            id: studentId,
+            user_id: studentId,
+            name: `${matchingProfile.first_name || ""} ${matchingProfile.last_name || ""}`.trim() || "Unknown User",
+            email: `student${studentId.substring(0, 4)}@example.com`, // Mock email
             enrolled_courses: studentEnrollments.length,
             last_active: lastActive,
-            avatar_url: profile.avatar_url,
+            avatar_url: matchingProfile.avatar_url,
           };
         });
 
