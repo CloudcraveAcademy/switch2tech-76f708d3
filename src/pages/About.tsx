@@ -22,9 +22,9 @@ const About = () => {
             </p>
             
             <div className="grid md:grid-cols-2 gap-8 my-12">
-              <div className="bg-[#F1F0FB] p-6 rounded-lg">
-                <h3 className="text-xl font-semibold text-[#03045E] mb-3">What We Offer</h3>
-                <ul className="space-y-2 text-gray-700">
+              <div className="bg-[#0077B6] text-white p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-white mb-3">What We Offer</h3>
+                <ul className="space-y-2">
                   <li>• Expert-led video courses</li>
                   <li>• Hands-on coding projects</li>
                   <li>• One-on-one mentorship</li>
@@ -33,9 +33,9 @@ const About = () => {
                 </ul>
               </div>
               
-              <div className="bg-[#F1F0FB] p-6 rounded-lg">
-                <h3 className="text-xl font-semibold text-[#03045E] mb-3">Why Choose Us</h3>
-                <ul className="space-y-2 text-gray-700">
+              <div className="bg-[#0077B6] text-white p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-white mb-3">Why Choose Us</h3>
+                <ul className="space-y-2">
                   <li>• Industry-relevant curriculum</li>
                   <li>• Flexible learning schedule</li>
                   <li>• Project-based learning</li>
