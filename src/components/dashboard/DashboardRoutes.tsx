@@ -9,6 +9,7 @@ import MyStudents from "./MyStudents";
 import MyRevenue from "./MyRevenue";
 import Settings from "./Settings";
 import CreateCourse from "./CreateCourse";
+import CourseEdit from "./CourseEdit";
 import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardRoutes = () => {
@@ -48,7 +49,7 @@ const DashboardRoutes = () => {
           <Route path="/students" element={<MyStudents />} />
           <Route path="/revenue" element={<MyRevenue />} />
           <Route path="/create-course" element={<CreateCourse />} />
-          <Route path="/courses/:id/edit" element={<div className="p-6"><h1 className="text-2xl font-bold">Edit Course</h1></div>} />
+          <Route path="/courses/:id/edit" element={<CourseEdit />} />
           <Route path="/courses/:id/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
         </>
       )}
