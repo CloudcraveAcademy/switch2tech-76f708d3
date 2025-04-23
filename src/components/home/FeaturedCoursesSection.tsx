@@ -5,10 +5,10 @@ import CourseCard from "@/components/CourseCard";
 import { ArrowRight } from "lucide-react";
 
 const FeaturedCoursesSection = () => {
-  const featuredCourses = getFeaturedCourses().slice(0, 6);
+  const featuredCourses = getFeaturedCourses();
 
   return (
-    <section className="py-24 bg-[#D3E4FD]">
+    <section className="py-24 bg-background border-t border-border">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-primary font-semibold">FEATURED COURSES</span>
