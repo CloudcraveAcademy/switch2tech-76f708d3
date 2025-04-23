@@ -1,33 +1,95 @@
 
-import { Book } from "lucide-react";
+import { Code, Shield, Database, Cloud, Mobile, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const categories = [
-  "Web Development",
-  "Data Science",
-  "Cloud Computing",
-  "Cybersecurity",
-  "AI & Machine Learning",
-  "Mobile Development",
+  {
+    name: "Web Development",
+    description: "Learn to build modern, responsive websites and web applications",
+    icon: Code,
+    courses: 24
+  },
+  {
+    name: "Testing",
+    description: "Master software testing, QA, and test automation",
+    icon: Code,
+    courses: 18
+  },
+  {
+    name: "Cybersecurity",
+    description: "Protect systems and networks from digital attacks",
+    icon: Shield,
+    courses: 15
+  },
+  {
+    name: "DevOps",
+    description: "Combine software development and IT operations",
+    icon: Code,
+    courses: 12
+  },
+  {
+    name: "UI/UX Design",
+    description: "Create beautiful, intuitive user interfaces and experiences",
+    icon: Code,
+    courses: 10
+  },
+  {
+    name: "Mobile Development",
+    description: "Build native and cross-platform mobile applications",
+    icon: Mobile,
+    courses: 14
+  },
+  {
+    name: "Data Science",
+    description: "Extract insights and knowledge from data",
+    icon: Database,
+    courses: 20
+  },
+  {
+    name: "Cloud Computing",
+    description: "Master cloud platforms, services, and infrastructure",
+    icon: Cloud,
+    courses: 16
+  },
 ];
 
 const ExploreCategoriesSection = () => {
   return (
-    <section className="py-24">
+    <section className="py-24 bg-gradient-to-b from-background to-brand/5">
       <div className="container mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center mb-12">Explore By Categories</h2>
-        <p className="text-center text-muted-foreground mb-8">
+        <h2 className="text-4xl font-bold text-center mb-4 text-foreground">
+          Explore By Categories
+        </h2>
+        <p className="text-center text-muted-foreground mb-16 text-lg">
           Find the perfect course by exploring our diverse range of tech categories.
         </p>
-        <div className="grid md:grid-cols-3 gap-8">
-          {categories.map((category, index) => (
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {categories.map((category) => (
             <div 
-              key={index} 
-              className="bg-background p-6 rounded-lg shadow-sm text-center hover:bg-accent/50 transition-colors"
+              key={category.name} 
+              className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className="flex justify-center mb-4">
-                <Book className="h-12 w-12 text-primary" />
+              <div className="flex justify-start mb-6">
+                <category.icon className="h-8 w-8 text-brand" />
               </div>
-              <h3 className="text-xl font-semibold">{category}</h3>
+              <h3 className="text-xl font-semibold mb-3 text-foreground">
+                {category.name}
+              </h3>
+              <p className="text-muted-foreground mb-6 text-sm">
+                {category.description}
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-brand font-medium">
+                  {category.courses} courses
+                </span>
+                <Link 
+                  to="/courses" 
+                  className="text-brand hover:text-brand-dark flex items-center gap-2 text-sm font-medium transition-colors"
+                >
+                  View Courses 
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
           ))}
         </div>
