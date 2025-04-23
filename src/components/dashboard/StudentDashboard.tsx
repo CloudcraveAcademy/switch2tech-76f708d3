@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,50 +6,129 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Book, Calendar, Clock, Star } from "lucide-react";
-import { mockCourses } from "@/utils/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
+interface EnrolledCourse {
+  id: string;
+  title: string;
+  instructor: {
+    name: string;
+  };
+  progress: number;
+  level: string;
+  mode: string;
+  nextLesson: {
+    title: string;
+    duration: string;
+    date: string;
+  };
+  image: string;
+}
 
 const StudentDashboard = () => {
   const { user } = useAuth();
-  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
 
-  useEffect(() => {
-    // Simulate fetching enrolled courses
-    const mockEnrolled = mockCourses.slice(0, 4).map((course) => ({
-      ...course,
-      progress: Math.floor(Math.random() * 100),
-      nextLesson: {
-        title: "Understanding Core Concepts",
-        duration: "15 minutes",
-        date: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    }));
-    setEnrolledCourses(mockEnrolled);
-  }, []);
+  const { data: enrolledCourses, isLoading: coursesLoading } = useQuery({
+    queryKey: ['enrolledCourses'],
+    queryFn: async () => {
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from('enrollments')
+        .select(`
+          *,
+          course:courses (
+            id,
+            title,
+            image_url,
+            level,
+            instructor:user_profiles!instructor_id (
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('student_id', user?.id);
 
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-    };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+      if (enrollmentsError) {
+        console.error('Error fetching enrollments:', enrollmentsError);
+        return [];
+      }
+
+      return enrollments.map((enrollment) => ({
+        id: enrollment.course.id,
+        title: enrollment.course.title,
+        instructor: {
+          name: `${enrollment.course.instructor.first_name} ${enrollment.course.instructor.last_name}`,
+        },
+        progress: enrollment.progress || 0,
+        level: enrollment.course.level,
+        mode: 'online',
+        nextLesson: {
+          title: "Next Lesson",
+          duration: "30 minutes",
+          date: new Date().toISOString(),
+        },
+        image: enrollment.course.image_url,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  const { data: certificatesCount } = useQuery({
+    queryKey: ['certificatesCount'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('certificates')
+        .select('*', { count: 'exact', head: true })
+        .eq('student_id', user?.id);
+
+      if (error) {
+        console.error('Error fetching certificates count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: totalHours } = useQuery({
+    queryKey: ['totalHours'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('duration_hours')
+        .in('id', (enrolledCourses || []).map(course => course.id));
+
+      if (error) {
+        console.error('Error fetching total hours:', error);
+        return 0;
+      }
+
+      return data.reduce((acc, course) => acc + (course.duration_hours || 0), 0);
+    },
+    enabled: !!user && !!enrolledCourses,
+  });
+
+  if (coursesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold">
-          Welcome back, {user?.name.split(" ")[0]}!
+          Welcome back, {user?.name?.split(" ")[0]}!
         </h1>
         <p className="text-gray-600">
           Track your progress and continue learning
         </p>
       </div>
 
-      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardContent className="p-6">
@@ -59,7 +137,7 @@ const StudentDashboard = () => {
                 <p className="text-sm font-medium text-gray-500">
                   Enrolled Courses
                 </p>
-                <p className="text-3xl font-bold">{enrolledCourses.length}</p>
+                <p className="text-3xl font-bold">{enrolledCourses?.length || 0}</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
                 <Book className="h-6 w-6 text-blue-600" />
@@ -75,7 +153,7 @@ const StudentDashboard = () => {
                 <p className="text-sm font-medium text-gray-500">
                   Completed Courses
                 </p>
-                <p className="text-3xl font-bold">2</p>
+                <p className="text-3xl font-bold">{certificatesCount}</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
                 <Star className="h-6 w-6 text-green-600" />
@@ -91,7 +169,7 @@ const StudentDashboard = () => {
                 <p className="text-sm font-medium text-gray-500">
                   Hours Learned
                 </p>
-                <p className="text-3xl font-bold">48</p>
+                <p className="text-3xl font-bold">{totalHours || 0}</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
                 <Clock className="h-6 w-6 text-purple-600" />
@@ -105,7 +183,7 @@ const StudentDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Certificates</p>
-                <p className="text-3xl font-bold">3</p>
+                <p className="text-3xl font-bold">{certificatesCount || 0}</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
                 <Calendar className="h-6 w-6 text-yellow-600" />
@@ -115,10 +193,9 @@ const StudentDashboard = () => {
         </Card>
       </div>
 
-      {/* In Progress Courses */}
       <h2 className="text-xl font-bold mb-4">In Progress Courses</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        {enrolledCourses.map((course) => (
+        {(enrolledCourses || []).map((course) => (
           <Card key={course.id} className="overflow-hidden">
             <div className="relative h-40">
               <img
@@ -170,7 +247,6 @@ const StudentDashboard = () => {
         ))}
       </div>
       
-      {/* Upcoming Classes */}
       <h2 className="text-xl font-bold mb-4">Upcoming Classes</h2>
       <Card className="mb-10">
         <CardContent className="p-0">
@@ -233,7 +309,6 @@ const StudentDashboard = () => {
         </CardContent>
       </Card>
       
-      {/* Recent Announcements */}
       <h2 className="text-xl font-bold mb-4">Recent Announcements</h2>
       <Card>
         <CardContent className="p-6 space-y-6">
