@@ -20,6 +20,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
+  setLoading: (isLoading: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -111,9 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: error.message,
         variant: "destructive",
       });
+      setLoading(false); // Reset loading state on error
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -145,9 +145,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: error.message,
         variant: "destructive",
       });
+      setLoading(false); // Reset loading state on error
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -165,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, session, login, register, logout, loading, setLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import { AuthProvider } from "./contexts/AuthContext";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/courses/:id" element={<CourseDetails />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard/*" element={<Dashboard />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

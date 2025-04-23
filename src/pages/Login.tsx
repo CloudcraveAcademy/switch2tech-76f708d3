@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -5,14 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login, loading } = useAuth();
+  const { login, loading, setLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [errors, setErrors] = useState({ email: "", password: "" });
 
   const validate = () => {
@@ -27,10 +31,10 @@ const Login = () => {
       valid = false;
     }
 
-    if (!password) {
+    if (!password && !showForgotPassword) {
       newErrors.password = "Password is required";
       valid = false;
-    } else if (password.length < 6) {
+    } else if (password.length < 6 && !showForgotPassword) {
       newErrors.password = "Password must be at least 6 characters";
       valid = false;
     }
@@ -53,6 +57,42 @@ const Login = () => {
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
+      // Ensure loading state is reset when there's an error
+      if (setLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!forgotPasswordEmail) {
+      setErrors({ ...errors, email: "Email is required for password reset" });
+      return;
+    } else if (!/\S+@\S+\.\S+/.test(forgotPasswordEmail)) {
+      setErrors({ ...errors, email: "Invalid email format" });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password reset email sent",
+        description: "Check your inbox for instructions to reset your password",
+      });
+      setShowForgotPassword(false);
+    } catch (error: any) {
+      toast({
+        title: "Password reset failed",
+        description: error.message || "An error occurred while resetting your password",
+        variant: "destructive",
+      });
     }
   };
 
@@ -65,63 +105,104 @@ const Login = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className={errors.email ? "border-red-300" : ""}
-                />
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={errors.password ? "border-red-300" : ""}
-                />
-                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                    Remember me
+          {!showForgotPassword ? (
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
                   </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className={errors.email ? "border-red-300" : ""}
+                  />
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
 
-                <div className="text-sm">
-                  <a href="#" className="text-brand-600 hover:text-brand-700">
-                    Forgot password?
-                  </a>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={errors.password ? "border-red-300" : ""}
+                  />
+                  {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input
+                      id="remember-me"
+                      name="remember-me"
+                      type="checkbox"
+                      className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                      Remember me
+                    </label>
+                  </div>
+
+                  <div className="text-sm">
+                    <button
+                      type="button"
+                      className="text-brand-600 hover:text-brand-700"
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Logging in..." : "Log in"}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleForgotPassword}>
+              <div className="space-y-4">
+                <h2 className="text-xl font-medium text-gray-900">Reset Your Password</h2>
+                <p className="text-sm text-gray-600">Enter your email and we'll send you instructions to reset your password.</p>
+                <div>
+                  <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    value={forgotPasswordEmail || email}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className={errors.email ? "border-red-300" : ""}
+                  />
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                </div>
+
+                <div className="flex space-x-2">
+                  <Button type="submit" className="flex-1">
+                    Send Reset Link
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowForgotPassword(false)} 
+                    className="flex-1"
+                  >
+                    Back to Login
+                  </Button>
                 </div>
               </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Logging in..." : "Log in"}
-              </Button>
-            </div>
-          </form>
+            </form>
+          )}
 
           <div className="mt-6">
             <div className="relative">
