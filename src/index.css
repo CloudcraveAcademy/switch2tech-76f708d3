@@ -1,11 +1,10 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 195 100% 85%;
+    --background: 195 100% 97%;
     --foreground: 201 100% 36%;
 
     --card: 0 0% 100%;
@@ -34,15 +33,6 @@
     --ring: 201 100% 36%;
 
     --radius: 0.75rem;
-
-    --sidebar-background: 201 100% 36%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 195 100% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 201 40% 40%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 201 40% 40%;
-    --sidebar-ring: 195 100% 42%;
   }
 
   .dark {
@@ -90,7 +80,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
@@ -120,4 +110,19 @@
 
 .gradient-bg {
   @apply bg-gradient-to-r from-brand-dark to-brand;
+}
+
+/* Add smooth transitions */
+.transition-all {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Add hover effects */
+.hover-scale {
+  @apply transition-transform hover:scale-105;
+}
+
+/* Add card hover effects */
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
 }

@@ -3,16 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getFeaturedCourses } from "@/utils/mockData";
 import CourseCard from "@/components/CourseCard";
+import { ArrowRight } from "lucide-react";
 
 const FeaturedCoursesSection = () => {
-  const featuredCourses = getFeaturedCourses().slice(0, 3); // Get first 3 featured courses
+  const featuredCourses = getFeaturedCourses().slice(0, 3);
 
   return (
-    <section className="py-24 bg-gradient-to-b from-background to-muted/50">
+    <section className="py-24 bg-gradient-to-b from-background via-background to-muted/50">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-brand-light bg-clip-text text-transparent">
-            Featured Courses
+          <span className="text-brand font-semibold">FEATURED COURSES</span>
+          <h2 className="text-4xl font-bold mt-2 mb-6 bg-gradient-to-r from-brand-dark to-brand bg-clip-text text-transparent">
+            Learn From Industry Experts
           </h2>
           <p className="text-xl text-muted-foreground">
             Explore our most popular courses designed to help you build practical skills 
@@ -28,12 +30,20 @@ const FeaturedCoursesSection = () => {
 
         <div className="flex justify-center gap-4">
           <Link to="/courses">
-            <Button size="lg" className="shadow-lg hover:shadow-xl transition-all">
+            <Button 
+              size="lg" 
+              className="bg-brand hover:bg-brand-dark text-white shadow-lg hover:shadow-xl transition-all group"
+            >
               View All Courses
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
           <Link to="/register">
-            <Button size="lg" variant="outline" className="shadow-sm hover:shadow-md transition-all">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-brand text-brand hover:bg-brand/10 shadow-sm hover:shadow-md transition-all"
+            >
               Get Started
             </Button>
           </Link>
