@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -42,25 +41,25 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-1">
             <Link
               to="/"
-              className="py-2 px-3 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-600"
+              className="py-2 px-3 rounded-md text-sm font-medium text-[#03045E] hover:bg-[#00B4D8]/10"
             >
               Home
             </Link>
             <Link
               to="/courses"
-              className="py-2 px-3 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-600"
+              className="py-2 px-3 rounded-md text-sm font-medium text-[#03045E] hover:bg-[#00B4D8]/10"
             >
               Courses
             </Link>
             <Link
               to="/about"
-              className="py-2 px-3 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-600"
+              className="py-2 px-3 rounded-md text-sm font-medium text-[#03045E] hover:bg-[#00B4D8]/10"
             >
               About
             </Link>
             <Link
               to="/contact"
-              className="py-2 px-3 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-brand-600"
+              className="py-2 px-3 rounded-md text-sm font-medium text-[#03045E] hover:bg-[#00B4D8]/10"
             >
               Contact
             </Link>
@@ -68,12 +67,12 @@ const Navbar = () => {
             {!user ? (
               <div className="ml-4 flex items-center md:ml-6">
                 <Link to="/login">
-                  <Button variant="outline" className="mr-2">
+                  <Button variant="outline" className="mr-2 border-[#0077B6] text-[#0077B6] hover:bg-[#00B4D8]/10">
                     Login
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button>Register</Button>
+                  <Button className="bg-[#0077B6] hover:bg-[#03045E]">Register</Button>
                 </Link>
               </div>
             ) : (
@@ -236,7 +235,7 @@ const Navbar = () => {
                     className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
                   >
                     <div className="flex items-center">
-                      <LogOut className="w-5 h-5 mr-2" />
+                      <LogOut className="w-5 h-4 w-4" />
                       Logout
                     </div>
                   </button>

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, Routes, Route, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -109,7 +108,7 @@ const Dashboard = () => {
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                <Graduation className="w-5 h-5 mr-3" />
+                <GraduationCap className="w-5 h-5 mr-3" />
                 Certificates
               </Link>
             </>
