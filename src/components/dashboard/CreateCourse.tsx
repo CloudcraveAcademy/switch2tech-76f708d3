@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookPlus, Loader2 } from "lucide-react";
 
-const LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
+// Updated to match database constraints - using lowercase values
+const LEVEL_OPTIONS = ["beginner", "intermediate", "advanced"];
 const CATEGORY_OPTIONS = [
   "Web Development",
   "Mobile Development",
@@ -105,7 +106,7 @@ const CreateCourse = () => {
         finalImageUrl = data.publicUrl;
       }
       
-      // Create course in database
+      // Create course in database with level in lowercase
       const { data: course, error } = await supabase
         .from('courses')
         .insert([
@@ -115,7 +116,7 @@ const CreateCourse = () => {
             description,
             price: Number(price),
             duration_hours: Number(duration),
-            level,
+            level: level.toLowerCase(), // Ensure level is lowercase to match constraint
             category,
             image_url: finalImageUrl,
             is_published: false, // Initially save as draft
@@ -235,7 +236,7 @@ const CreateCourse = () => {
                     <SelectContent>
                       {LEVEL_OPTIONS.map((option) => (
                         <SelectItem key={option} value={option}>
-                          {option}
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
                         </SelectItem>
                       ))}
                     </SelectContent>
