@@ -1,13 +1,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { getFeaturedCourses } from "@/utils/mockData";
+import { mockCourses } from "@/utils/mockData";
 import CourseCard from "@/components/CourseCard";
 import { ArrowRight } from "lucide-react";
 
 const FeaturedCoursesSection = () => {
-  // Get exactly 6 courses
-  const featuredCourses = getFeaturedCourses().slice(0, 6);
+  // Instead of using getFeaturedCourses(), directly get 6 courses from the mockCourses array
+  // This ensures we have exactly 6 courses regardless of how many are marked as featured
+  const featuredCourses = mockCourses.slice(0, 6);
 
   return (
     <section className="py-24 bg-background border-t border-border">
