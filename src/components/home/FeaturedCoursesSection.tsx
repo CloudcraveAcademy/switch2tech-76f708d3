@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { getFeaturedCourses } from "@/utils/mockData";
@@ -5,7 +6,8 @@ import CourseCard from "@/components/CourseCard";
 import { ArrowRight } from "lucide-react";
 
 const FeaturedCoursesSection = () => {
-  const featuredCourses = getFeaturedCourses();
+  // Get exactly 6 courses
+  const featuredCourses = getFeaturedCourses().slice(0, 6);
 
   return (
     <section className="py-24 bg-background border-t border-border">
