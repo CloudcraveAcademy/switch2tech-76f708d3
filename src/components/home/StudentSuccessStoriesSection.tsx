@@ -1,48 +1,88 @@
 
-import { Award } from "lucide-react";
+import { User, Quote, Award, Briefcase } from "lucide-react";
 
 const testimonials = [
   {
     name: "John Doe",
-    story: "I transitioned from retail to a tech career in just 6 months!",
+    story: "I transitioned from retail to a tech career in just 6 months! The hands-on projects and personalized mentorship were game-changers for my career path.",
     role: "Software Engineer",
+    company: "TechCorp",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80"
   },
   {
     name: "Jane Smith",
-    story: "The mentorship program helped me land my dream job at a top tech company.",
+    story: "The mentorship program helped me land my dream job at a top tech company. The industry-relevant curriculum gave me exactly what I needed to succeed.",
     role: "Data Scientist",
+    company: "DataViz Inc",
+    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80"
   },
   {
     name: "Mike Johnson",
-    story: "Switch2Tech's practical approach gave me the skills I needed to succeed.",
+    story: "Switch2Tech's practical approach gave me the skills I needed to succeed. I went from zero coding knowledge to leading a development team in just one year.",
     role: "Cloud Engineer",
+    company: "CloudNine",
+    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80"
   }
 ];
 
 const StudentSuccessStoriesSection = () => {
   return (
-    <section className="py-24 bg-muted/50">
+    <section className="py-24 bg-gradient-to-b from-background to-brand/5">
       <div className="container mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center mb-12">Student Success Stories</h2>
-        <p className="text-center text-muted-foreground mb-8">
-          Hear from students who have successfully transformed their careers with Switch2Tech Academy.
-        </p>
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold mb-4 gradient-text">Student Success Stories</h2>
+          <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
+            Real stories from real students who transformed their careers with our guidance
+          </p>
+        </div>
+        
         <div className="grid md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
             <div 
               key={index} 
-              className="bg-background p-6 rounded-lg shadow-sm text-center"
+              className="bg-card rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full"
             >
-              <div className="flex justify-center mb-4">
-                <Award className="h-12 w-12 text-primary" />
+              <div className="h-48 relative overflow-hidden">
+                <img 
+                  src={testimonial.image} 
+                  alt={testimonial.name}
+                  className="w-full h-full object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/90 to-transparent" />
               </div>
-              <blockquote className="mb-4 italic">"{testimonial.story}"</blockquote>
-              <div>
-                <h3 className="text-xl font-semibold">{testimonial.name}</h3>
-                <p className="text-muted-foreground">{testimonial.role}</p>
+              
+              <div className="p-6 flex flex-col flex-grow">
+                <div className="mb-4 text-brand">
+                  <Quote className="h-6 w-6" />
+                </div>
+                <blockquote className="text-foreground mb-6 flex-grow italic">
+                  "{testimonial.story}"
+                </blockquote>
+                
+                <div className="flex items-center border-t border-border pt-4">
+                  <div className="mr-4">
+                    <User className="h-10 w-10 p-2 bg-brand/10 text-brand rounded-full" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">{testimonial.name}</h3>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Briefcase className="h-3 w-3 mr-1" />
+                      <span>{testimonial.role}</span>
+                      <span className="mx-1">•</span>
+                      <span>{testimonial.company}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-12 text-center">
+          <div className="inline-flex items-center gap-2 bg-brand/10 text-brand px-4 py-2 rounded-full">
+            <Award className="h-5 w-5" />
+            <span className="font-medium">Join 1,000+ successful career changers</span>
+          </div>
         </div>
       </div>
     </section>

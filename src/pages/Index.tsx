@@ -1,7 +1,6 @@
 
 import HeroSection from "@/components/home/HeroSection";
 import FeaturesSection from "@/components/home/FeaturesSection";
-import StatisticsSection from "@/components/home/StatisticsSection";
 import Layout from "@/components/Layout";
 import FeaturedCoursesSection from "@/components/home/FeaturedCoursesSection";
 import ExploreCategoriesSection from "@/components/home/ExploreCategoriesSection";
@@ -15,7 +14,6 @@ const Index = () => {
         <HeroSection />
         <FeaturedCoursesSection />
         <FeaturesSection />
-        <StatisticsSection />
         <ExploreCategoriesSection />
         <StudentSuccessStoriesSection />
         <HowSwitchToTechWorksSection />
