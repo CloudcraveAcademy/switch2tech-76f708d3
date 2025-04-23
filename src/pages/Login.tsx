@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,20 @@ import { supabase } from "@/integrations/supabase/client";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login, loading, setLoading } = useAuth();
+  const { login, loading, setLoading, user } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [errors, setErrors] = useState({ email: "", password: "" });
+
+  // Check if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const validate = () => {
     let valid = true;
@@ -46,21 +53,18 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validate()) return;
+    if (!validate()) {
+      return;
+    }
 
     try {
       await login(email, password);
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-      navigate("/dashboard");
+      // The redirect will happen automatically through the useEffect above
+      // when the user state is updated
     } catch (error) {
       console.error("Login error:", error);
-      // Ensure loading state is reset when there's an error
-      if (setLoading) {
-        setLoading(false);
-      }
+      // Make sure loading state is reset when there's an error
+      setLoading(false);
     }
   };
 

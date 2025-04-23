@@ -68,19 +68,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
+        console.log("Auth state changed:", event);
         setSession(newSession);
         
-        // Enrich user data
-        const enrichedUser = await enrichUserWithProfile(newSession?.user ?? null);
-        setUser(enrichedUser);
-        setLoading(false);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Enrich user data
+          const enrichedUser = await enrichUserWithProfile(newSession?.user ?? null);
+          setUser(enrichedUser);
+          setLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setLoading(false);
+        }
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     const initSession = async () => {
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       setSession(existingSession);
@@ -104,7 +110,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        setLoading(false); // Reset loading state on error
+        throw error;
+      }
+      // Auth state listener will handle setting user/session
 
     } catch (error: any) {
       toast({
@@ -132,7 +142,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        setLoading(false); // Reset loading state on error
+        throw error;
+      }
 
       toast({
         title: "Registration successful",
@@ -151,15 +164,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      // Auth state listener will handle setting user to null
     } catch (error: any) {
       toast({
         title: "Logout failed",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false); // Always reset loading state after logout attempt
     }
   };
 

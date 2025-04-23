@@ -9,15 +9,26 @@ import DashboardRoutes from "@/components/dashboard/DashboardRoutes";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect if we're sure the user isn't logged in (not during initial loading)
+    if (!loading && !user) {
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, [user, navigate, loading]);
 
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
