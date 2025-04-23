@@ -114,8 +114,8 @@
 }
 
 /* Add smooth transitions */
-.transition-all {
-  @apply transition-all duration-300 ease-in-out;
+.smooth-transition {
+  transition: all 0.3s ease-in-out;
 }
 
 /* Add hover effects */
