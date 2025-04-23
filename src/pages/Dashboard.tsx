@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, Routes, Route, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -266,7 +267,96 @@ const Dashboard = () => {
                 Dashboard
               </Link>
               
-              {/* Role-specific menu items here - similar to desktop */}
+              {/* Role-specific mobile menu items */}
+              {user.role === "student" && (
+                <>
+                  <Link
+                    to="/dashboard/my-courses"
+                    className={`flex items-center py-2 text-sm mb-1 ${
+                      isActive("/dashboard/my-courses")
+                        ? "text-brand-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Book className="w-5 h-5 mr-3" />
+                    My Courses
+                  </Link>
+                  
+                  <Link
+                    to="/dashboard/certificates"
+                    className={`flex items-center py-2 text-sm mb-1 ${
+                      isActive("/dashboard/certificates")
+                        ? "text-brand-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <GraduationCap className="w-5 h-5 mr-3" />
+                    Certificates
+                  </Link>
+                </>
+              )}
+              
+              {user.role === "instructor" && (
+                <>
+                  <Link
+                    to="/dashboard/my-courses"
+                    className={`flex items-center py-2 text-sm mb-1 ${
+                      isActive("/dashboard/my-courses")
+                        ? "text-brand-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Book className="w-5 h-5 mr-3" />
+                    My Courses
+                  </Link>
+                  
+                  <Link
+                    to="/dashboard/students"
+                    className={`flex items-center py-2 text-sm mb-1 ${
+                      isActive("/dashboard/students")
+                        ? "text-brand-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5 mr-3" />
+                    Students
+                  </Link>
+                </>
+              )}
+              
+              {(user.role === "admin" || user.role === "super_admin") && (
+                <>
+                  <Link
+                    to="/dashboard/users"
+                    className={`flex items-center py-2 text-sm mb-1 ${
+                      isActive("/dashboard/users")
+                        ? "text-brand-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5 mr-3" />
+                    Users
+                  </Link>
+                  
+                  <Link
+                    to="/dashboard/courses"
+                    className={`flex items-center py-2 text-sm mb-1 ${
+                      isActive("/dashboard/courses")
+                        ? "text-brand-700 font-medium"
+                        : "text-gray-700"
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Book className="w-5 h-5 mr-3" />
+                    Courses
+                  </Link>
+                </>
+              )}
               
               <div className="mt-6 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Account
@@ -283,6 +373,32 @@ const Dashboard = () => {
               >
                 <User className="w-5 h-5 mr-3" />
                 Profile
+              </Link>
+              
+              <Link
+                to="/dashboard/notifications"
+                className={`flex items-center py-2 text-sm mb-1 ${
+                  isActive("/dashboard/notifications")
+                    ? "text-brand-700 font-medium"
+                    : "text-gray-700"
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Bell className="w-5 h-5 mr-3" />
+                Notifications
+              </Link>
+              
+              <Link
+                to="/dashboard/settings"
+                className={`flex items-center py-2 text-sm mb-1 ${
+                  isActive("/dashboard/settings")
+                    ? "text-brand-700 font-medium"
+                    : "text-gray-700"
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Settings className="w-5 h-5 mr-3" />
+                Settings
               </Link>
               
               <button
@@ -305,7 +421,31 @@ const Dashboard = () => {
         <Routes>
           <Route path="/" element={getInitialDashboard()} />
           <Route path="/profile" element={<Profile />} />
-          {/* Add more routes for dashboard pages */}
+          {/* Student Routes */}
+          {user.role === "student" && (
+            <>
+              <Route path="/my-courses" element={<div className="p-6"><h1 className="text-2xl font-bold">My Courses</h1></div>} />
+              <Route path="/certificates" element={<div className="p-6"><h1 className="text-2xl font-bold">My Certificates</h1></div>} />
+            </>
+          )}
+          {/* Instructor Routes */}
+          {user.role === "instructor" && (
+            <>
+              <Route path="/my-courses" element={<div className="p-6"><h1 className="text-2xl font-bold">My Courses</h1></div>} />
+              <Route path="/students" element={<div className="p-6"><h1 className="text-2xl font-bold">My Students</h1></div>} />
+            </>
+          )}
+          {/* Admin Routes */}
+          {(user.role === "admin" || user.role === "super_admin") && (
+            <>
+              <Route path="/users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1></div>} />
+              <Route path="/courses" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Management</h1></div>} />
+            </>
+          )}
+          {/* Common Routes */}
+          <Route path="/notifications" element={<div className="p-6"><h1 className="text-2xl font-bold">Notifications</h1></div>} />
+          <Route path="/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings</h1></div>} />
+          <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
         </Routes>
       </main>
     </div>
