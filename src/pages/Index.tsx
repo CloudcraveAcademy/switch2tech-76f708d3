@@ -1,10 +1,9 @@
-
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { getFeaturedCourses, mockCategories } from "@/utils/mockData";
 import CourseCard from "@/components/CourseCard";
 import { Link } from "react-router-dom";
-import { Book, CheckCircle, Graduation, Pen, Users } from "lucide-react";
+import { Book, CheckCircle, GraduationCap, Pen, Users, Star } from "lucide-react";
 
 const Index = () => {
   const featuredCourses = getFeaturedCourses().slice(0, 3);
@@ -169,7 +168,7 @@ const Index = () => {
                 Get mentored, join an internship program, earn recognized certifications, and successfully transition into your new tech career.
               </p>
               <div className="mt-6 flex items-center">
-                <Graduation className="h-5 w-5 text-brand-600 mr-2" />
+                <GraduationCap className="h-5 w-5 text-brand-600 mr-2" />
                 <span className="text-sm font-medium">Career Transition</span>
               </div>
             </div>

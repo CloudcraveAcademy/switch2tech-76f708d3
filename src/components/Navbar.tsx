@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Menu, X, LogOut, User, Book, Home, Graduation } from "lucide-react";
+import { Menu, X, LogOut, User, Book, Home, GraduationCap } from "lucide-react";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -168,7 +167,7 @@ const Navbar = () => {
               onClick={toggleMenu}
             >
               <div className="flex items-center">
-                <Graduation className="w-5 h-5 mr-2" />
+                <GraduationCap className="w-5 h-5 mr-2" />
                 About
               </div>
             </Link>

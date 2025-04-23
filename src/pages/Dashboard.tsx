@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { 
   Home, 
   Book, 
-  Graduation,
+  GraduationCap,
   User,
   Settings,
   Bell,
