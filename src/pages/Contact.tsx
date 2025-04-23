@@ -57,20 +57,20 @@ const Contact = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-12">
-          <div className="bg-[#F1F0FB] p-8 rounded-lg">
-            <h2 className="text-2xl font-semibold text-[#03045E] mb-6">Get in Touch</h2>
+          <div className="bg-[#0077B6] text-white p-8 rounded-lg">
+            <h2 className="text-2xl font-semibold text-white mb-6">Get in Touch</h2>
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-[#03045E] mb-2">Email</h3>
-                <p className="text-gray-700">support@switch2tech.com</p>
+                <h3 className="text-lg font-medium text-white mb-2">Email</h3>
+                <p>support@switch2tech.com</p>
               </div>
               <div>
-                <h3 className="text-lg font-medium text-[#03045E] mb-2">Location</h3>
-                <p className="text-gray-700">123 Tech Street<br />San Francisco, CA 94105</p>
+                <h3 className="text-lg font-medium text-white mb-2">Location</h3>
+                <p>123 Tech Street<br />San Francisco, CA 94105</p>
               </div>
               <div>
-                <h3 className="text-lg font-medium text-[#03045E] mb-2">Hours</h3>
-                <p className="text-gray-700">Monday - Friday: 9:00 AM - 6:00 PM PST</p>
+                <h3 className="text-lg font-medium text-white mb-2">Hours</h3>
+                <p>Monday - Friday: 9:00 AM - 6:00 PM PST</p>
               </div>
             </div>
           </div>
