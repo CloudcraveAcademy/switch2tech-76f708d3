@@ -31,13 +31,13 @@ const HowSwitchToTechWorksSection = () => {
           {steps.map((step, index) => (
             <div 
               key={index} 
-              className="bg-card backdrop-blur-sm p-6 rounded-lg shadow-sm text-center border border-border"
+              className="bg-brand-dark backdrop-blur-sm p-6 rounded-lg shadow-sm text-center text-white border border-border"
             >
               <div className="flex justify-center mb-4">
                 {step.icon}
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{step.title}</h3>
-              <p className="text-muted-foreground">{step.description}</p>
+              <h3 className="text-xl font-semibold mb-2 text-white">{step.title}</h3>
+              <p className="text-white/80">{step.description}</p>
             </div>
           ))}
         </div>
