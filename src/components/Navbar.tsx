@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ const Navbar = () => {
             <Link to="/" className="flex-shrink-0 flex items-center">
               <img
                 className="h-8 w-auto"
-                src="/logo.svg"
+                src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png"
                 alt="Switch2Tech Academy"
               />
               <span className="ml-2 text-xl font-bold text-[#03045E] hidden md:block">

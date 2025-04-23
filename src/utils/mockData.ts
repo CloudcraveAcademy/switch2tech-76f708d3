@@ -62,6 +62,15 @@ export const generateMockCourses = (count = 10): Course[] => {
   const levels = ["beginner", "intermediate", "advanced"] as const;
   const modes = ["self-paced", "virtual", "live"] as const;
   
+  // Placeholder images for courses
+  const placeholderImages = [
+    "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80", // tech/laptop
+    "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1169&q=80", // code screen
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80", // circuit board
+    "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1172&q=80", // person with laptop
+    "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1171&q=80", // woman with laptop
+  ];
+  
   const randomTags = () => {
     const shuffled = [...tags].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, Math.floor(Math.random() * 5) + 2);
@@ -80,6 +89,9 @@ export const generateMockCourses = (count = 10): Course[] => {
     const lessons = Math.floor(Math.random() * 30) + 10;
     const duration = `${Math.floor(Math.random() * 20) + 5} hours`;
     const featured = Math.random() > 0.8; // 20% chance to be featured
+    
+    // Select a random placeholder image
+    const image = placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
     
     return {
       id,
@@ -100,7 +112,7 @@ export const generateMockCourses = (count = 10): Course[] => {
       rating: parseFloat(rating),
       reviews,
       enrolledStudents,
-      image: `https://source.unsplash.com/random/800x600?${category.toLowerCase().replace(/[^a-z]/g, '')}`,
+      image,
       mode,
       featured,
       tags: randomTags(),
