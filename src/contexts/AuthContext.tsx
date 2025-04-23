@@ -1,13 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
 export type UserRole = "student" | "instructor" | "admin" | "super_admin";
 
 // Extended user type with additional profile information
-export interface UserWithProfile extends User {
+export interface UserWithProfile extends SupabaseUser {
   name?: string;
   avatar?: string;
   role?: UserRole;
@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   // Helper function to enrich user data with profile information
-  const enrichUserWithProfile = async (user: User | null): Promise<UserWithProfile | null> => {
+  const enrichUserWithProfile = async (user: SupabaseUser | null): Promise<UserWithProfile | null> => {
     if (!user) return null;
     
     try {
@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, password: string, email: string, role: UserRole) => {
+  const register = async (name: string, email: string, password: string, role: UserRole) => {
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({

@@ -1,13 +1,22 @@
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Search, Loader2, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -16,378 +25,430 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Users, UserPlus, Search, MoreHorizontal, Mail } from "lucide-react";
 
 interface Student {
   id: string;
   user_id: string;
-  first_name: string;
-  last_name: string;
+  name: string;
   email: string;
-  avatar_url?: string;
-  course_count: number;
-  completion_rate?: number;
-  last_activity?: string;
+  enrolled_courses: number;
+  last_active: string;
+  avatar_url: string | null;
 }
 
-interface StudentEnrollment {
-  enrollment_id: string;
-  student_id: string;
-  course_id: string;
-  course_title: string;
-  enrollment_date: string;
-  progress: number;
-  completed: boolean;
+interface InviteForm {
+  email: string;
+  firstName: string;
+  lastName: string;
+  message: string;
 }
 
 const MyStudents = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [courseFilter, setCourseFilter] = useState("all");
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-
-  // Fetch courses for filter dropdown
-  const { data: courses } = useQuery({
-    queryKey: ["instructor-courses", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title")
-        .eq("instructor_id", user.id);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
+  const { toast } = useToast();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [inviteForm, setInviteForm] = useState<InviteForm>({
+    email: "",
+    firstName: "",
+    lastName: "",
+    message: "",
   });
 
-  // Fetch all students enrolled in instructor's courses
-  const { data: students, isLoading } = useQuery({
-    queryKey: ["instructor-students", user?.id, courseFilter],
-    queryFn: async () => {
-      if (!user?.id) return [];
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
 
-      // Get all courses by the instructor
-      const { data: instructorCourses, error: coursesError } = await supabase
-        .from("courses")
-        .select("id")
-        .eq("instructor_id", user.id);
+    const fetchStudents = async () => {
+      try {
+        setIsLoading(true);
 
-      if (coursesError) throw coursesError;
-      if (!instructorCourses?.length) return [];
+        // Get all courses by this instructor
+        const { data: courses, error: coursesError } = await supabase
+          .from("courses")
+          .select("id")
+          .eq("instructor_id", user.id);
 
-      const courseIds = instructorCourses.map((course) => course.id);
-      
-      // Get enrollments filtered by course if specified
-      let enrollmentsQuery = supabase
-        .from("enrollments")
-        .select("student_id, course_id")
-        .in("course_id", courseIds);
-        
-      if (courseFilter !== "all") {
-        enrollmentsQuery = enrollmentsQuery.eq("course_id", courseFilter);
-      }
-      
-      const { data: enrollments, error: enrollmentsError } = await enrollmentsQuery;
-      
-      if (enrollmentsError) throw enrollmentsError;
-      if (!enrollments?.length) return [];
-      
-      // Get unique student IDs
-      const studentIds = [...new Set(enrollments.map((e) => e.student_id))];
-      
-      // Get student profiles
-      const { data: studentProfiles, error: profilesError } = await supabase
-        .from("user_profiles")
-        .select("id, first_name, last_name, avatar_url")
-        .in("id", studentIds);
-        
-      if (profilesError) throw profilesError;
-      if (!studentProfiles?.length) return [];
-      
-      // Get all users to get emails
-      const { data: authUsers, error: usersError } = await supabase.auth.admin.listUsers();
-      
-      if (usersError) throw usersError;
-      
-      // Count enrollments per student
-      const studentEnrollmentCounts: Record<string, number> = {};
-      enrollments.forEach((enrollment) => {
-        const { student_id } = enrollment;
-        studentEnrollmentCounts[student_id] = (studentEnrollmentCounts[student_id] || 0) + 1;
-      });
-      
-      // Combine data to create student objects
-      const studentsData = studentProfiles.map((profile) => {
-        const userDetails = authUsers?.users.find((u) => u.id === profile.id);
-        
-        return {
-          id: profile.id,
-          user_id: profile.id,
-          first_name: profile.first_name || "",
-          last_name: profile.last_name || "",
-          email: userDetails?.email || "",
-          avatar_url: profile.avatar_url,
-          course_count: studentEnrollmentCounts[profile.id] || 0,
-          // These fields would typically come from actual tracking data
-          completion_rate: Math.floor(Math.random() * 100), // Placeholder
-          last_activity: new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString(), // Placeholder
-        };
-      });
-      
-      return studentsData as Student[];
-    },
-    enabled: !!user?.id,
-  });
+        if (coursesError) throw coursesError;
 
-  // Fetch enrollments for a specific student when selected
-  const { data: studentEnrollments, isLoading: loadingEnrollments } = useQuery({
-    queryKey: ["student-enrollments", selectedStudent, user?.id],
-    queryFn: async () => {
-      if (!selectedStudent || !user?.id) return [];
+        if (!courses || courses.length === 0) {
+          setStudents([]);
+          setFilteredStudents([]);
+          setIsLoading(false);
+          return;
+        }
 
-      const { data: instructorCourses } = await supabase
-        .from("courses")
-        .select("id, title")
-        .eq("instructor_id", user.id);
+        const courseIds = courses.map((course) => course.id);
 
-      if (!instructorCourses?.length) return [];
+        // Get all enrollments for these courses
+        const { data: enrollments, error: enrollmentsError } = await supabase
+          .from("enrollments")
+          .select("student_id, course_id")
+          .in("course_id", courseIds);
 
-      const courseIds = instructorCourses.map((course) => course.id);
-      
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("id, student_id, course_id, enrollment_date, progress, completed")
-        .eq("student_id", selectedStudent)
-        .in("course_id", courseIds);
+        if (enrollmentsError) throw enrollmentsError;
 
-      if (error) throw error;
-      if (!data?.length) return [];
-      
-      // Map course titles to enrollments
-      const enrollmentsWithCourseDetails = await Promise.all(
-        data.map(async (enrollment) => {
-          const course = instructorCourses.find((c) => c.id === enrollment.course_id);
-          
+        if (!enrollments || enrollments.length === 0) {
+          setStudents([]);
+          setFilteredStudents([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get unique student IDs
+        const uniqueStudentIds = [
+          ...new Set(enrollments.map((enrollment) => enrollment.student_id)),
+        ];
+
+        // Get student profiles
+        const { data: profiles, error: profilesError } = await supabase
+          .from("user_profiles")
+          .select("id, first_name, last_name, avatar_url, user_id")
+          .in("user_id", uniqueStudentIds);
+
+        if (profilesError) throw profilesError;
+
+        // Get user emails
+        const { data: users, error: usersError } = await supabase.auth.admin
+          .listUsers();
+
+        if (usersError) throw usersError;
+
+        // Create consolidated student data
+        const studentData = profiles.map((profile) => {
+          const matchingUser = users.users.find(
+            (u) => u.id === profile.user_id
+          );
+          const studentEnrollments = enrollments.filter(
+            (enrollment) => enrollment.student_id === profile.user_id
+          );
+          const lastActive = new Date().toISOString(); // Placeholder for last active
+
           return {
-            enrollment_id: enrollment.id,
-            student_id: enrollment.student_id,
-            course_id: enrollment.course_id,
-            course_title: course?.title || "Unknown Course",
-            enrollment_date: enrollment.enrollment_date,
-            progress: enrollment.progress,
-            completed: enrollment.completed,
+            id: profile.user_id,
+            user_id: profile.user_id,
+            name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim(),
+            email: matchingUser?.email || "N/A",
+            enrolled_courses: studentEnrollments.length,
+            last_active: lastActive,
+            avatar_url: profile.avatar_url,
           };
-        })
+        });
+
+        setStudents(studentData);
+        setFilteredStudents(studentData);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load students. Please try again later.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [navigate, toast, user]);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredStudents(students);
+    } else {
+      const filtered = students.filter(
+        (student) =>
+          student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          student.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      
-      return enrollmentsWithCourseDetails;
-    },
-    enabled: !!selectedStudent && !!user?.id,
-  });
+      setFilteredStudents(filtered);
+    }
+  }, [searchTerm, students]);
 
-  // Filter students based on search query
-  const filteredStudents = students?.filter((student) => {
-    const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
-    const query = searchQuery.toLowerCase();
-    
-    return fullName.includes(query) || student.email.toLowerCase().includes(query);
-  });
-
-  // Select a student to view details
-  const handleSelectStudent = (studentId: string) => {
-    setSelectedStudent(studentId === selectedStudent ? null : studentId);
+  const handleInviteChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setInviteForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
-      </div>
-    );
-  }
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // Here you would send the invitation
+      // For now, let's simulate success
+      toast({
+        variant: "default",
+        title: "Invitation sent",
+        description: `Invitation has been sent to ${inviteForm.email}`,
+      });
+      setInviteForm({
+        email: "",
+        firstName: "",
+        lastName: "",
+        message: "",
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send invitation. Please try again.",
+      });
+    }
+  };
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold flex items-center">
-            <Users className="mr-2" /> My Students
-          </h1>
-          <p className="text-gray-600">Manage and monitor your students' progress</p>
+          <h1 className="text-2xl font-bold">My Students</h1>
+          <p className="text-gray-500">
+            Manage all your students and their enrollments
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Invite Student
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite a Student</DialogTitle>
+                <DialogDescription>
+                  Send an invitation to a new student to join your courses.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleInviteSubmit}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        name="firstName"
+                        value={inviteForm.firstName}
+                        onChange={handleInviteChange}
+                        placeholder="John"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        name="lastName"
+                        value={inviteForm.lastName}
+                        onChange={handleInviteChange}
+                        placeholder="Doe"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={inviteForm.email}
+                      onChange={handleInviteChange}
+                      placeholder="john@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="message">Personal Message (Optional)</Label>
+                    <Input
+                      id="message"
+                      name="message"
+                      value={inviteForm.message}
+                      onChange={handleInviteChange}
+                      placeholder="I'd like to invite you to my course..."
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">Send Invitation</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Students</CardTitle>
-            <CardDescription>
-              {filteredStudents?.length || 0} students enrolled in your courses
-            </CardDescription>
-            
-            <div className="flex flex-col sm:flex-row gap-4 mt-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search students by name or email"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              
-              <div className="w-full sm:w-64">
-                <Select
-                  value={courseFilter}
-                  onValueChange={(value) => setCourseFilter(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Courses</SelectItem>
-                    {courses?.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>Students</CardTitle>
+          <CardDescription>
+            View and manage all students who have enrolled in your courses.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Input
+                className="pl-10"
+                placeholder="Search students by name or email"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </CardHeader>
-          
-          <CardContent>
-            {filteredStudents?.length === 0 ? (
-              <div className="text-center p-10 bg-gray-50 rounded-lg">
-                <Users className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-4 text-lg font-medium">No students found</h3>
-                <p className="mt-1 text-gray-500">
-                  {searchQuery ? "Try a different search term" : "No students are enrolled in your courses yet"}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
+          </div>
+
+          <Tabs defaultValue="all">
+            <TabsList>
+              <TabsTrigger value="all">All Students</TabsTrigger>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="inactive">Inactive</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="pt-4">
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <p>Loading students...</p>
+                </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="text-center py-10">
+                  <Users className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-semibold text-gray-900">
+                    No students found
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {searchTerm
+                      ? "No students match your search criteria."
+                      : "You don't have any students yet."}
+                  </p>
+                  <div className="mt-6">
+                    <Button onClick={() => setIsDialogOpen(true)}>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Invite Students
+                    </Button>
+                  </div>
+                </div>
+              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Student</TableHead>
+                      <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Enrolled Courses</TableHead>
-                      <TableHead>Completion Rate</TableHead>
-                      <TableHead>Last Activity</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>Last Active</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredStudents?.map((student) => (
-                      <TableRow 
-                        key={student.id} 
-                        className={selectedStudent === student.id ? "bg-gray-50" : ""}
-                        onClick={() => handleSelectStudent(student.id)}
-                      >
-                        <TableCell className="font-medium flex items-center space-x-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={student.avatar_url} />
-                            <AvatarFallback>
-                              {student.first_name.charAt(0)}
-                              {student.last_name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{student.first_name} {student.last_name}</span>
+                    {filteredStudents.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 mr-2 rounded-full overflow-hidden bg-gray-200">
+                              {student.avatar_url ? (
+                                <img
+                                  src={student.avatar_url}
+                                  alt={student.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-xs bg-blue-600 text-white">
+                                  {student.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </div>
+                              )}
+                            </div>
+                            {student.name}
+                          </div>
                         </TableCell>
                         <TableCell>{student.email}</TableCell>
-                        <TableCell>{student.course_count}</TableCell>
+                        <TableCell>{student.enrolled_courses}</TableCell>
                         <TableCell>
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className="bg-brand-600 h-2.5 rounded-full"
-                              style={{ width: `${student.completion_rate}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-xs text-gray-500 mt-1">
-                            {student.completion_rate}%
-                          </span>
+                          {new Date(student.last_active).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          {student.last_activity ? new Date(student.last_activity).toLocaleDateString() : "N/A"}
+                          <Badge variant="outline">Active</Badge>
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={`mailto:${student.email}`}>
-                              <Mail className="h-4 w-4 mr-1" /> Contact
-                            </a>
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send Message
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>Remove Student</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+              )}
+            </TabsContent>
+
+            <TabsContent value="active" className="pt-4">
+              <div className="text-center py-10">
+                <p>Active students will be shown here</p>
               </div>
-            )}
-            
-            {/* Student Details Section when a student is selected */}
-            {selectedStudent && (
-              <div className="mt-6 pt-6 border-t">
-                <h3 className="text-lg font-medium mb-4">
-                  Student Enrollments
-                </h3>
-                
-                {loadingEnrollments ? (
-                  <div className="flex justify-center p-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  </div>
-                ) : studentEnrollments?.length === 0 ? (
-                  <p className="text-gray-500">No enrollments found for this student</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Course</TableHead>
-                          <TableHead>Enrolled On</TableHead>
-                          <TableHead>Progress</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {studentEnrollments?.map((enrollment) => (
-                          <TableRow key={enrollment.enrollment_id}>
-                            <TableCell className="font-medium">{enrollment.course_title}</TableCell>
-                            <TableCell>
-                              {new Date(enrollment.enrollment_date).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                <div
-                                  className="bg-brand-600 h-2.5 rounded-full"
-                                  style={{ width: `${enrollment.progress}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-xs text-gray-500 mt-1">
-                                {enrollment.progress}%
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={enrollment.completed ? "success" : "default"}>
-                                {enrollment.completed ? "Completed" : "In Progress"}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+            </TabsContent>
+
+            <TabsContent value="inactive" className="pt-4">
+              <div className="text-center py-10">
+                <p>Inactive students will be shown here</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm text-gray-500">
+            Total students: {filteredStudents.length}
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
