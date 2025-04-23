@@ -5,55 +5,55 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="bg-gray-50 border-t border-gray-200">
+    <footer className="bg-background border-t border-border">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center">
               <img src="/logo.svg" alt="Switch2Tech Academy" className="h-8 w-auto" />
-              <span className="ml-2 text-xl font-bold text-brand-700">Switch2Tech Academy</span>
+              <span className="ml-2 text-xl font-bold text-brand-dark">Switch2Tech Academy</span>
             </Link>
-            <p className="mt-4 text-sm text-gray-600 max-w-md">
+            <p className="mt-4 text-sm text-muted-foreground max-w-md">
               Learn. Build. Transform Your Career. Switch2Tech Academy is your gateway to a successful career in technology through structured courses, mentorship, internship, and certification.
             </p>
           </div>
           
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Quick Links</h3>
+            <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-gray-600 hover:text-brand-600 text-sm">Home</Link>
+                <Link to="/" className="text-muted-foreground hover:text-brand text-sm">Home</Link>
               </li>
               <li>
-                <Link to="/courses" className="text-gray-600 hover:text-brand-600 text-sm">Courses</Link>
+                <Link to="/courses" className="text-muted-foreground hover:text-brand text-sm">Courses</Link>
               </li>
               <li>
-                <Link to="/about" className="text-gray-600 hover:text-brand-600 text-sm">About</Link>
+                <Link to="/about" className="text-muted-foreground hover:text-brand text-sm">About</Link>
               </li>
               <li>
-                <Link to="/contact" className="text-gray-600 hover:text-brand-600 text-sm">Contact</Link>
+                <Link to="/contact" className="text-muted-foreground hover:text-brand text-sm">Contact</Link>
               </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
+            <h3 className="font-semibold text-foreground mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/privacy" className="text-gray-600 hover:text-brand-600 text-sm">Privacy Policy</Link>
+                <Link to="/privacy" className="text-muted-foreground hover:text-brand text-sm">Privacy Policy</Link>
               </li>
               <li>
-                <Link to="/terms" className="text-gray-600 hover:text-brand-600 text-sm">Terms of Service</Link>
+                <Link to="/terms" className="text-muted-foreground hover:text-brand text-sm">Terms of Service</Link>
               </li>
               <li>
-                <Link to="/refund" className="text-gray-600 hover:text-brand-600 text-sm">Refund Policy</Link>
+                <Link to="/refund" className="text-muted-foreground hover:text-brand text-sm">Refund Policy</Link>
               </li>
             </ul>
           </div>
         </div>
         
-        <div className="mt-8 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-gray-500">
+        <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
+          <p className="text-sm text-muted-foreground">
             &copy; {currentYear} Switch2Tech Academy. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
