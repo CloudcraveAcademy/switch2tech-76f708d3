@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogOverlay,
 } from "@/components/ui/dialog";
+import Logo from "@/components/common/Logo";
 
 type DashboardMobileMenuProps = {
   isOpen: boolean;
@@ -50,12 +51,7 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
               </button>
             </div>
             <div className="flex flex-shrink-0 items-center px-4 h-16 border-b">
-              <img 
-                src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" 
-                alt="Switch2Tech" 
-                className="h-8 w-auto" 
-              />
-              <span className="ml-2 text-lg font-bold text-brand-700">Switch2Tech</span>
+              <Logo />
             </div>
             <div className="mt-4 h-0 flex-1 overflow-y-auto">
               <nav className="space-y-1 px-2">
@@ -186,7 +182,7 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
               </nav>
             </div>
           </div>
-          <div className="w-14 flex-shrink-0">{/* Force sidebar to shrink to fit close icon */}</div>
+          <div className="w-14 flex-shrink-0" />
         </div>
       </DialogContent>
     </Dialog>
