@@ -52,8 +52,12 @@ const NotFound = () => {
     handleAuthRedirect();
   }, [location.hash, location.pathname, navigate, toast]);
 
-  // Determine the most appropriate return path
+  // Enhanced getReturnPath to better handle course-related URLs
   const getReturnPath = () => {
+    // If this is a course URL that's not found, redirect to My Courses
+    if (location.pathname.includes('/dashboard/courses/')) {
+      return '/dashboard/my-courses';
+    }
     if (location.pathname.includes('/dashboard')) {
       return '/dashboard';
     }
@@ -87,8 +91,10 @@ const NotFound = () => {
         <div className="space-y-3">
           <Button asChild className="w-full">
             <Link to={getReturnPath()}>
-              {location.pathname.includes('/dashboard') 
-                ? 'Return to Dashboard' 
+              {location.pathname.includes('/dashboard/courses') 
+                ? 'Return to My Courses' 
+                : location.pathname.includes('/dashboard')
+                ? 'Return to Dashboard'
                 : 'Return to Home'}
             </Link>
           </Button>

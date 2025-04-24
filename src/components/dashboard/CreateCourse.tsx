@@ -134,8 +134,8 @@ const CreateCourse = () => {
         description: "Your course has been saved as a draft",
       });
       
-      // Redirect to course edit page
-      navigate(`/dashboard/courses/${course.id}`);
+      // Fix: Navigate to the correct course edit route
+      navigate(`/dashboard/courses/${course.id}/edit`);
     } catch (error: any) {
       toast({
         title: "Failed to create course",
