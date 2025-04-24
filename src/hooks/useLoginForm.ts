@@ -20,6 +20,7 @@ export const useLoginForm = () => {
   const [errors, setErrors] = useState<LoginFormErrors>({ email: "", password: "" });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Load remembered email from localStorage on initial render
   useEffect(() => {
@@ -40,6 +41,7 @@ export const useLoginForm = () => {
   const validate = () => {
     let valid = true;
     const newErrors = { email: "", password: "" };
+    setAuthError(null);
 
     if (!email) {
       newErrors.email = "Email is required";
@@ -75,6 +77,7 @@ export const useLoginForm = () => {
     }
 
     setLoginInProgress(true);
+    setAuthError(null);
     
     try {
       console.log("Attempting login with email:", email, "remember me:", rememberMe);
@@ -100,6 +103,14 @@ export const useLoginForm = () => {
       
     } catch (error: any) {
       console.error("Login error in handleSubmit:", error);
+      
+      // Handle specific error codes
+      if (error.code === "email_not_confirmed") {
+        setAuthError("Please check your email to confirm your account before logging in.");
+      } else {
+        setAuthError(error.message || "Please check your email and password");
+      }
+      
       toast({
         title: "Login failed",
         description: error.message || "Please check your email and password",
@@ -118,6 +129,7 @@ export const useLoginForm = () => {
     setRememberMe,
     loginInProgress,
     errors,
+    authError,
     loading: authLoading,
     showForgotPassword,
     setShowForgotPassword,

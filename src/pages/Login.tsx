@@ -19,6 +19,7 @@ const Login = () => {
     setRememberMe,
     loginInProgress,
     errors,
+    authError,
     loading,
     showForgotPassword,
     setShowForgotPassword,
@@ -58,6 +59,7 @@ const Login = () => {
               loginInProgress={loginInProgress}
               setShowForgotPassword={setShowForgotPassword}
               handleSubmit={handleSubmit}
+              authError={authError}
             />
           ) : (
             <ForgotPasswordForm

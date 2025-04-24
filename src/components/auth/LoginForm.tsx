@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import type { LoginFormErrors } from "@/hooks/useLoginForm";
 
 interface LoginFormProps {
@@ -17,6 +19,7 @@ interface LoginFormProps {
   loginInProgress: boolean;
   setShowForgotPassword: (show: boolean) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
+  authError: string | null;
 }
 
 export const LoginForm = ({
@@ -31,10 +34,18 @@ export const LoginForm = ({
   loginInProgress,
   setShowForgotPassword,
   handleSubmit,
+  authError,
 }: LoginFormProps) => {
   return (
     <form onSubmit={handleSubmit}>
       <div className="space-y-4">
+        {authError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{authError}</AlertDescription>
+          </Alert>
+        )}
+
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             Email Address
