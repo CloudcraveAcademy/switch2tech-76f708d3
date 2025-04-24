@@ -1,6 +1,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import type { LoginFormErrors } from "@/hooks/useLoginForm";
 
@@ -9,6 +10,8 @@ interface LoginFormProps {
   setEmail: (email: string) => void;
   password: string;
   setPassword: (password: string) => void;
+  rememberMe: boolean;
+  setRememberMe: (checked: boolean) => void;
   errors: LoginFormErrors;
   loading: boolean;
   loginInProgress: boolean;
@@ -21,6 +24,8 @@ export const LoginForm = ({
   setEmail,
   password,
   setPassword,
+  rememberMe,
+  setRememberMe,
   errors,
   loading,
   loginInProgress,
@@ -63,15 +68,17 @@ export const LoginForm = ({
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
+          <div className="flex items-center space-x-2">
+            <Checkbox
               id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded"
+              checked={rememberMe}
+              onCheckedChange={(checked) => setRememberMe(checked as boolean)}
               disabled={loginInProgress}
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+            <label
+              htmlFor="remember-me"
+              className="text-sm text-gray-700 cursor-pointer"
+            >
               Remember me
             </label>
           </div>

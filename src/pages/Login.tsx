@@ -15,6 +15,8 @@ const Login = () => {
     setEmail,
     password,
     setPassword,
+    rememberMe,
+    setRememberMe,
     loginInProgress,
     errors,
     loading,
@@ -49,6 +51,8 @@ const Login = () => {
               setEmail={setEmail}
               password={password}
               setPassword={setPassword}
+              rememberMe={rememberMe}
+              setRememberMe={setRememberMe}
               errors={errors}
               loading={loading}
               loginInProgress={loginInProgress}

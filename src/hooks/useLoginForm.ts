@@ -15,6 +15,7 @@ export const useLoginForm = () => {
   const { login, loading, setLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loginInProgress, setLoginInProgress] = useState(false);
   const [errors, setErrors] = useState<LoginFormErrors>({ email: "", password: "" });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -55,8 +56,13 @@ export const useLoginForm = () => {
     setLoginInProgress(true);
     
     try {
-      console.log("Attempting login with email:", email);
+      console.log("Attempting login with email:", email, "remember me:", rememberMe);
       await login(email, password);
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
       console.log("Login successful");
       toast({
         title: "Login successful",
@@ -74,6 +80,8 @@ export const useLoginForm = () => {
     setEmail,
     password,
     setPassword,
+    rememberMe,
+    setRememberMe,
     loginInProgress,
     errors,
     loading,
