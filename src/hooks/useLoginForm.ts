@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,15 @@ export const useLoginForm = () => {
   const [errors, setErrors] = useState<LoginFormErrors>({ email: "", password: "" });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+
+  // Load remembered email from localStorage on initial render
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const validate = () => {
     let valid = true;
@@ -70,6 +79,11 @@ export const useLoginForm = () => {
       });
     } catch (error: any) {
       console.error("Login error in handleSubmit:", error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again",
+        variant: "destructive",
+      });
       setLoginInProgress(false);
       setLoading(false);
     }
