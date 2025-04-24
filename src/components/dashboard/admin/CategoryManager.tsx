@@ -62,9 +62,10 @@ export function CategoryManager() {
 
   const createMutation = useMutation({
     mutationFn: async (values: CategoryFormValues) => {
+      // Fix: Ensure we're passing an object with the required 'name' field
       const { error } = await supabase
         .from('course_categories')
-        .insert([values]);
+        .insert([values]); // Pass values as an array of one object
       
       if (error) throw error;
     },
@@ -138,6 +139,15 @@ export function CategoryManager() {
   });
 
   const onSubmit = (values: CategoryFormValues) => {
+    // Make sure name is present and valid
+    if (!values.name || values.name.trim() === '') {
+      form.setError('name', {
+        type: 'manual',
+        message: 'Name is required',
+      });
+      return;
+    }
+
     if (editingId) {
       updateMutation.mutate({ ...values, id: editingId });
     } else {
