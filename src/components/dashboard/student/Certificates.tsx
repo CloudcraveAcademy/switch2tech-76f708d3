@@ -1,13 +1,15 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatDate } from "@/lib/utils";
-import { Search, Download, Award } from "lucide-react";
+import { Tabs, TabsContent, TabsContent as TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDate } from "@/lib/utils";
+import { Award, Download, ExternalLink, Search, Share2 } from "lucide-react";
 
 interface Certificate {
   id: string;
@@ -15,27 +17,34 @@ interface Certificate {
   issue_date: string;
   pdf_url: string;
   course: {
+    id: string;
     title: string;
+    image_url: string;
+    level: string;
     instructor: {
       first_name: string;
       last_name: string;
-    };
-  };
+    }
+  }
 }
 
 const Certificates = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch certificates from Supabase
   const { data: certificates, isLoading } = useQuery({
-    queryKey: ['certificates'],
+    queryKey: ['certificates', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('certificates')
         .select(`
           *,
           course:courses (
+            id,
             title,
+            image_url,
+            level,
             instructor:user_profiles!instructor_id (
               first_name,
               last_name
@@ -51,15 +60,13 @@ const Certificates = () => {
 
       return data as Certificate[];
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   // Filter certificates based on search query
   const filteredCertificates = certificates?.filter(cert => 
     cert.course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cert.certificate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cert.course.instructor.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cert.course.instructor.last_name.toLowerCase().includes(searchQuery.toLowerCase())
+    cert.certificate_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (isLoading) {
@@ -74,8 +81,10 @@ const Certificates = () => {
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">My Certificates</h1>
-          <p className="text-gray-600">View and download your course completion certificates</p>
+          <h1 className="text-2xl font-bold mb-1 flex items-center">
+            <Award className="mr-2" /> My Certificates
+          </h1>
+          <p className="text-gray-600">View and manage your earned certificates</p>
         </div>
         
         <div className="relative mt-4 md:mt-0 w-full md:w-64">
@@ -90,85 +99,116 @@ const Certificates = () => {
       </div>
 
       {filteredCertificates?.length === 0 ? (
-        <div className="bg-gray-50 rounded-lg p-10 text-center">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-brand-100 mb-4">
-            <Award className="h-8 w-8 text-brand-600" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No certificates yet</h3>
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-medium mb-2">No certificates yet</h3>
           <p className="text-gray-500 mb-6">Complete courses to earn your first certificate</p>
           <Button asChild>
-            <a href="/dashboard/my-courses">Continue Learning</a>
+            <Link to="/courses">Browse Courses</Link>
           </Button>
         </div>
       ) : (
-        <div className="bg-white rounded-lg overflow-hidden border">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="py-3 px-4 font-medium text-gray-900">Certificate</th>
-                  <th className="py-3 px-4 font-medium text-gray-900">Course</th>
-                  <th className="py-3 px-4 font-medium text-gray-900">Instructor</th>
-                  <th className="py-3 px-4 font-medium text-gray-900">Issued On</th>
-                  <th className="py-3 px-4 font-medium text-gray-900">Certificate ID</th>
-                  <th className="py-3 px-4 font-medium text-gray-900">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredCertificates?.map((certificate) => (
-                  <tr key={certificate.id} className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center">
-                        <Award className="h-5 w-5 text-yellow-500 mr-2" />
-                        <span>Certificate of Completion</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-medium">{certificate.course.title}</td>
-                    <td className="py-3 px-4">
-                      {certificate.course.instructor.first_name} {certificate.course.instructor.last_name}
-                    </td>
-                    <td className="py-3 px-4">{formatDate(certificate.issue_date)}</td>
-                    <td className="py-3 px-4">
-                      <span className="text-xs font-mono bg-gray-100 p-1 rounded">
-                        {certificate.certificate_number}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        disabled={!certificate.pdf_url}
-                        onClick={() => certificate.pdf_url && window.open(certificate.pdf_url, '_blank')}
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCertificates?.map(certificate => (
+            <CertificateCard key={certificate.id} certificate={certificate} />
+          ))}
         </div>
       )}
-
-      <div className="mt-8">
-        <h2 className="text-lg font-medium mb-4">Certificate Verification</h2>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-gray-600 mb-4">
-              Employers and other institutions can verify the authenticity of your certificates
-              by entering the Certificate ID on our verification portal.
-            </p>
-            <Button variant="outline" asChild>
-              <a href="/certificate-verification" target="_blank" rel="noopener noreferrer">
-                Go to Verification Portal
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
     </div>
+  );
+};
+
+interface CertificateCardProps {
+  certificate: Certificate;
+}
+
+const CertificateCard = ({ certificate }: CertificateCardProps) => {
+  const handleShareCertificate = () => {
+    // In a real app, this would use the Web Share API or copy a link to clipboard
+    if (navigator.share) {
+      navigator.share({
+        title: `Certificate for ${certificate.course.title}`,
+        text: `Check out my certificate for completing ${certificate.course.title}!`,
+        url: window.location.origin + `/certificates/${certificate.id}`,
+      }).catch(console.error);
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      alert(`Share link: ${window.location.origin}/certificates/${certificate.id}`);
+    }
+  };
+
+  // Function to determine badge color based on course level
+  const getLevelBadgeColor = (level: string) => {
+    switch (level?.toLowerCase()) {
+      case 'beginner':
+        return "bg-green-100 text-green-800";
+      case 'intermediate':
+        return "bg-yellow-100 text-yellow-800";
+      case 'advanced':
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-blue-100 text-blue-800";
+    }
+  };
+
+  return (
+    <Card>
+      <div className="relative h-40 bg-gradient-to-r from-blue-500 to-purple-600 overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Award className="h-16 w-16 text-white opacity-20" />
+        </div>
+        <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
+          <h3 className="font-bold text-lg truncate">
+            {certificate.course.title}
+          </h3>
+          <p className="text-sm opacity-90">
+            {certificate.course.instructor.first_name} {certificate.course.instructor.last_name}
+          </p>
+        </div>
+      </div>
+      
+      <CardContent className="pt-4">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500">Certificate ID:</span>
+            <span className="text-sm font-mono">{certificate.certificate_number}</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500">Issued on:</span>
+            <span className="text-sm">{formatDate(certificate.issue_date)}</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500">Level:</span>
+            <span className={`text-xs px-2 py-1 rounded-full ${getLevelBadgeColor(certificate.course.level)}`}>
+              {certificate.course.level}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+      
+      <CardFooter className="flex flex-col gap-2">
+        <Button className="w-full" asChild>
+          <a href={certificate.pdf_url} download target="_blank" rel="noopener noreferrer">
+            <Download className="mr-1 h-4 w-4" />
+            Download Certificate
+          </a>
+        </Button>
+        <div className="flex w-full gap-2">
+          <Button variant="outline" className="flex-1" onClick={handleShareCertificate}>
+            <Share2 className="mr-1 h-4 w-4" />
+            Share
+          </Button>
+          <Button variant="outline" className="flex-1" asChild>
+            <Link to={`/certificates/${certificate.id}`}>
+              <ExternalLink className="mr-1 h-4 w-4" />
+              View
+            </Link>
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 

@@ -12,6 +12,7 @@ import Settings from "./Settings";
 import Notifications from "./Notifications";
 import CreateCourse from "./CreateCourse";
 import CourseEdit from "./CourseEdit";
+import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardRoutes = () => {
@@ -36,11 +37,13 @@ const DashboardRoutes = () => {
       <Route path="/" element={getInitialDashboard()} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/notifications" element={<Notifications />} />
+      <Route path="/settings" element={<Settings />} />
       
       {/* Student Routes */}
       {user?.role === "student" && (
         <>
           <Route path="/my-courses" element={<MyCourses />} />
+          <Route path="/courses/:courseId" element={<CourseView />} />
           <Route path="/certificates" element={<Certificates />} />
         </>
       )}
@@ -66,7 +69,6 @@ const DashboardRoutes = () => {
       )}
       
       {/* Common Routes */}
-      <Route path="/settings" element={<Settings />} />
       <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
     </Routes>
   );

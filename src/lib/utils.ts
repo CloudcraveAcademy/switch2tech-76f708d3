@@ -1,62 +1,55 @@
-
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-import { format, parseISO, isValid, formatDistanceToNow } from "date-fns"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function formatDate(dateString: string): string {
+  if (!dateString) return "N/A";
+  
   try {
-    if (!dateString) return "N/A";
+    const date = new Date(dateString);
     
-    const date = parseISO(dateString);
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
     
-    if (!isValid(date)) return "Invalid date";
+    // If today, show "Today at HH:MM AM/PM"
+    if (isToday(date)) {
+      return `Today at ${format(date, "h:mm a")}`;
+    }
     
-    return format(date, 'MMM dd, yyyy');
+    // If yesterday, show "Yesterday at HH:MM AM/PM"
+    if (isYesterday(date)) {
+      return `Yesterday at ${format(date, "h:mm a")}`;
+    }
+    
+    // If within the last week, show "X days ago"
+    const daysDiff = Math.floor((new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff < 7) {
+      return formatDistanceToNow(date, { addSuffix: true });
+    }
+    
+    // Otherwise, show the full date
+    return format(date, "MMM d, yyyy");
   } catch (error) {
     console.error("Error formatting date:", error);
     return "Invalid date";
   }
 }
 
-export function formatDateTime(dateString: string): string {
-  try {
-    if (!dateString) return "N/A";
-    
-    const date = parseISO(dateString);
-    
-    if (!isValid(date)) return "Invalid date";
-    
-    return format(date, 'MMM dd, yyyy - h:mm a');
-  } catch (error) {
-    console.error("Error formatting date and time:", error);
-    return "Invalid date";
-  }
-}
-
-export function formatRelativeTime(dateString: string): string {
-  try {
-    if (!dateString) return "N/A";
-    
-    const date = parseISO(dateString);
-    
-    if (!isValid(date)) return "Invalid date";
-    
-    return formatDistanceToNow(date, { addSuffix: true });
-  } catch (error) {
-    console.error("Error formatting relative time:", error);
-    return "Invalid date";
-  }
-}
-
 export function formatCurrency(amount: number, currency: string = "NGN"): string {
+  if (typeof amount !== 'number') return "N/A";
+  
   try {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   } catch (error) {
     console.error("Error formatting currency:", error);
@@ -64,8 +57,23 @@ export function formatCurrency(amount: number, currency: string = "NGN"): string
   }
 }
 
-export function truncateText(text: string, maxLength: number): string {
+export function truncateText(text: string, maxLength: number = 100): string {
   if (!text) return "";
   if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength)}...`;
+  return text.slice(0, maxLength) + "...";
+}
+
+export function calculateTimeToComplete(totalMinutes: number): string {
+  if (!totalMinutes || totalMinutes <= 0) return "N/A";
+  
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  
+  if (hours === 0) {
+    return `${minutes} mins`;
+  } else if (minutes === 0) {
+    return hours === 1 ? "1 hour" : `${hours} hours`;
+  } else {
+    return `${hours}h ${minutes}m`;
+  }
 }

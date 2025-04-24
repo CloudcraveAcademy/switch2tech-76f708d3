@@ -215,7 +215,7 @@ const CourseCard = ({ course }: CourseCardProps) => {
         />
         <div className="absolute top-2 right-2">
           <Badge className={getLevelBadgeColor(course.level)}>
-            {course.level?.charAt(0).toUpperCase() + course.level?.slice(1)}
+            {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
           </Badge>
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,8 @@ const Profile = () => {
     linkedIn: "",
     github: "",
     twitter: "",
+    studentStatus: "Current", // Added student status field
+    careerLevel: "Junior", // Added career level field
     preference_notifications: true,
     preference_newsletter: true,
   });
@@ -54,6 +57,14 @@ const Profile = () => {
   const countries = [
     "Nigeria", "Ghana", "Kenya", "South Africa", "Egypt", 
     "United States", "United Kingdom", "Canada", "Australia"
+  ];
+
+  const studentStatuses = [
+    "Prospective", "Current", "Alumni"
+  ];
+
+  const careerLevels = [
+    "Student/Learning", "Junior", "Mid-Level", "Senior", "Lead/Manager"
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -132,7 +143,11 @@ const Profile = () => {
                 
                 <h2 className="mt-4 text-xl font-bold">{user?.name}</h2>
                 <p className="text-gray-500 capitalize">{formData.jobTitle}</p>
-                <p className="text-sm text-gray-500">{formData.country}</p>
+                <div className="flex items-center mt-1">
+                  <Badge className="bg-blue-100 text-blue-800 mr-2">{formData.studentStatus} Student</Badge>
+                  <Badge className="bg-purple-100 text-purple-800">{formData.careerLevel}</Badge>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">{formData.country}</p>
                 
                 <div className="w-full mt-6">
                   <div className="border-t pt-4 pb-4">
@@ -301,6 +316,36 @@ const Profile = () => {
                           onChange={handleChange}
                           placeholder="Your phone number"
                         />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="studentStatus">Student Status</Label>
+                        <Select name="studentStatus" value={formData.studentStatus} onValueChange={(value) => setFormData(prev => ({ ...prev, studentStatus: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {studentStatuses.map(status => (
+                              <SelectItem key={status} value={status}>{status}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="careerLevel">Career Level</Label>
+                        <Select name="careerLevel" value={formData.careerLevel} onValueChange={(value) => setFormData(prev => ({ ...prev, careerLevel: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select career level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {careerLevels.map(level => (
+                              <SelectItem key={level} value={level}>{level}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     

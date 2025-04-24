@@ -1,180 +1,121 @@
 
 import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BellRing, Settings as SettingsIcon, PanelLeft, Wallet, Calendar, Clock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { formatDate } from "@/lib/utils";
-
-const notificationsFormSchema = z.object({
-  emailNotifications: z.boolean(),
-  pushNotifications: z.boolean(),
-  marketingEmails: z.boolean(),
-  courseUpdates: z.boolean(),
-  assignmentReminders: z.boolean(),
-  newMessages: z.boolean(),
-});
-
-const appearanceFormSchema = z.object({
-  theme: z.enum(["light", "dark", "system"]),
-  fontSize: z.enum(["small", "medium", "large"]),
-  reduceAnimations: z.boolean(),
-});
-
-const accessibilityFormSchema = z.object({
-  screenReader: z.boolean(),
-  highContrast: z.boolean(),
-  closedCaptions: z.boolean(),
-});
-
-const paymentFormSchema = z.object({
-  defaultPaymentMethod: z.enum(["card", "bank", "paystack"]),
-  savePaymentInfo: z.boolean(),
-  currency: z.enum(["NGN", "USD", "GBP", "EUR"]),
-});
-
-type NotificationsFormValues = z.infer<typeof notificationsFormSchema>;
-type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
-type AccessibilityFormValues = z.infer<typeof accessibilityFormSchema>;
-type PaymentFormValues = z.infer<typeof paymentFormSchema>;
+import { 
+  Bell,
+  Mail,
+  Lock,
+  Shield,
+  Settings as SettingsIcon,
+  Eye,
+  Languages,
+  Laptop,
+  Trash2,
+  LogOut
+} from "lucide-react";
 
 const Settings = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Notifications form
-  const notificationsForm = useForm<NotificationsFormValues>({
-    resolver: zodResolver(notificationsFormSchema),
-    defaultValues: {
-      emailNotifications: true,
-      pushNotifications: true,
-      marketingEmails: false,
-      courseUpdates: true,
-      assignmentReminders: true,
-      newMessages: true,
-    },
+  
+  const [emailSettings, setEmailSettings] = useState({
+    courseUpdates: true,
+    assignments: true,
+    announcements: true,
+    reminders: true,
+    marketing: false,
   });
 
-  // Appearance form
-  const appearanceForm = useForm<AppearanceFormValues>({
-    resolver: zodResolver(appearanceFormSchema),
-    defaultValues: {
-      theme: "system",
-      fontSize: "medium",
-      reduceAnimations: false,
-    },
+  const [pushSettings, setPushSettings] = useState({
+    courseUpdates: true,
+    newMessages: true,
+    assignments: true,
+    reminders: true,
   });
 
-  // Accessibility form
-  const accessibilityForm = useForm<AccessibilityFormValues>({
-    resolver: zodResolver(accessibilityFormSchema),
-    defaultValues: {
-      screenReader: false,
-      highContrast: false,
-      closedCaptions: true,
-    },
+  const [privacySettings, setPrivacySettings] = useState({
+    profileVisibility: "everyone",
+    activityVisibility: "enrolled",
+    showOnlineStatus: true,
   });
 
-  // Payment form
-  const paymentForm = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentFormSchema),
-    defaultValues: {
-      defaultPaymentMethod: "card",
-      savePaymentInfo: true,
-      currency: "NGN",
-    },
+  const [accessibilitySettings, setAccessibilitySettings] = useState({
+    reduceMotion: false,
+    contrastMode: false,
+    largerText: false,
+    autoplay: true,
   });
 
-  function onNotificationsSubmit(data: NotificationsFormValues) {
-    setIsLoading(true);
-    setTimeout(() => {
-      toast({
-        title: "Notification Settings Updated",
-        description: "Your notification settings have been updated successfully.",
-      });
-      setIsLoading(false);
-    }, 1000);
-  }
+  const handleEmailSettingsChange = (setting: keyof typeof emailSettings) => {
+    setEmailSettings({
+      ...emailSettings,
+      [setting]: !emailSettings[setting],
+    });
+  };
 
-  function onAppearanceSubmit(data: AppearanceFormValues) {
-    setIsLoading(true);
-    setTimeout(() => {
-      toast({
-        title: "Appearance Settings Updated",
-        description: "Your appearance settings have been updated successfully.",
-      });
-      setIsLoading(false);
-    }, 1000);
-  }
+  const handlePushSettingsChange = (setting: keyof typeof pushSettings) => {
+    setPushSettings({
+      ...pushSettings,
+      [setting]: !pushSettings[setting],
+    });
+  };
 
-  function onAccessibilitySubmit(data: AccessibilityFormValues) {
-    setIsLoading(true);
-    setTimeout(() => {
-      toast({
-        title: "Accessibility Settings Updated",
-        description: "Your accessibility settings have been updated successfully.",
-      });
-      setIsLoading(false);
-    }, 1000);
-  }
+  const handlePrivacyChange = (setting: keyof typeof privacySettings, value: any) => {
+    setPrivacySettings({
+      ...privacySettings,
+      [setting]: value,
+    });
+  };
 
-  function onPaymentSubmit(data: PaymentFormValues) {
-    setIsLoading(true);
-    setTimeout(() => {
-      toast({
-        title: "Payment Settings Updated",
-        description: "Your payment settings have been updated successfully.",
-      });
-      setIsLoading(false);
-    }, 1000);
-  }
+  const handleAccessibilityChange = (setting: keyof typeof accessibilitySettings) => {
+    setAccessibilitySettings({
+      ...accessibilitySettings,
+      [setting]: !accessibilitySettings[setting],
+    });
+  };
+
+  const saveSettings = () => {
+    toast({
+      title: "Settings updated",
+      description: "Your settings have been updated successfully.",
+    });
+  };
+
+  const deleteAccount = () => {
+    // In a real app, we'd show a confirmation dialog first
+    toast({
+      title: "Account deletion requested",
+      description: "Please check your email to confirm account deletion.",
+      variant: "destructive",
+    });
+  };
 
   return (
-    <div className="p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-gray-500">
-          Manage your account settings and preferences
-        </p>
-      </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-8">Settings</h1>
 
       <Tabs defaultValue="notifications" className="space-y-8">
         <div className="border-b">
-          {/* Fixing the TabsList to not use className incorrectly */}
           <TabsList className="w-full justify-start h-auto p-0">
             <TabsTrigger 
               value="notifications" 
               className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
             >
-              <BellRing className="h-4 w-4 mr-2" />
+              <Bell className="h-4 w-4 mr-2" />
               Notifications
             </TabsTrigger>
             <TabsTrigger 
-              value="appearance" 
+              value="privacy" 
               className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
             >
-              <PanelLeft className="h-4 w-4 mr-2" />
-              Appearance
+              <Lock className="h-4 w-4 mr-2" />
+              Privacy
             </TabsTrigger>
             <TabsTrigger 
               value="accessibility" 
@@ -184,483 +125,312 @@ const Settings = () => {
               Accessibility
             </TabsTrigger>
             <TabsTrigger 
-              value="payment" 
+              value="account" 
               className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
             >
-              <Wallet className="h-4 w-4 mr-2" />
-              Payment
+              <Shield className="h-4 w-4 mr-2" />
+              Account
             </TabsTrigger>
           </TabsList>
         </div>
-
-        {/* Notification Settings */}
+        
         <TabsContent value="notifications">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Mail className="h-5 w-5 mr-2" />
+                  Email Notifications
+                </CardTitle>
+                <CardDescription>Configure which emails you receive from our platform</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="courseUpdates">Course updates and announcements</Label>
+                    <Switch 
+                      id="courseUpdates" 
+                      checked={emailSettings.courseUpdates}
+                      onCheckedChange={() => handleEmailSettingsChange("courseUpdates")}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="assignmentsEmail">New assignments and deadlines</Label>
+                    <Switch 
+                      id="assignmentsEmail" 
+                      checked={emailSettings.assignments}
+                      onCheckedChange={() => handleEmailSettingsChange("assignments")}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="announcementsEmail">Platform announcements</Label>
+                    <Switch 
+                      id="announcementsEmail" 
+                      checked={emailSettings.announcements}
+                      onCheckedChange={() => handleEmailSettingsChange("announcements")}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="remindersEmail">Class reminders</Label>
+                    <Switch 
+                      id="remindersEmail" 
+                      checked={emailSettings.reminders}
+                      onCheckedChange={() => handleEmailSettingsChange("reminders")}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="marketingEmail">Marketing and promotional emails</Label>
+                    <Switch 
+                      id="marketingEmail" 
+                      checked={emailSettings.marketing}
+                      onCheckedChange={() => handleEmailSettingsChange("marketing")}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Bell className="h-5 w-5 mr-2" />
+                  Push Notifications
+                </CardTitle>
+                <CardDescription>Configure notifications within the platform</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="courseUpdatesPush">Course updates</Label>
+                    <Switch 
+                      id="courseUpdatesPush" 
+                      checked={pushSettings.courseUpdates}
+                      onCheckedChange={() => handlePushSettingsChange("courseUpdates")}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="newMessagesPush">New messages and comments</Label>
+                    <Switch 
+                      id="newMessagesPush" 
+                      checked={pushSettings.newMessages}
+                      onCheckedChange={() => handlePushSettingsChange("newMessages")}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="assignmentsPush">Assignment deadlines</Label>
+                    <Switch 
+                      id="assignmentsPush" 
+                      checked={pushSettings.assignments}
+                      onCheckedChange={() => handlePushSettingsChange("assignments")}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="remindersPush">Class reminders</Label>
+                    <Switch 
+                      id="remindersPush" 
+                      checked={pushSettings.reminders}
+                      onCheckedChange={() => handlePushSettingsChange("reminders")}
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <Button onClick={saveSettings}>Save Notification Settings</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="privacy">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>
-                Manage how you receive notifications and updates
-              </CardDescription>
+              <CardTitle className="flex items-center">
+                <Eye className="h-5 w-5 mr-2" />
+                Privacy Settings
+              </CardTitle>
+              <CardDescription>Control who can see your information and activity</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...notificationsForm}>
-                <form onSubmit={notificationsForm.handleSubmit(onNotificationsSubmit)} className="space-y-6">
-                  <FormField
-                    control={notificationsForm.control}
-                    name="emailNotifications"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Email Notifications</FormLabel>
-                          <FormDescription>
-                            Receive notifications via email for important updates.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-base font-medium">Profile Visibility</Label>
+                  <p className="text-sm text-gray-500 mb-4">Choose who can view your profile</p>
+                  <RadioGroup 
+                    value={privacySettings.profileVisibility} 
+                    onValueChange={(value) => handlePrivacyChange("profileVisibility", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="everyone" id="everyone" />
+                      <Label htmlFor="everyone">Everyone</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="enrolled" id="enrolled" />
+                      <Label htmlFor="enrolled">Only enrolled students and instructors</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="private" id="private" />
+                      <Label htmlFor="private">Only instructors and administrators</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                
+                <div>
+                  <Label className="text-base font-medium">Learning Activity Visibility</Label>
+                  <p className="text-sm text-gray-500 mb-4">Choose who can view your learning activity</p>
+                  <RadioGroup 
+                    value={privacySettings.activityVisibility} 
+                    onValueChange={(value) => handlePrivacyChange("activityVisibility", value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="everyone" id="activity-everyone" />
+                      <Label htmlFor="activity-everyone">Everyone</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="enrolled" id="activity-enrolled" />
+                      <Label htmlFor="activity-enrolled">Only enrolled students and instructors</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="private" id="activity-private" />
+                      <Label htmlFor="activity-private">Private (Only you)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Show Online Status</Label>
+                    <p className="text-sm text-gray-500">Allow others to see when you're online</p>
+                  </div>
+                  <Switch 
+                    checked={privacySettings.showOnlineStatus}
+                    onCheckedChange={(checked) => handlePrivacyChange("showOnlineStatus", checked)}
                   />
-                  
-                  <FormField
-                    control={notificationsForm.control}
-                    name="pushNotifications"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Push Notifications</FormLabel>
-                          <FormDescription>
-                            Receive push notifications for important updates.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={notificationsForm.control}
-                    name="courseUpdates"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Course Updates</FormLabel>
-                          <FormDescription>
-                            Receive notifications when your courses are updated with new content.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={notificationsForm.control}
-                    name="assignmentReminders"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Assignment Reminders</FormLabel>
-                          <FormDescription>
-                            Receive reminders about upcoming assignment deadlines.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={notificationsForm.control}
-                    name="newMessages"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">New Messages</FormLabel>
-                          <FormDescription>
-                            Receive notifications when you receive new messages from instructors or other students.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={notificationsForm.control}
-                    name="marketingEmails"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Marketing Emails</FormLabel>
-                          <FormDescription>
-                            Receive emails about new features, courses, and offers.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Updating..." : "Update Notifications"}
-                  </Button>
-                </form>
-              </Form>
+                </div>
+                
+                <div className="mt-6">
+                  <Button onClick={saveSettings}>Save Privacy Settings</Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Appearance Settings */}
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance Settings</CardTitle>
-              <CardDescription>
-                Customize how the platform looks and feels
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...appearanceForm}>
-                <form onSubmit={appearanceForm.handleSubmit(onAppearanceSubmit)} className="space-y-6">
-                  <FormField
-                    control={appearanceForm.control}
-                    name="theme"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Theme</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select theme" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="light">Light</SelectItem>
-                            <SelectItem value="dark">Dark</SelectItem>
-                            <SelectItem value="system">System</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Choose between light, dark, or system theme.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={appearanceForm.control}
-                    name="fontSize"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Font Size</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select font size" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="small">Small</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="large">Large</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Adjust the text size for better readability.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={appearanceForm.control}
-                    name="reduceAnimations"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Reduce Animations</FormLabel>
-                          <FormDescription>
-                            Turn off unnecessary animations for improved performance.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Updating..." : "Update Appearance"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Accessibility Settings */}
+        
         <TabsContent value="accessibility">
           <Card>
             <CardHeader>
-              <CardTitle>Accessibility Settings</CardTitle>
-              <CardDescription>
-                Configure settings to make the platform more accessible
-              </CardDescription>
+              <CardTitle className="flex items-center">
+                <Laptop className="h-5 w-5 mr-2" />
+                Accessibility Settings
+              </CardTitle>
+              <CardDescription>Customize your learning experience</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...accessibilityForm}>
-                <form onSubmit={accessibilityForm.handleSubmit(onAccessibilitySubmit)} className="space-y-6">
-                  <FormField
-                    control={accessibilityForm.control}
-                    name="screenReader"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Screen Reader Optimization</FormLabel>
-                          <FormDescription>
-                            Optimize the interface for screen readers.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Reduce Motion</Label>
+                    <p className="text-sm text-gray-500">Minimize animations throughout the platform</p>
+                  </div>
+                  <Switch 
+                    checked={accessibilitySettings.reduceMotion}
+                    onCheckedChange={() => handleAccessibilityChange("reduceMotion")}
                   />
-                  
-                  <FormField
-                    control={accessibilityForm.control}
-                    name="highContrast"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">High Contrast Mode</FormLabel>
-                          <FormDescription>
-                            Increase contrast for better visibility.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">High Contrast Mode</Label>
+                    <p className="text-sm text-gray-500">Increase contrast for better readability</p>
+                  </div>
+                  <Switch 
+                    checked={accessibilitySettings.contrastMode}
+                    onCheckedChange={() => handleAccessibilityChange("contrastMode")}
                   />
-                  
-                  <FormField
-                    control={accessibilityForm.control}
-                    name="closedCaptions"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Always Show Closed Captions</FormLabel>
-                          <FormDescription>
-                            Automatically show closed captions for video content when available.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Larger Text</Label>
+                    <p className="text-sm text-gray-500">Increase text size throughout the platform</p>
+                  </div>
+                  <Switch 
+                    checked={accessibilitySettings.largerText}
+                    onCheckedChange={() => handleAccessibilityChange("largerText")}
                   />
-                  
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Updating..." : "Update Accessibility"}
-                  </Button>
-                </form>
-              </Form>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Autoplay Videos</Label>
+                    <p className="text-sm text-gray-500">Allow videos to play automatically</p>
+                  </div>
+                  <Switch 
+                    checked={accessibilitySettings.autoplay}
+                    onCheckedChange={() => handleAccessibilityChange("autoplay")}
+                  />
+                </div>
+                
+                <div className="mt-6">
+                  <Button onClick={saveSettings}>Save Accessibility Settings</Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Payment Settings */}
-        <TabsContent value="payment">
+        
+        <TabsContent value="account">
           <Card>
             <CardHeader>
-              <CardTitle>Payment Settings</CardTitle>
-              <CardDescription>
-                Manage your payment preferences
-              </CardDescription>
+              <CardTitle className="flex items-center">
+                <Shield className="h-5 w-5 mr-2" />
+                Account Settings
+              </CardTitle>
+              <CardDescription>Manage your account preferences and security</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...paymentForm}>
-                <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
-                  <FormField
-                    control={paymentForm.control}
-                    name="defaultPaymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Default Payment Method</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select payment method" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="card">Credit/Debit Card</SelectItem>
-                            <SelectItem value="bank">Bank Transfer</SelectItem>
-                            <SelectItem value="paystack">Paystack</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Choose your preferred payment method.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={paymentForm.control}
-                    name="currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Currency</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select currency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>
-                            <SelectItem value="USD">US Dollar ($)</SelectItem>
-                            <SelectItem value="GBP">British Pound (£)</SelectItem>
-                            <SelectItem value="EUR">Euro (€)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Select your preferred currency for payments and receipts.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={paymentForm.control}
-                    name="savePaymentInfo"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Save Payment Information</FormLabel>
-                          <FormDescription>
-                            Securely save your payment information for future purchases.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Updating..." : "Update Payment Settings"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Payment History */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Payment History</CardTitle>
-              <CardDescription>
-                View your recent payments and invoices
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="rounded-md border">
-                  <div className="p-4">
-                    <div className="font-medium">Advanced React Course</div>
-                    <div className="flex justify-between items-center mt-1">
-                      <div className="text-sm text-gray-500">
-                        <span>Payment: #{1234567}</span>
-                        <span className="px-2">•</span>
-                        <span>April 15, 2025</span>
-                      </div>
-                      <div className="font-medium">₦25,000</div>
-                    </div>
-                    <Button className="mt-3" variant="outline" size="sm">
-                      Download Receipt
-                    </Button>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-1">Two-Factor Authentication</h3>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Add an extra layer of security to your account
+                  </p>
+                  <Button variant="outline">Enable 2FA</Button>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="font-medium mb-1">Linked Accounts</h3>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Connect your accounts for easier login
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <Button variant="outline">Link Google Account</Button>
+                    <Button variant="outline">Link GitHub Account</Button>
                   </div>
                 </div>
-                <div className="rounded-md border">
-                  <div className="p-4">
-                    <div className="font-medium">UI/UX Design Fundamentals</div>
-                    <div className="flex justify-between items-center mt-1">
-                      <div className="text-sm text-gray-500">
-                        <span>Payment: #{1234566}</span>
-                        <span className="px-2">•</span>
-                        <span>March 20, 2025</span>
-                      </div>
-                      <div className="font-medium">₦18,500</div>
-                    </div>
-                    <Button className="mt-3" variant="outline" size="sm">
-                      Download Receipt
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="font-medium text-red-600 mb-1">Danger Zone</h3>
+                  <p className="text-sm text-gray-500 mb-3">
+                    These actions are irreversible. Please proceed with caution.
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={deleteAccount}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Account
+                    </Button>
+                    <Button variant="outline">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Log Out of All Devices
                     </Button>
                   </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button variant="link" className="w-full">
-                View All Payment History
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
