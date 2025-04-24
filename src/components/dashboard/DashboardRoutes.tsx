@@ -9,6 +9,7 @@ import Certificates from "./student/Certificates";
 import MyStudents from "./MyStudents";
 import MyRevenue from "./MyRevenue";
 import Settings from "./Settings";
+import Notifications from "./Notifications";
 import CreateCourse from "./CreateCourse";
 import CourseEdit from "./CourseEdit";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +35,7 @@ const DashboardRoutes = () => {
     <Routes>
       <Route path="/" element={getInitialDashboard()} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/notifications" element={<Notifications />} />
       
       {/* Student Routes */}
       {user?.role === "student" && (
@@ -64,7 +66,6 @@ const DashboardRoutes = () => {
       )}
       
       {/* Common Routes */}
-      <Route path="/notifications" element={<div className="p-6"><h1 className="text-2xl font-bold">Notifications</h1></div>} />
       <Route path="/settings" element={<Settings />} />
       <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
     </Routes>
