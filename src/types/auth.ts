@@ -12,7 +12,7 @@ export interface UserWithProfile extends SupabaseUser {
 export interface AuthContextType {
   user: UserWithProfile | null;
   session: Session | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>; // Changed return type to allow any return value
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;

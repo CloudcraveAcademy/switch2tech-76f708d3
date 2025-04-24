@@ -78,7 +78,8 @@ export const useLoginForm = () => {
     
     try {
       console.log("Attempting login with email:", email, "remember me:", rememberMe);
-      const data = await login(email, password);
+      // We don't need to store the return data since the auth state listener will handle the session
+      await login(email, password);
       
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
