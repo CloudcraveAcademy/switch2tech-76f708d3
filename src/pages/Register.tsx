@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -25,6 +26,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<UserRole>("student");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [registerInProgress, setRegisterInProgress] = useState(false);
   
   const [errors, setErrors] = useState({
     name: "",
@@ -94,13 +96,26 @@ const Register = () => {
 
     if (!validate()) return;
 
+    // Set local loading state
+    setRegisterInProgress(true);
+
     try {
       await register(name, email, password, role);
-      // Don't navigate immediately as we want users to verify their email first
-      // The success message is shown in the AuthContext
-    } catch (error) {
-      // Error is already handled in the AuthContext
+      // Success message is shown in AuthContext
+      toast({
+        title: "Registration successful",
+        description: "Please check your email to verify your account.",
+      });
+    } catch (error: any) {
       console.error("Registration error:", error);
+      toast({
+        title: "Registration failed",
+        description: error.message || "An error occurred during registration",
+        variant: "destructive",
+      });
+    } finally {
+      // Always reset the loading state
+      setRegisterInProgress(false);
     }
   };
 
@@ -131,6 +146,7 @@ const Register = () => {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
                   className={errors.name ? "border-red-300" : ""}
+                  disabled={registerInProgress}
                 />
                 {errors.name && (
                   <p className="mt-1 text-sm text-red-600">{errors.name}</p>
@@ -151,6 +167,7 @@ const Register = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   className={errors.email ? "border-red-300" : ""}
+                  disabled={registerInProgress}
                 />
                 {errors.email && (
                   <p className="mt-1 text-sm text-red-600">{errors.email}</p>
@@ -171,6 +188,7 @@ const Register = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className={errors.password ? "border-red-300" : ""}
+                  disabled={registerInProgress}
                 />
                 {errors.password && (
                   <p className="mt-1 text-sm text-red-600">{errors.password}</p>
@@ -191,6 +209,7 @@ const Register = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   className={errors.confirmPassword ? "border-red-300" : ""}
+                  disabled={registerInProgress}
                 />
                 {errors.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600">
@@ -206,7 +225,11 @@ const Register = () => {
                 >
                   I want to join as a
                 </label>
-                <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
+                <Select 
+                  value={role} 
+                  onValueChange={(value) => setRole(value as UserRole)}
+                  disabled={registerInProgress}
+                >
                   <SelectTrigger className={errors.role ? "border-red-300" : ""}>
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
@@ -228,6 +251,7 @@ const Register = () => {
                     setAgreeToTerms(checked as boolean);
                   }}
                   className={errors.agreeToTerms ? "border-red-300" : ""}
+                  disabled={registerInProgress}
                 />
                 <label
                   htmlFor="terms"
@@ -243,8 +267,8 @@ const Register = () => {
                 <p className="text-sm text-red-600">{errors.agreeToTerms}</p>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating Account..." : "Create Account"}
+              <Button type="submit" className="w-full" disabled={registerInProgress}>
+                {registerInProgress ? "Creating Account..." : "Create Account"}
               </Button>
             </div>
           </form>

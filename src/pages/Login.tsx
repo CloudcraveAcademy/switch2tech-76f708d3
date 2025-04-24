@@ -17,6 +17,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [loginInProgress, setLoginInProgress] = useState(false);
   const [errors, setErrors] = useState({ email: "", password: "" });
 
   // Check if user is already logged in
@@ -57,13 +58,17 @@ const Login = () => {
       return;
     }
 
+    // Set local loading state
+    setLoginInProgress(true);
+    
     try {
       await login(email, password);
       // The redirect will happen automatically through the useEffect above
       // when the user state is updated
     } catch (error) {
       console.error("Login error:", error);
-      // Make sure loading state is reset when there's an error
+      // Make sure both loading states are reset when there's an error
+      setLoginInProgress(false);
       setLoading(false);
     }
   };
@@ -123,6 +128,7 @@ const Login = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     className={errors.email ? "border-red-300" : ""}
+                    disabled={loginInProgress}
                   />
                   {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
@@ -138,6 +144,7 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className={errors.password ? "border-red-300" : ""}
+                    disabled={loginInProgress}
                   />
                   {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
                 </div>
@@ -149,6 +156,7 @@ const Login = () => {
                       name="remember-me"
                       type="checkbox"
                       className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded"
+                      disabled={loginInProgress}
                     />
                     <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                       Remember me
@@ -160,14 +168,15 @@ const Login = () => {
                       type="button"
                       className="text-brand-600 hover:text-brand-700"
                       onClick={() => setShowForgotPassword(true)}
+                      disabled={loginInProgress}
                     >
                       Forgot password?
                     </button>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Logging in..." : "Log in"}
+                <Button type="submit" className="w-full" disabled={loginInProgress}>
+                  {loginInProgress ? "Logging in..." : "Log in"}
                 </Button>
               </div>
             </form>

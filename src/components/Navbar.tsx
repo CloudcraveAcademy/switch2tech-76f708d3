@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -13,14 +13,42 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Menu, X, LogOut, User, Book, Home, GraduationCap } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await logout();
+      setIsMenuOpen(false); // Close mobile menu if open
+      navigate("/");
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+    } catch (error) {
+      console.error("Logout error in Navbar:", error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  // Reset loggingOut state when user changes (e.g., becomes null after logout)
+  useEffect(() => {
+    if (!user) {
+      setLoggingOut(false);
+    }
+  }, [user]);
 
   return (
     <nav className="fixed w-full top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -85,9 +113,11 @@ const Navbar = () => {
                         <AvatarImage src={user.avatar} alt={user.name} />
                         <AvatarFallback>
                           {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
+                            ? user.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                            : "U"}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
@@ -112,9 +142,9 @@ const Navbar = () => {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                    <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
-                      Logout
+                      {loggingOut ? "Logging out..." : "Logout"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -202,9 +232,11 @@ const Navbar = () => {
                       <AvatarImage src={user.avatar} alt={user.name} />
                       <AvatarFallback>
                         {user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+                          ? user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                          : "U"}
                       </AvatarFallback>
                     </Avatar>
                   </div>
@@ -230,14 +262,14 @@ const Navbar = () => {
                   </Link>
                   <button
                     onClick={() => {
-                      logout();
-                      toggleMenu();
+                      handleLogout();
                     }}
+                    disabled={loggingOut}
                     className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
                   >
                     <div className="flex items-center">
-                      <LogOut className="w-5 h-4 w-4" />
-                      Logout
+                      <LogOut className="w-5 h-5 mr-2" />
+                      {loggingOut ? "Logging out..." : "Logout"}
                     </div>
                   </button>
                 </div>

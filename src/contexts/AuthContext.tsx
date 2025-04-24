@@ -68,10 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log("Setting up auth state listener");
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log("Auth state changed:", event);
+        console.log("Auth state changed:", event, newSession ? "session exists" : "no session");
         setSession(newSession);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -80,7 +81,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(enrichedUser);
           setLoading(false);
         } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing state");
           setUser(null);
+          setSession(null);
           setLoading(false);
         }
       }
@@ -88,7 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // THEN check for existing session
     const initSession = async () => {
+      console.log("Checking for existing session");
       const { data: { session: existingSession } } = await supabase.auth.getSession();
+      console.log("Existing session:", existingSession ? "exists" : "none");
       setSession(existingSession);
       
       // Enrich user data
@@ -99,21 +104,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
     
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log("Attempting login for:", email);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error("Login error:", error);
         setLoading(false); // Reset loading state on error
         throw error;
       }
+      console.log("Login successful, auth state listener will handle session");
       // Auth state listener will handle setting user/session
 
     } catch (error: any) {
@@ -130,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string, role: UserRole) => {
     setLoading(true);
     try {
+      console.log("Attempting registration for:", email);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -143,6 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        console.error("Registration error:", error);
         setLoading(false); // Reset loading state on error
         throw error;
       }
@@ -151,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Registration successful",
         description: "Please check your email to verify your account.",
       });
-
+      setLoading(false);
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -164,12 +177,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    setLoading(true);
     try {
+      console.log("Attempting logout");
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      // Auth state listener will handle setting user to null
+      
+      if (error) {
+        console.error("Logout error:", error);
+        throw error;
+      }
+      
+      console.log("Logout successful, clearing state manually");
+      // Manual cleanup in addition to listener
+      setUser(null);
+      setSession(null);
+      
     } catch (error: any) {
+      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error.message,
