@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -31,7 +32,7 @@ const HeroSection = () => {
               </Button>
             </Link>
             <Link to="/register">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-brand-dark shadow-sm hover:shadow-md transition-all">
+              <Button size="lg" variant="outline" className="border-white text-blue-500 hover:bg-white hover:text-brand-dark shadow-sm hover:shadow-md transition-all">
                 Get Started
               </Button>
             </Link>
