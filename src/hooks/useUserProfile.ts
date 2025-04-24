@@ -1,10 +1,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import type { SupabaseUser } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import type { UserWithProfile } from "@/types/auth";
 
 export const useUserProfile = () => {
-  const enrichUserWithProfile = async (user: SupabaseUser | null): Promise<UserWithProfile | null> => {
+  const enrichUserWithProfile = async (user: User | null): Promise<UserWithProfile | null> => {
     if (!user) return null;
     
     try {
