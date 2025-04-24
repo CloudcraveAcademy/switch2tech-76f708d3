@@ -78,7 +78,7 @@ export const useLoginForm = () => {
     
     try {
       console.log("Attempting login with email:", email, "remember me:", rememberMe);
-      await login(email, password);
+      const data = await login(email, password);
       
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);

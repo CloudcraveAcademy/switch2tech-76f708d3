@@ -14,9 +14,10 @@ export const useAuthProvider = () => {
   const { enrichUserWithProfile } = useUserProfile();
 
   const login = async (email: string, password: string) => {
-    setLoading(true);
     try {
       console.log("Attempting login for:", email);
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -29,8 +30,9 @@ export const useAuthProvider = () => {
       }
       
       console.log("Login successful, auth state listener will handle session");
-      // The auth state listener will handle setting the user and session
-
+      // Auth state listener will handle setting the user and session
+      return data;
+      
     } catch (error: any) {
       setLoading(false);
       throw error;
@@ -38,16 +40,22 @@ export const useAuthProvider = () => {
   };
 
   const register = async (name: string, email: string, password: string, role: UserRole) => {
-    setLoading(true);
     try {
       console.log("Attempting registration for:", email);
+      setLoading(true);
+      
+      // Split name into first and last name
+      const nameParts = name.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            first_name: name.split(' ')[0],
-            last_name: name.split(' ').slice(1).join(' '),
+            first_name: firstName,
+            last_name: lastName,
             role: role,
           },
         },
@@ -64,6 +72,7 @@ export const useAuthProvider = () => {
         description: "Please check your email to verify your account.",
       });
       setLoading(false);
+      
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -79,6 +88,7 @@ export const useAuthProvider = () => {
     try {
       console.log("Attempting logout");
       setLoading(true);
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
