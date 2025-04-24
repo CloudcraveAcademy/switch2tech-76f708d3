@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,8 +18,8 @@ import {
   FileText,
   DollarSign,
   Globe,
-  Certificate as CertificateIcon,
-  ToggleLeft as Toggle,
+  Award, // Replaced Certificate with Award which is available in lucide-react
+  ToggleLeft, // Replaced Toggle with ToggleLeft which is available in lucide-react
   Users
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -586,7 +585,7 @@ const CreateCourse = () => {
                 />
               )}
 
-              {/* Certificate Upon Completion */}
+              {/* Certificate Upon Completion - Update icon reference from CertificateIcon to Award */}
               <FormField
                 control={form.control}
                 name="certificateEnabled"
@@ -594,7 +593,7 @@ const CreateCourse = () => {
                   <FormItem className="flex flex-row items-center justify-between p-4 border rounded-lg">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base flex items-center">
-                        <CertificateIcon className="mr-2 h-4 w-4" />
+                        <Award className="mr-2 h-4 w-4" />
                         Certificate Upon Completion
                       </FormLabel>
                       <FormDescription>
@@ -1010,20 +1009,3 @@ const CreateCourse = () => {
                 <Button type="submit" disabled={loading}>
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Course"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default CreateCourse;
