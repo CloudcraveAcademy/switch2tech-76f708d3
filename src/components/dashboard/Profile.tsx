@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import {
   Wallet, 
   MessageSquare, 
   Calendar, 
-  Graduation, 
+  GraduationCap, 
   UserPlus, 
   Briefcase 
 } from "lucide-react";
@@ -165,7 +164,7 @@ const Profile = () => {
                 <div className="flex flex-col w-full gap-2 mt-6">
                   <Button variant="outline" size="sm" asChild>
                     <Link to="/dashboard/my-courses">
-                      <Graduation className="mr-2 h-4 w-4" />
+                      <GraduationCap className="mr-2 h-4 w-4" />
                       My Courses
                     </Link>
                   </Button>

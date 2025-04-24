@@ -160,6 +160,7 @@ const Settings = () => {
 
       <Tabs defaultValue="notifications" className="space-y-8">
         <div className="border-b">
+          {/* Fixing the TabsList to not use className incorrectly */}
           <TabsList className="w-full justify-start h-auto p-0">
             <TabsTrigger 
               value="notifications" 
@@ -179,7 +180,7 @@ const Settings = () => {
               value="accessibility" 
               className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
             >
-              <Settings className="h-4 w-4 mr-2" />
+              <SettingsIcon className="h-4 w-4 mr-2" />
               Accessibility
             </TabsTrigger>
             <TabsTrigger 

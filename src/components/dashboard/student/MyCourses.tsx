@@ -84,6 +84,7 @@ const MyCourses = () => {
     course.instructor.last_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
+  // Function to determine badge color based on course level
   const getLevelBadgeColor = (level: string) => {
     switch (level.toLowerCase()) {
       case 'beginner':
@@ -190,6 +191,20 @@ interface CourseCardProps {
 }
 
 const CourseCard = ({ course }: CourseCardProps) => {
+  // Helper function to get level badge color
+  const getLevelBadgeColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'beginner':
+        return "bg-green-100 text-green-800";
+      case 'intermediate':
+        return "bg-yellow-100 text-yellow-800";
+      case 'advanced':
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-blue-100 text-blue-800";
+    }
+  };
+  
   return (
     <Card className="overflow-hidden">
       <div className="h-40 relative">
