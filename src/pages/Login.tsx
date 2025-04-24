@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -22,11 +21,14 @@ const Login = () => {
 
   // Check if user is already logged in
   useEffect(() => {
+    console.log("Login page - checking auth state:", { user, loading });
     if (user) {
+      console.log("User is authenticated, redirecting to dashboard");
       navigate("/dashboard");
     }
   }, [user, navigate]);
 
+  // Validate form inputs
   const validate = () => {
     let valid = true;
     const newErrors = { email: "", password: "" };
@@ -53,6 +55,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Login form submitted");
 
     if (!validate()) {
       return;
@@ -62,11 +65,17 @@ const Login = () => {
     setLoginInProgress(true);
     
     try {
+      console.log("Attempting login with email:", email);
       await login(email, password);
+      console.log("Login successful");
       // The redirect will happen automatically through the useEffect above
       // when the user state is updated
-    } catch (error) {
-      console.error("Login error:", error);
+      toast({
+        title: "Login successful",
+        description: "Redirecting to dashboard...",
+      });
+    } catch (error: any) {
+      console.error("Login error in handleSubmit:", error);
       // Make sure both loading states are reset when there's an error
       setLoginInProgress(false);
       setLoading(false);
@@ -175,8 +184,8 @@ const Login = () => {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loginInProgress}>
-                  {loginInProgress ? "Logging in..." : "Log in"}
+                <Button type="submit" className="w-full" disabled={loginInProgress || loading}>
+                  {loginInProgress || loading ? "Logging in..." : "Log in"}
                 </Button>
               </div>
             </form>

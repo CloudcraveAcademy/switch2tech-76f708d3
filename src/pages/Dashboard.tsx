@@ -13,14 +13,17 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    console.log("Dashboard component - auth state:", { user, loading });
     // Only redirect if we're sure the user isn't logged in (not during initial loading)
     if (!loading && !user) {
+      console.log("User not authenticated, redirecting to login");
       navigate("/login");
     }
   }, [user, navigate, loading]);
 
   // Show loading state while checking authentication
   if (loading) {
+    console.log("Dashboard is in loading state");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>
@@ -30,6 +33,7 @@ const Dashboard = () => {
 
   // Redirect if not authenticated
   if (!user) {
+    console.log("Dashboard - no user, showing redirect message");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Redirecting to login...</p>
@@ -37,6 +41,7 @@ const Dashboard = () => {
     );
   }
 
+  console.log("Dashboard rendering with user:", user.name);
   return (
     <div className="flex h-screen bg-gray-100">
       <DashboardSidebar />

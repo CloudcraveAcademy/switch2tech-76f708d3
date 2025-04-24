@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
@@ -44,6 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return null;
     
     try {
+      console.log("Fetching profile for user:", user.id);
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('first_name, last_name, role, avatar_url')
@@ -55,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return user as UserWithProfile;
       }
       
+      console.log("Profile data fetched:", profile);
       return {
         ...user,
         name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
@@ -78,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           // Enrich user data
           const enrichedUser = await enrichUserWithProfile(newSession?.user ?? null);
+          console.log("Enriched user data after sign in:", enrichedUser);
           setUser(enrichedUser);
           setLoading(false);
         } else if (event === 'SIGNED_OUT') {
@@ -98,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Enrich user data
       const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
+      console.log("Initial enriched user:", enrichedUser);
       setUser(enrichedUser);
       setLoading(false);
     };
