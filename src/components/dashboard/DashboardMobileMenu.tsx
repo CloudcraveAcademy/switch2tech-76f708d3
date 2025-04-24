@@ -1,5 +1,4 @@
-
-import { Fragment } from "react";
+import React from 'react';
 import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import {
@@ -51,7 +50,11 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
               </button>
             </div>
             <div className="flex flex-shrink-0 items-center px-4 h-16 border-b">
-              <img src="/logo.svg" alt="Switch2Tech" className="h-8 w-auto" />
+              <img 
+                src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" 
+                alt="Switch2Tech" 
+                className="h-8 w-auto" 
+              />
               <span className="ml-2 text-lg font-bold text-brand-700">Switch2Tech</span>
             </div>
             <div className="mt-4 h-0 flex-1 overflow-y-auto">
