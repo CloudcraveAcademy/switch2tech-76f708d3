@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,8 +18,8 @@ import {
   FileText,
   DollarSign,
   Globe,
-  Certificate,
-  Toggle,
+  Certificate as CertificateIcon,
+  ToggleLeft as Toggle,
   Users
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -594,7 +593,7 @@ const CreateCourse = () => {
                   <FormItem className="flex flex-row items-center justify-between p-4 border rounded-lg">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base flex items-center">
-                        <Certificate className="mr-2 h-4 w-4" />
+                        <CertificateIcon className="mr-2 h-4 w-4" />
                         Certificate Upon Completion
                       </FormLabel>
                       <FormDescription>
@@ -1013,17 +1012,4 @@ const CreateCourse = () => {
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creating...
                     </>
-                  ) : (
-                    "Create Course"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default CreateCourse;
+                  ) :
