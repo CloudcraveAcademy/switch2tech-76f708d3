@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,19 +43,10 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { useCategories } from "@/hooks/useCategories";
 
 // Updated to match database constraints - using lowercase values
 const LEVEL_OPTIONS = ["beginner", "intermediate", "advanced"];
-const CATEGORY_OPTIONS = [
-  "Web Development",
-  "Mobile Development",
-  "Data Science",
-  "Machine Learning",
-  "DevOps",
-  "UI/UX Design",
-  "Cybersecurity",
-  "Blockchain",
-];
 
 const LANGUAGE_OPTIONS = [
   "English",
@@ -144,6 +134,9 @@ const CreateCourse = () => {
   const [image, setImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
+  
+  // Fetch categories
+  const { data: categories } = useCategories();
 
   // Initialize the form with react-hook-form
   const form = useForm<CourseFormValues>({
@@ -389,9 +382,9 @@ const CreateCourse = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {CATEGORY_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
+                          {categories?.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1011,19 +1004,4 @@ const CreateCourse = () => {
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Course"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default CreateCourse;
+                      Creating
