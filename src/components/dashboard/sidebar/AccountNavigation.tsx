@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { User, Bell, Settings, LogOut } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
+import { useToast } from "@/hooks/use-toast";
 
 interface AccountNavigationProps {
   isActive: (path: string) => boolean;
@@ -10,6 +11,7 @@ interface AccountNavigationProps {
 
 const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { toast } = useToast();
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -19,7 +21,13 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
       await onLogout();
     } catch (error) {
       console.error("Logout failed:", error);
+      toast({
+        title: "Logout failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
     } finally {
+      // Ensure the button is re-enabled even if logout fails
       setIsLoggingOut(false);
     }
   };

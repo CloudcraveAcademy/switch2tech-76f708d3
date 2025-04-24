@@ -95,7 +95,11 @@ export const LoginForm = ({
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={loginInProgress}>
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={loginInProgress}
+        >
           {loginInProgress ? "Logging in..." : "Log in"}
         </Button>
       </div>

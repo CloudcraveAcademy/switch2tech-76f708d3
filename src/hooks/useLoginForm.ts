@@ -61,6 +61,11 @@ export const useLoginForm = () => {
     return valid;
   };
 
+  const resetLoginState = () => {
+    setLoginInProgress(false);
+    setLoading(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Login form submitted");
@@ -74,11 +79,13 @@ export const useLoginForm = () => {
     try {
       console.log("Attempting login with email:", email, "remember me:", rememberMe);
       await login(email, password);
+      
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
+      
       console.log("Login successful");
       toast({
         title: "Login successful",
@@ -92,8 +99,12 @@ export const useLoginForm = () => {
       
     } catch (error: any) {
       console.error("Login error in handleSubmit:", error);
-      setLoginInProgress(false);
-      // No need to call setLoading(false) here since it's handled in the login function
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your email and password",
+        variant: "destructive",
+      });
+      resetLoginState();
     }
   };
 
@@ -112,5 +123,6 @@ export const useLoginForm = () => {
     forgotPasswordEmail,
     setForgotPasswordEmail,
     handleSubmit,
+    resetLoginState,
   };
 };

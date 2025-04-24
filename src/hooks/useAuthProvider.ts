@@ -17,7 +17,7 @@ export const useAuthProvider = () => {
     setLoading(true);
     try {
       console.log("Attempting login for:", email);
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -27,14 +27,11 @@ export const useAuthProvider = () => {
         setLoading(false);
         throw error;
       }
+      
       console.log("Login successful, auth state listener will handle session");
+      // The auth state listener will handle setting the user and session
 
     } catch (error: any) {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
       setLoading(false);
       throw error;
     }
@@ -81,19 +78,18 @@ export const useAuthProvider = () => {
   const logout = async () => {
     try {
       console.log("Attempting logout");
-      // Don't set loading to true here as it can cause UI freezes
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Logout error:", error);
+        setLoading(false);
         throw error;
       }
       
       console.log("Logout successful, clearing state manually");
       setUser(null);
       setSession(null);
-      
-      // Reset loading to false immediately after logout
       setLoading(false);
       
       toast({
@@ -109,6 +105,7 @@ export const useAuthProvider = () => {
         variant: "destructive",
       });
       setLoading(false);
+      throw error;
     }
   };
 
