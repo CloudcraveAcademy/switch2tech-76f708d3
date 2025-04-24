@@ -216,9 +216,11 @@ const InstructorDashboard = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="flex justify-between items-center">
                   <span>{course.title}</span>
-                  <Button variant="ghost" size="sm" className="text-brand-600">
-                    Edit
-                  </Button>
+                  <Link to={`/dashboard/courses/${course.id}/edit`}>
+                    <Button variant="ghost" size="sm" className="text-brand-600">
+                      Edit
+                    </Button>
+                  </Link>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -233,7 +235,7 @@ const InstructorDashboard = () => {
                       {course.is_published ? "Published" : "Draft"}
                     </span>
                   </div>
-                  <Link to={`/dashboard/course/${course.id}`}>
+                  <Link to={`/dashboard/courses/${course.id}/edit`}>
                     <Button variant="outline" className="w-full">
                       View Details
                     </Button>

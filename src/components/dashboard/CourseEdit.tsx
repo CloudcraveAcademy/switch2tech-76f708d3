@@ -35,7 +35,7 @@ const CourseEdit = () => {
   const [activeTab, setActiveTab] = useState("basic");
   
   // Fetch course data
-  const { data: course, isLoading } = useQuery({
+  const { data: course, isLoading, refetch } = useQuery({
     queryKey: ["course", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -83,6 +83,9 @@ const CourseEdit = () => {
         title: "Success",
         description: "Course updated successfully",
       });
+      
+      // Refresh course data
+      refetch();
     } catch (error: any) {
       console.error("Error updating course:", error);
       toast({

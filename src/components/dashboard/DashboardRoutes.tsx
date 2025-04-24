@@ -14,6 +14,7 @@ import CreateCourse from "./CreateCourse";
 import CourseEdit from "./CourseEdit";
 import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
+import InstructorMyCourses from "./MyCourses"; // Import instructor's MyCourses component
 
 const DashboardRoutes = () => {
   const { user } = useAuth();
@@ -40,18 +41,19 @@ const DashboardRoutes = () => {
       <Route path="/settings" element={<Settings />} />
       
       {/* Student Routes */}
-      {user?.role === "student" && (
+      {(user?.role === "student" || user?.role === "instructor") && (
         <>
-          <Route path="/my-courses" element={<MyCourses />} />
+          <Route path="/my-courses" element={user?.role === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
           <Route path="/courses/:courseId" element={<CourseView />} />
-          <Route path="/certificates" element={<Certificates />} />
+          {user?.role === "student" && (
+            <Route path="/certificates" element={<Certificates />} />
+          )}
         </>
       )}
       
       {/* Instructor Routes */}
       {user?.role === "instructor" && (
         <>
-          <Route path="/my-courses" element={<MyCourses />} />
           <Route path="/students" element={<MyStudents />} />
           <Route path="/revenue" element={<MyRevenue />} />
           <Route path="/create-course" element={<CreateCourse />} />
