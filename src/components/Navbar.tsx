@@ -27,17 +27,20 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
+    if (loggingOut) return;
+    
     try {
       setLoggingOut(true);
       await logout();
       setIsMenuOpen(false); // Close mobile menu if open
       navigate("/");
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
     } catch (error) {
       console.error("Logout error in Navbar:", error);
+      toast({
+        title: "Logout failed",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoggingOut(false);
     }

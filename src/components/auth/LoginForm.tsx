@@ -95,8 +95,8 @@ export const LoginForm = ({
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={loginInProgress || loading}>
-          {loginInProgress || loading ? "Logging in..." : "Log in"}
+        <Button type="submit" className="w-full" disabled={loginInProgress}>
+          {loginInProgress ? "Logging in..." : "Log in"}
         </Button>
       </div>
     </form>

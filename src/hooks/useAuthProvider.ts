@@ -81,7 +81,7 @@ export const useAuthProvider = () => {
   const logout = async () => {
     try {
       console.log("Attempting logout");
-      setLoading(true);
+      // Don't set loading to true here as it can cause UI freezes
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -93,6 +93,14 @@ export const useAuthProvider = () => {
       setUser(null);
       setSession(null);
       
+      // Reset loading to false immediately after logout
+      setLoading(false);
+      
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+      
     } catch (error: any) {
       console.error("Logout error:", error);
       toast({
@@ -100,7 +108,6 @@ export const useAuthProvider = () => {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -110,9 +117,9 @@ export const useAuthProvider = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state changed:", event, newSession ? "session exists" : "no session");
-        setSession(newSession);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(newSession);
           const enrichedUser = await enrichUserWithProfile(newSession?.user ?? null);
           console.log("Enriched user data after sign in:", enrichedUser);
           setUser(enrichedUser);
@@ -130,11 +137,13 @@ export const useAuthProvider = () => {
       console.log("Checking for existing session");
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       console.log("Existing session:", existingSession ? "exists" : "none");
-      setSession(existingSession);
       
-      const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
-      console.log("Initial enriched user:", enrichedUser);
-      setUser(enrichedUser);
+      if (existingSession) {
+        setSession(existingSession);
+        const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
+        console.log("Initial enriched user:", enrichedUser);
+        setUser(enrichedUser);
+      }
       setLoading(false);
     };
 

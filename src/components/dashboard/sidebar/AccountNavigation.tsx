@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Bell, Settings, LogOut } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
@@ -9,6 +9,21 @@ interface AccountNavigationProps {
 }
 
 const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    
+    setIsLoggingOut(true);
+    try {
+      await onLogout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <>
       <SidebarMenuItem
@@ -30,11 +45,12 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
         isActive={isActive("/dashboard/settings")}
       />
       <button
-        onClick={onLogout}
-        className="flex items-center px-4 py-2 mt-6 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        className="flex items-center px-4 py-2 mt-6 text-sm text-gray-700 w-full text-left hover:bg-gray-100 disabled:opacity-50"
       >
         <LogOut className="w-5 h-5 mr-3" />
-        Logout
+        {isLoggingOut ? "Logging out..." : "Logout"}
       </button>
     </>
   );

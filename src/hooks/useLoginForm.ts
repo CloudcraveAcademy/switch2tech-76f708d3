@@ -12,7 +12,7 @@ export interface LoginFormErrors {
 export const useLoginForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login, loading, setLoading } = useAuth();
+  const { login, loading: authLoading, setLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -29,6 +29,13 @@ export const useLoginForm = () => {
       setRememberMe(true);
     }
   }, []);
+
+  // Reset login progress when auth loading changes
+  useEffect(() => {
+    if (!authLoading) {
+      setLoginInProgress(false);
+    }
+  }, [authLoading]);
 
   const validate = () => {
     let valid = true;
@@ -77,15 +84,16 @@ export const useLoginForm = () => {
         title: "Login successful",
         description: "Redirecting to dashboard...",
       });
+      
+      // Set a short timeout before navigating to allow toast to display
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
+      
     } catch (error: any) {
       console.error("Login error in handleSubmit:", error);
-      toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials and try again",
-        variant: "destructive",
-      });
       setLoginInProgress(false);
-      setLoading(false);
+      // No need to call setLoading(false) here since it's handled in the login function
     }
   };
 
@@ -98,7 +106,7 @@ export const useLoginForm = () => {
     setRememberMe,
     loginInProgress,
     errors,
-    loading,
+    loading: authLoading,
     showForgotPassword,
     setShowForgotPassword,
     forgotPasswordEmail,
