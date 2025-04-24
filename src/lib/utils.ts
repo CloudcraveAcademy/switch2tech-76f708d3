@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, isValid } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -9,10 +9,15 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(dateString: string): string {
   try {
-    const date = parseISO(dateString)
-    return format(date, 'MMM dd, yyyy')
+    if (!dateString) return "N/A";
+    
+    const date = parseISO(dateString);
+    
+    if (!isValid(date)) return "Invalid date";
+    
+    return format(date, 'MMM dd, yyyy');
   } catch (error) {
-    console.error("Error formatting date:", error)
-    return "Invalid date"
+    console.error("Error formatting date:", error);
+    return "Invalid date";
   }
 }

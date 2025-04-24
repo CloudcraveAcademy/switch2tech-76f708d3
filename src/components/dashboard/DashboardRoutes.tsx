@@ -4,7 +4,8 @@ import StudentDashboard from "./StudentDashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
 import Profile from "./Profile";
-import MyCourses from "./MyCourses";
+import MyCourses from "./student/MyCourses";
+import Certificates from "./student/Certificates";
 import MyStudents from "./MyStudents";
 import MyRevenue from "./MyRevenue";
 import Settings from "./Settings";
@@ -37,8 +38,8 @@ const DashboardRoutes = () => {
       {/* Student Routes */}
       {user?.role === "student" && (
         <>
-          <Route path="/my-courses" element={<div className="p-6"><h1 className="text-2xl font-bold">My Courses</h1></div>} />
-          <Route path="/certificates" element={<div className="p-6"><h1 className="text-2xl font-bold">My Certificates</h1></div>} />
+          <Route path="/my-courses" element={<MyCourses />} />
+          <Route path="/certificates" element={<Certificates />} />
         </>
       )}
       
