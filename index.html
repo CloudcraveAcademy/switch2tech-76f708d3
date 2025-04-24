@@ -17,6 +17,15 @@
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
     
     <link rel="icon" href="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" type="image/png">
+
+    <script>
+      // Debug logging for resource loading
+      window.addEventListener('error', function(event) {
+        if (event.target.tagName === 'LINK' || event.target.tagName === 'SCRIPT') {
+          console.error('Failed to load resource:', event.target.src || event.target.href);
+        }
+      });
+    </script>
   </head>
 
   <body>
