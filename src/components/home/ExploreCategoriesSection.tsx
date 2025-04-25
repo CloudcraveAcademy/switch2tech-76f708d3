@@ -1,5 +1,5 @@
 
-import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Settings, PenTool, BookOpen, Folder } from "lucide-react";
+import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Settings, PenTool, BookOpen, Folder, BookOpen as Book } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCategories, Category } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,7 @@ const iconMap: Record<string, React.ElementType> = {
   smartphone: Smartphone,
   settings: Settings,
   "pen-tool": PenTool,
-  book: BookOpen,
+  book: Book, 
   folder: Folder,
 };
 
@@ -26,25 +26,29 @@ const fallbackCategories: Category[] = [
     id: "1",
     name: "Web Development",
     description: "Learn to build modern, responsive websites and web applications",
-    icon: "code"
+    icon: "code",
+    count: 45
   },
   {
     id: "2",
     name: "Data Science",
     description: "Master data analysis, visualization and machine learning",
-    icon: "database"
+    icon: "database",
+    count: 28
   },
   {
     id: "3",
     name: "Mobile Development",
     description: "Create native and cross-platform mobile applications",
-    icon: "smartphone"
+    icon: "smartphone",
+    count: 32
   },
   {
     id: "4",
     name: "Cloud Computing",
     description: "Deploy and manage applications in the cloud",
-    icon: "cloud"
+    icon: "cloud",
+    count: 20
   },
 ];
 
@@ -114,9 +118,12 @@ const CategoryCard = ({ category }: { category: Category }) => {
   
   return (
     <Card className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border h-full flex flex-col">
-      <div className="flex justify-start mb-6">
+      <div className="flex justify-between items-start mb-6">
         <div className="p-3 rounded-full bg-primary/10">
           <IconComponent className="h-8 w-8 text-primary" />
+        </div>
+        <div className="text-sm font-medium text-primary-foreground bg-primary px-3 py-1 rounded-full">
+          {category.count || 0} courses
         </div>
       </div>
       <h3 className="text-xl font-semibold mb-3 text-foreground">
