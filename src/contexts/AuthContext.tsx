@@ -15,29 +15,15 @@ export const useAuth = () => {
 
 export const requireAuth = (Component: React.ComponentType<any>) => {
   const AuthenticatedComponent = (props: any) => {
-    const { user, loading, validateSession } = useAuth();
+    const { user, loading } = useAuth();
     
-    React.useEffect(() => {
-      const checkAuth = async () => {
-        // Don't validate if we already have a user
-        if (user) return;
-        
-        const isValid = await validateSession();
-        if (!isValid && !loading) {
-          // Navigation is now handled by the AuthProvider
-          window.location.href = "/login";
-        }
-      };
-      
-      if (!user && !loading) {
-        checkAuth();
-      }
-    }, [user, loading, validateSession]);
-    
+    // Simplified approach - Dashboard component now handles validation
+    // This prevents multiple validation loops
     if (loading) {
       return <div className="flex justify-center items-center h-screen">Loading...</div>;
     }
     
+    // If not loading and no user, Dashboard will handle redirect
     return user ? <Component {...props} /> : null;
   };
   
