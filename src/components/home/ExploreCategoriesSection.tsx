@@ -108,15 +108,12 @@ const ExploreCategoriesSection = () => {
 };
 
 // Extract category card rendering to a separate component
-function CategoryCard({ category }: { category: Category }) {
-  // Default to the Folder icon if the specified icon is not found
+const CategoryCard = ({ category }: { category: Category }) => {
+  // Get the icon component from our icon map or default to Folder
   const IconComponent = iconMap[category.icon] || Folder;
   
   return (
-    <Card 
-      key={category.id} 
-      className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border h-full"
-    >
+    <Card className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border h-full flex flex-col">
       <div className="flex justify-start mb-6">
         <div className="p-3 rounded-full bg-primary/10">
           <IconComponent className="h-8 w-8 text-primary" />
@@ -125,10 +122,10 @@ function CategoryCard({ category }: { category: Category }) {
       <h3 className="text-xl font-semibold mb-3 text-foreground">
         {category.name}
       </h3>
-      <p className="text-muted-foreground mb-6 text-sm">
+      <p className="text-muted-foreground mb-6 text-sm flex-grow">
         {category.description}
       </p>
-      <div className="mt-auto">
+      <div className="mt-auto pt-4">
         <Link 
           to={`/courses?category=${category.id}`}
           className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm font-medium transition-colors"
@@ -139,6 +136,6 @@ function CategoryCard({ category }: { category: Category }) {
       </div>
     </Card>
   );
-}
+};
 
 export default ExploreCategoriesSection;

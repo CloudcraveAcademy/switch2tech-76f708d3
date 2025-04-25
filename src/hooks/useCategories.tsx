@@ -9,6 +9,34 @@ export interface Category {
   icon: string;
 }
 
+// Define fallback categories for use when database fetch fails
+const fallbackCategories: Category[] = [
+  {
+    id: "1",
+    name: "Web Development",
+    description: "Learn to build modern, responsive websites and web applications",
+    icon: "code"
+  },
+  {
+    id: "2",
+    name: "Data Science",
+    description: "Master data analysis, visualization and machine learning",
+    icon: "database"
+  },
+  {
+    id: "3",
+    name: "Mobile Development",
+    description: "Create native and cross-platform mobile applications",
+    icon: "smartphone"
+  },
+  {
+    id: "4",
+    name: "Cloud Computing",
+    description: "Deploy and manage applications in the cloud",
+    icon: "cloud"
+  },
+];
+
 export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
@@ -30,33 +58,7 @@ export function useCategories() {
         
         if (!data || data.length === 0) {
           console.log('No categories found in the database, returning fallback categories');
-          // Return fallback categories if none found
-          return [
-            {
-              id: "1",
-              name: "Web Development",
-              description: "Learn to build modern, responsive websites and web applications",
-              icon: "code"
-            },
-            {
-              id: "2",
-              name: "Data Science",
-              description: "Master data analysis, visualization and machine learning",
-              icon: "database"
-            },
-            {
-              id: "3",
-              name: "Mobile Development",
-              description: "Create native and cross-platform mobile applications",
-              icon: "smartphone"
-            },
-            {
-              id: "4",
-              name: "Cloud Computing",
-              description: "Deploy and manage applications in the cloud",
-              icon: "cloud"
-            },
-          ];
+          return fallbackCategories;
         }
         
         // Map data to ensure it conforms to our Category interface
@@ -71,35 +73,8 @@ export function useCategories() {
         return formattedCategories;
       } catch (err) {
         console.error('Exception in categories fetch:', err);
-        
-        // Return fallback categories in case of error
         console.log('Returning fallback categories due to error');
-        return [
-          {
-            id: "1",
-            name: "Web Development",
-            description: "Learn to build modern, responsive websites and web applications",
-            icon: "code"
-          },
-          {
-            id: "2",
-            name: "Data Science",
-            description: "Master data analysis, visualization and machine learning",
-            icon: "database"
-          },
-          {
-            id: "3",
-            name: "Mobile Development",
-            description: "Create native and cross-platform mobile applications",
-            icon: "smartphone"
-          },
-          {
-            id: "4",
-            name: "Cloud Computing",
-            description: "Deploy and manage applications in the cloud",
-            icon: "cloud"
-          },
-        ];
+        return fallbackCategories;
       }
     },
     retry: 1,
