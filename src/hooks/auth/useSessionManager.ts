@@ -44,21 +44,33 @@ export const useSessionManager = () => {
       }
       
       console.log("Session is valid");
+      setSession(currentSession);
+      
+      // Make sure we have the user data even if just validating
+      if (!user && currentSession.user) {
+        const enrichedUser = await enrichUserWithProfile(currentSession.user);
+        setUser(enrichedUser);
+      }
+      
       return true;
     } catch (error) {
       console.error("Session validation error:", error);
-      setUser(null);
-      setSession(null);
-      return false;
+      // Don't clear user/session on network errors to prevent unnecessary logouts
+      return !!session; // Return true if we already have a session
     }
-  }, [enrichUserWithProfile]);
+  }, [enrichUserWithProfile, session, user]);
 
   const initializeSession = useCallback(async () => {
-    const { data: { session: existingSession } } = await supabase.auth.getSession();
-    if (existingSession) {
-      setSession(existingSession);
-      const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
-      setUser(enrichedUser);
+    try {
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession) {
+        setSession(existingSession);
+        const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
+        setUser(enrichedUser);
+      }
+    } catch (error) {
+      console.error("Error initializing session:", error);
+      // Don't throw here - allow the app to continue even if session init fails
     }
   }, [enrichUserWithProfile]);
 

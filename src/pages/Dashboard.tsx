@@ -7,6 +7,7 @@ import DashboardMobileNav from "@/components/dashboard/DashboardMobileNav";
 import DashboardMobileMenu from "@/components/dashboard/DashboardMobileMenu";
 import DashboardRoutes from "@/components/dashboard/DashboardRoutes";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   // Always call all hooks at the top level unconditionally
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
+  const [loadAttempts, setLoadAttempts] = useState(0);
   
   // Memoize validation logic to ensure it's stable across renders
   const validateAuthAndRedirect = useCallback(async () => {
@@ -35,10 +37,23 @@ const Dashboard = () => {
           state: { from: location.pathname } 
         });
       }
+    } catch (error) {
+      console.error("Error during validation:", error);
+      
+      // After 3 attempts, show a toast and stay on dashboard
+      if (loadAttempts >= 2) {
+        toast({
+          title: "Network issue detected",
+          description: "There might be connection issues. Some features may be limited.",
+          variant: "destructive",
+        });
+      } else {
+        setLoadAttempts(prev => prev + 1);
+      }
     } finally {
       setIsValidating(false);
     }
-  }, [navigate, location.pathname, validateSession, loading]);
+  }, [navigate, location.pathname, validateSession, loading, loadAttempts, toast]);
 
   // Auth validation effect - no conditional hook calls
   useEffect(() => {
@@ -53,6 +68,13 @@ const Dashboard = () => {
       navigate("/", { replace: true });
     }
   }, [user, loading, validateAuthAndRedirect, navigate]);
+
+  // Reset validation attempts when component unmounts/remounts
+  useEffect(() => {
+    return () => {
+      validationAttemptedRef.current = false;
+    };
+  }, []);
 
   // Single render path with conditional content
   return (

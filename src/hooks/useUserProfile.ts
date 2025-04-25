@@ -15,9 +15,13 @@ export const useUserProfile = () => {
         .eq('id', user.id)
         .single();
       
-      if (error || !profile) {
+      if (error) {
         console.error("Error fetching user profile:", error);
-        return user as UserWithProfile;
+        // Return basic user information even if profile fetch fails
+        return {
+          ...user,
+          role: 'student' // Default role if profile can't be fetched
+        } as UserWithProfile;
       }
       
       console.log("Profile data fetched:", profile);
@@ -29,7 +33,11 @@ export const useUserProfile = () => {
       };
     } catch (error) {
       console.error("Error enriching user data:", error);
-      return user as UserWithProfile;
+      // Return basic user information even if there's an exception
+      return {
+        ...user,
+        role: 'student' // Default role if profile can't be fetched
+      } as UserWithProfile;
     }
   };
   
