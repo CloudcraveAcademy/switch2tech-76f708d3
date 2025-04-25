@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthOperations } from "./auth/useAuthOperations";
 import { useSessionManager } from "./auth/useSessionManager";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const [loading, setLoading] = useState(true);
@@ -11,6 +12,8 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     register,
     logout: performLogout,
   } = useAuthOperations();
+  
+  const { enrichUserWithProfile } = useUserProfile();
   
   const {
     user,
@@ -58,7 +61,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
-  }, [initializeSession]);
+  }, [initializeSession, enrichUserWithProfile]);
 
   const logout = async () => {
     await performLogout(onLogout);
