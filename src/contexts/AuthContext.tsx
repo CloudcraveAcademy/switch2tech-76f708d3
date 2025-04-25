@@ -1,8 +1,9 @@
 
-import React, { createContext, useContext, useRef } from "react";
+import React, { createContext, useContext, useRef, useState, useEffect } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
 import type { AuthContextType } from "@/types/auth";
 
+// Create a context with a default undefined value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -14,7 +15,8 @@ export const useAuth = () => {
 };
 
 export const requireAuth = (Component: React.ComponentType<any>) => {
-  const AuthenticatedComponent = (props: any) => {
+  // Memoize the authenticated component to prevent unnecessary re-renders
+  const MemoizedAuthComponent = React.memo((props: any) => {
     const { user, loading } = useAuth();
     const authAttemptedRef = useRef(false);
     
@@ -26,25 +28,27 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
     
     // Pass control to Dashboard which will handle validation
     return <Component {...props} />;
-  };
+  });
   
-  return AuthenticatedComponent;
+  MemoizedAuthComponent.displayName = `RequireAuth(${Component.displayName || Component.name || 'Component'})`;
+  return MemoizedAuthComponent;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Use a stable handler for logout that won't cause re-renders
-  const handleLogout = () => {
+  // Prevent recreating the logout handler on every render
+  const handleLogout = React.useCallback(() => {
     console.log("Navigation after logout");
     window.location.href = "/";
-  };
+  }, []);
   
-  const auth = useAuthProvider(handleLogout);
+  // Store auth state in a singleton instance to prevent duplicate subscriptions
+  const [authInstance] = useState(() => useAuthProvider(handleLogout));
 
-  // Don't re-render children unnecessarily
+  // Memoize children to prevent unnecessary re-renders
   const memoizedChildren = React.useMemo(() => children, [children]);
 
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={authInstance}>
       {memoizedChildren}
     </AuthContext.Provider>
   );

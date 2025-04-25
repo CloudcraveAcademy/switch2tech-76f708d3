@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
   const initialRenderRef = useRef(true);
+  const hasRenderedWithUserRef = useRef(false);
   
   // Memoize validation logic to prevent unnecessary re-renders
   const validateAuthAndRedirect = useCallback(async () => {
@@ -46,6 +47,7 @@ const Dashboard = () => {
       initialRenderRef.current = false;
       if (user) {
         console.log("User already available on initial render, skipping validation");
+        hasRenderedWithUserRef.current = true;
         return;
       }
     }
@@ -53,6 +55,8 @@ const Dashboard = () => {
     // Only run validation when needed - avoid unnecessary checks
     if (!loading && !user && !validationAttemptedRef.current) {
       validateAuthAndRedirect();
+    } else if (user && !hasRenderedWithUserRef.current) {
+      hasRenderedWithUserRef.current = true;
     }
     
     // Handle redirect for users without roles
@@ -80,7 +84,11 @@ const Dashboard = () => {
     return null;
   }
 
-  console.log("Dashboard rendering with user:", user.name, "role:", user.role);
+  // Only log once when the dashboard initially renders with a user
+  if (hasRenderedWithUserRef.current) {
+    console.log("Dashboard rendering with user:", user.name, "role:", user.role);
+    hasRenderedWithUserRef.current = false; // Only log once
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">

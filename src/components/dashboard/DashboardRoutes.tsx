@@ -1,6 +1,6 @@
 
 import { Routes, Route } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import StudentDashboard from "./StudentDashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -20,7 +20,7 @@ const DashboardRoutes = () => {
   const { user } = useAuth();
   // Keep a stable reference to the user role
   const userRoleRef = useRef(user?.role);
-  const [stableRole, setStableRole] = useState(user?.role || "student");
+  const [stableRole, setStableRole] = useState(() => user?.role || "student");
   
   // Only update the role when it's definitely changed and valid
   useEffect(() => {
@@ -31,7 +31,9 @@ const DashboardRoutes = () => {
     }
   }, [user?.role]);
 
-  const getInitialDashboard = () => {
+  // Memoize the dashboard component to prevent unnecessary re-renders
+  const initialDashboard = useMemo(() => {
+    console.log("Rendering dashboard for role:", stableRole);
     switch (stableRole) {
       case "student":
         return <StudentDashboard />;
@@ -43,11 +45,12 @@ const DashboardRoutes = () => {
       default:
         return <StudentDashboard />;
     }
-  };
+  }, [stableRole]);
 
-  return (
+  // Memoize routes to prevent unnecessary re-renders
+  return useMemo(() => (
     <Routes>
-      <Route path="/" element={getInitialDashboard()} />
+      <Route path="/" element={initialDashboard} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/settings" element={<Settings />} />
@@ -85,7 +88,7 @@ const DashboardRoutes = () => {
       {/* Common Routes */}
       <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
     </Routes>
-  );
+  ), [initialDashboard, stableRole]);
 };
 
 // Fix missing import
