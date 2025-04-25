@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -14,37 +14,40 @@ const Dashboard = () => {
   const { user, loading, validateSession } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  
+  // Memoize validation logic to prevent unnecessary re-renders
+  const validateAuthAndRedirect = useCallback(async () => {
+    if (isValidating || loading) return; // Prevent multiple validations
+    
+    console.log("Dashboard validating session - user not found");
+    setIsValidating(true);
+    
+    try {
+      const isValid = await validateSession();
+      
+      if (!isValid) {
+        console.log("Session invalid, redirecting to login");
+        navigate("/login", { 
+          replace: true,
+          state: { from: location.pathname } 
+        });
+        return;
+      }
+    } finally {
+      setIsValidating(false);
+    }
+  }, [navigate, location.pathname, validateSession, isValidating, loading]);
 
   useEffect(() => {
-    // Only run validation if we don't already have a user and we're not already loading auth state
+    // Only validate if we don't have a user and aren't already loading
     if (!user && !loading && !isValidating) {
-      console.log("Dashboard validating session - user not found");
-      const validateAuthAndRedirect = async () => {
-        setIsValidating(true);
-        try {
-          const isValid = await validateSession();
-          
-          if (!isValid) {
-            console.log("Session invalid, redirecting to login");
-            navigate("/login", { 
-              replace: true,
-              state: { from: location.pathname } 
-            });
-            return;
-          }
-          
-        } finally {
-          setIsValidating(false);
-        }
-      };
-      
       validateAuthAndRedirect();
     } else if (user && !user.role) {
       // If user exists but has no role, redirect to home
       console.log("User has no role, redirecting to home");
       navigate("/", { replace: true });
     }
-  }, [user, loading, navigate, location.pathname, validateSession, isValidating]);
+  }, [user, loading, validateAuthAndRedirect, navigate, isValidating]);
 
   // Show loading state while checking authentication
   if (loading || isValidating) {

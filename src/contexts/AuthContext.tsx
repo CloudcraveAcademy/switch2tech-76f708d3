@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect } from "react";
+import React, { createContext, useContext } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
 import type { AuthContextType } from "@/types/auth";
 
@@ -17,7 +17,7 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
   const AuthenticatedComponent = (props: any) => {
     const { user, loading, validateSession } = useAuth();
     
-    useEffect(() => {
+    React.useEffect(() => {
       const checkAuth = async () => {
         const isValid = await validateSession();
         if (!isValid && !loading) {
