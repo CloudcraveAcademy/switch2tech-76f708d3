@@ -32,8 +32,8 @@ const Navbar = () => {
     try {
       setLoggingOut(true);
       await logout();
+      // Don't need to manually navigate since the logout function now handles this
       setIsMenuOpen(false); // Close mobile menu if open
-      navigate("/");
     } catch (error) {
       console.error("Logout error in Navbar:", error);
       toast({

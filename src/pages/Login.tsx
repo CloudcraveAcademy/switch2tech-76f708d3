@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginForm } from "@/hooks/useLoginForm";
@@ -9,7 +9,8 @@ import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, validateSession } = useAuth();
   const {
     email,
     setEmail,
@@ -30,12 +31,37 @@ const Login = () => {
 
   // Check if user is already logged in
   useEffect(() => {
-    console.log("Login page - checking auth state:", { user, loading });
-    if (user) {
-      console.log("User is authenticated, redirecting to dashboard");
-      navigate("/dashboard");
-    }
-  }, [user, navigate]);
+    const checkAuthAndRedirect = async () => {
+      console.log("Login page - checking auth state");
+      
+      // First check if we already have a user
+      if (user) {
+        console.log("User is already authenticated, redirecting to dashboard");
+        navigate("/dashboard");
+        return;
+      }
+      
+      // If no user but we might have a session, validate it
+      const isValid = await validateSession();
+      
+      if (isValid) {
+        console.log("Valid session found, redirecting to dashboard");
+        navigate("/dashboard");
+      }
+    };
+    
+    checkAuthAndRedirect();
+  }, [user, navigate, validateSession]);
+
+  // Extract the redirect path from location state
+  const from = location.state?.from || "/dashboard";
+
+  // Update the login form's handleSubmit to redirect after successful login
+  const handleLogin = async (e: React.FormEvent) => {
+    await handleSubmit(e);
+    // The auth listener will handle setting the user state
+    // and the useEffect above will handle redirection
+  };
 
   return (
     <Layout>
@@ -58,7 +84,7 @@ const Login = () => {
               loading={loading}
               loginInProgress={loginInProgress}
               setShowForgotPassword={setShowForgotPassword}
-              handleSubmit={handleSubmit}
+              handleSubmit={handleLogin}
               authError={authError}
             />
           ) : (
