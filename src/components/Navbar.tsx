@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const toggleMenu = () => {
@@ -32,7 +30,6 @@ const Navbar = () => {
     try {
       setLoggingOut(true);
       await logout();
-      // Don't need to manually navigate since the logout function now handles this
       setIsMenuOpen(false); // Close mobile menu if open
     } catch (error) {
       console.error("Logout error in Navbar:", error);
@@ -46,7 +43,6 @@ const Navbar = () => {
     }
   };
 
-  // Reset loggingOut state when user changes (e.g., becomes null after logout)
   useEffect(() => {
     if (!user) {
       setLoggingOut(false);
@@ -171,7 +167,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="pt-2 pb-3 space-y-1">

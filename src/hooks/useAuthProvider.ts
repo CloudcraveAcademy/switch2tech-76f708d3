@@ -2,18 +2,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import type { UserWithProfile, UserRole } from "@/types/auth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
-export const useAuthProvider = () => {
+export const useAuthProvider = (onLogout?: () => void) => {
   const [user, setUser] = useState<UserWithProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { enrichUserWithProfile } = useUserProfile();
-  const navigate = useNavigate();
 
   const login = async (email: string, password: string) => {
     try {
@@ -115,8 +113,10 @@ export const useAuthProvider = () => {
         description: "You have been logged out of your account.",
       });
       
-      // Redirect to home page after successful logout
-      navigate("/");
+      // Call the onLogout callback if provided (for navigation)
+      if (onLogout) {
+        onLogout();
+      }
       
     } catch (error: any) {
       console.error("Logout error:", error);
@@ -128,7 +128,7 @@ export const useAuthProvider = () => {
       setLoading(false);
       throw error;
     }
-  }, [toast, navigate]);
+  }, [toast, onLogout]);
 
   useEffect(() => {
     console.log("Setting up auth state listener");
@@ -152,10 +152,6 @@ export const useAuthProvider = () => {
           setUser(null);
           setSession(null);
           setLoading(false);
-          // Redirect to login page on sign out
-          if (window.location.pathname.startsWith('/dashboard')) {
-            navigate('/login');
-          }
         }
       }
     );
@@ -181,7 +177,7 @@ export const useAuthProvider = () => {
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
-  }, [enrichUserWithProfile, navigate]);
+  }, [enrichUserWithProfile]);
 
   // Add a method to validate the session
   const validateSession = useCallback(async () => {

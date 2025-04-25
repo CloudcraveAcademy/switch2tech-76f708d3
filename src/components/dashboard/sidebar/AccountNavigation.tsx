@@ -13,15 +13,14 @@ interface AccountNavigationProps {
 const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
     
     setIsLoggingOut(true);
     try {
+      // The navigation is now handled by the AuthProvider
       await onLogout();
-      // Don't need to manually navigate since the logout function now handles this
     } catch (error) {
       console.error("Logout failed:", error);
       toast({

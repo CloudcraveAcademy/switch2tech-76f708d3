@@ -41,10 +41,16 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const auth = useAuthProvider();
-  const { user, loading, validateSession } = auth;
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const handleLogout = () => {
+    console.log("Navigation after logout");
+    navigate("/", { replace: true });
+  };
+  
+  const auth = useAuthProvider(handleLogout);
+  const { user, loading, validateSession } = auth;
 
   // Global auth validation effect that runs on page refresh and route changes
   useEffect(() => {
