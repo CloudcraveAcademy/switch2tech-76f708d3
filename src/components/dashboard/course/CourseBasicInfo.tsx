@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
+import { useEffect } from "react";
 
 interface CourseBasicInfoProps {
   form: any;
@@ -13,6 +14,12 @@ const LEVEL_OPTIONS = ["beginner", "intermediate", "advanced"];
 
 export const CourseBasicInfo = ({ form }: CourseBasicInfoProps) => {
   const { data: categories } = useCategories();
+
+  // Debug: log categories and current value
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log("CourseBasicInfo: categories:", categories, "Current category value in form:", form.getValues("category"));
+  }, [categories, form]);
 
   return (
     <div className="space-y-6">
@@ -39,18 +46,28 @@ export const CourseBasicInfo = ({ form }: CourseBasicInfoProps) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category*</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value || ""}
+                defaultValue={field.value || ""}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {categories?.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                  {categories && categories.length > 0 ? (
+                    categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      No categories found
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -82,7 +99,11 @@ export const CourseBasicInfo = ({ form }: CourseBasicInfoProps) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Level*</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value || ""}
+                defaultValue={field.value || ""}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select level" />
