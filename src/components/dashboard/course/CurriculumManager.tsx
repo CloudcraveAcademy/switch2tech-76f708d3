@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,12 +18,17 @@ interface Lesson {
   video_url?: string | null;
 }
 
+interface LessonFormState {
+  title: string;
+  duration_minutes: string; // Always a string in form
+  content: string;
+  video_url?: string | null;
+}
+
 export function CurriculumManager({ courseId }: { courseId: string }) {
   const queryClient = useQueryClient();
-  const [editingLesson, setEditingLesson] = useState<
-    (Lesson & { duration_minutes: string }) | null
-  >(null);
-  const [newLesson, setNewLesson] = useState({
+  const [editingLesson, setEditingLesson] = useState<(LessonFormState & { id: string; course_id: string; order_number: number }) | null>(null);
+  const [newLesson, setNewLesson] = useState<LessonFormState>({
     title: "",
     duration_minutes: "",
     content: "",
@@ -32,7 +36,6 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
   });
   const [reordering, setReordering] = useState(false);
 
-  // Fetch lessons for this course
   const { data: lessons, isLoading } = useQuery<Lesson[]>({
     queryKey: ["lessons", courseId],
     queryFn: async () => {
@@ -47,13 +50,8 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     enabled: !!courseId,
   });
 
-  // Add or update a lesson
   const saveLesson = async (
-    lesson: Partial<Lesson> & {
-      title: string;
-      duration_minutes: string | number;
-      content: string;
-    },
+    lesson: LessonFormState,
     id?: string
   ) => {
     const duration = Number(lesson.duration_minutes);
@@ -61,7 +59,6 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
       throw new Error("Title and valid duration are required");
     }
     if (id) {
-      // Update
       const { error } = await supabase
         .from("lessons")
         .update({
@@ -73,8 +70,12 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         .eq("id", id);
       if (error) throw error;
     } else {
-      // Insert as last
-      const nextOrder = lessons ? lessons.length + 1 : 1;
+      const { data: currentLessons } = await supabase
+        .from("lessons")
+        .select("*")
+        .eq("course_id", courseId)
+        .order("order_number", { ascending: true });
+      const nextOrder = currentLessons ? currentLessons.length + 1 : 1;
       const { error } = await supabase.from("lessons").insert({
         course_id: courseId,
         title: lesson.title,
@@ -88,7 +89,6 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
 
-  // Delete lesson
   const deleteLesson = async (lessonId: string) => {
     const { error } = await supabase
       .from("lessons")
@@ -98,14 +98,12 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
 
-  // Move lesson up/down
   const moveLesson = async (direction: "up" | "down", idx: number) => {
     if (!lessons) return;
     const targetIdx = direction === "up" ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= lessons.length) return;
     const l1 = lessons[idx];
     const l2 = lessons[targetIdx];
-    // Swap their order numbers
     const { error: err1 } = await supabase
       .from("lessons")
       .update({ order_number: l2.order_number })
@@ -118,7 +116,6 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
 
-  // Mutations with react-query
   const mutation = useMutation({
     mutationFn: ({
       type,
@@ -146,7 +143,6 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     },
   });
 
-  // Simple lesson form
   return (
     <Card>
       <CardHeader>
@@ -156,35 +152,26 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Add/Edit Lesson form */}
         <form
           className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
           onSubmit={e => {
             e.preventDefault();
             if (editingLesson) {
-              mutation.mutate({
-                type: "update",
-                data: {
-                  ...editingLesson,
-                  duration_minutes: Number(editingLesson.duration_minutes),
-                },
-                id: editingLesson.id,
-              });
-              setEditingLesson(null);
+              const { id, course_id, order_number, ...lessonData } = editingLesson;
+              saveLesson(lessonData, editingLesson.id)
+                .then(() => setEditingLesson(null))
+                .catch(() => {});
             } else {
-              mutation.mutate({
-                type: "add",
-                data: {
-                  ...newLesson,
-                  duration_minutes: Number(newLesson.duration_minutes),
-                },
-              });
-              setNewLesson({
-                title: "",
-                duration_minutes: "",
-                content: "",
-                video_url: "",
-              });
+              saveLesson(newLesson)
+                .then(() =>
+                  setNewLesson({
+                    title: "",
+                    duration_minutes: "",
+                    content: "",
+                    video_url: "",
+                  })
+                )
+                .catch(() => {});
             }
           }}
         >
@@ -282,7 +269,6 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
           </div>
         </form>
 
-        {/* List lessons */}
         {isLoading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="animate-spin" />
@@ -368,4 +354,3 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     </Card>
   );
 }
-
