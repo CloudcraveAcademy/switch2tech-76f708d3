@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,17 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { toast } = useToast();
+
+  const userData = useMemo(() => {
+    if (!user) return null;
+    
+    return {
+      name: user.name || 'User',
+      email: user.email || '',
+      avatar: user.avatar || '',
+      role: user.role || 'student'
+    };
+  }, [user?.id, user?.name, user?.email, user?.avatar, user?.role]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -48,6 +59,20 @@ const Navbar = () => {
       setLoggingOut(false);
     }
   }, [user]);
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const userInitials = useMemo(() => {
+    return getInitials(userData?.name);
+  }, [userData?.name]);
 
   return (
     <nav className="fixed w-full top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -92,7 +117,7 @@ const Navbar = () => {
               Contact
             </Link>
 
-            {!user ? (
+            {!userData ? (
               <div className="ml-4 flex items-center md:ml-6">
                 <Link to="/login">
                   <Button variant="outline" className="mr-2 border-[#0077B6] text-[#0077B6] hover:bg-[#00B4D8]/10">
@@ -109,14 +134,9 @@ const Navbar = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative rounded-full">
                       <Avatar>
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarImage src={userData.avatar} alt={userData.name} />
                         <AvatarFallback>
-                          {user.name
-                            ? user.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                            : "U"}
+                          {userInitials}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
@@ -124,12 +144,12 @@ const Navbar = () => {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
                       <div className="font-normal">
-                        <div className="font-medium">{user.name}</div>
+                        <div className="font-medium">{userData.name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {user.email}
+                          {userData.email}
                         </div>
                         <div className="text-xs text-muted-foreground capitalize mt-1">
-                          Role: {user.role}
+                          Role: {userData.role}
                         </div>
                       </div>
                     </DropdownMenuLabel>
@@ -211,7 +231,7 @@ const Navbar = () => {
               </div>
             </Link>
             
-            {!user ? (
+            {!userData ? (
               <div className="mt-4 flex flex-col space-y-2 px-3">
                 <Link to="/login" onClick={toggleMenu}>
                   <Button variant="outline" className="w-full">
@@ -227,23 +247,18 @@ const Navbar = () => {
                 <div className="flex items-center px-4">
                   <div className="flex-shrink-0">
                     <Avatar>
-                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarImage src={userData.avatar} alt={userData.name} />
                       <AvatarFallback>
-                        {user.name
-                          ? user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                          : "U"}
+                        {userInitials}
                       </AvatarFallback>
                     </Avatar>
                   </div>
                   <div className="ml-3">
                     <div className="text-base font-medium text-gray-800">
-                      {user.name}
+                      {userData.name}
                     </div>
                     <div className="text-sm font-medium text-gray-500">
-                      {user.email}
+                      {userData.email}
                     </div>
                   </div>
                 </div>

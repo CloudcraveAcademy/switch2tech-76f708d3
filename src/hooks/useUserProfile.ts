@@ -4,10 +4,29 @@ import type { User } from "@supabase/supabase-js";
 import type { UserWithProfile } from "@/types/auth";
 
 export const useUserProfile = () => {
+  // Cache to prevent duplicate fetches for the same user ID
+  const profileCache = new Map<string, {data: any, timestamp: number}>();
+  const CACHE_TTL = 30000; // 30 seconds cache TTL
+  
   const enrichUserWithProfile = async (user: User | null): Promise<UserWithProfile | null> => {
     if (!user) return null;
     
     try {
+      // Check cache first to reduce database calls
+      const cachedProfile = profileCache.get(user.id);
+      const now = Date.now();
+      
+      if (cachedProfile && (now - cachedProfile.timestamp < CACHE_TTL)) {
+        console.log("Using cached profile for user:", user.id);
+        const profile = cachedProfile.data;
+        return {
+          ...user,
+          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || undefined,
+          avatar: profile.avatar_url,
+          role: profile.role as UserWithProfile['role']
+        };
+      }
+      
       console.log("Fetching profile for user:", user.id);
       const { data: profile, error } = await supabase
         .from('user_profiles')
@@ -25,6 +44,13 @@ export const useUserProfile = () => {
       }
       
       console.log("Profile data fetched:", profile);
+      
+      // Cache the result
+      profileCache.set(user.id, {
+        data: profile,
+        timestamp: now
+      });
+      
       return {
         ...user,
         name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || undefined,
@@ -69,6 +95,9 @@ export const useUserProfile = () => {
         console.error("Error updating user profile:", error);
         throw error;
       }
+      
+      // Update cache with new data
+      profileCache.delete(userId);
       
       return data;
     } catch (error) {

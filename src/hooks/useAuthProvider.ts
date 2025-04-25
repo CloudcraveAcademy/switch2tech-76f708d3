@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthOperations } from "./auth/useAuthOperations";
 import { useSessionManager } from "./auth/useSessionManager";
@@ -7,6 +7,8 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 
 export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const [loading, setLoading] = useState(true);
+  const authListenerInitialized = useRef(false);
+  
   const {
     login,
     register,
@@ -26,8 +28,11 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
 
   // Auth state management effect - refactored to avoid React hook issues
   useEffect(() => {
+    if (authListenerInitialized.current) return;
+    
     let mounted = true;
     console.log("Setting up auth state listener");
+    authListenerInitialized.current = true;
     
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -38,6 +43,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(newSession);
+          
           // Use setTimeout to prevent potential Supabase deadlocks
           setTimeout(async () => {
             if (!mounted) return;
@@ -83,6 +89,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     
     return () => {
       mounted = false;
+      authListenerInitialized.current = false;
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };

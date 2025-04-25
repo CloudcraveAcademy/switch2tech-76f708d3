@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import type { UserWithProfile } from "@/types/auth";
@@ -9,6 +9,7 @@ export const useSessionManager = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<UserWithProfile | null>(null);
   const { enrichUserWithProfile } = useUserProfile();
+  const profileFetchInProgress = useRef(false);
 
   const validateSession = useCallback(async () => {
     console.log("Validating session");
@@ -38,8 +39,18 @@ export const useSessionManager = () => {
         }
         
         setSession(refreshedSession);
-        const enrichedUser = await enrichUserWithProfile(refreshedSession?.user ?? null);
-        setUser(enrichedUser);
+        
+        // Prevent duplicate profile fetches
+        if (!profileFetchInProgress.current) {
+          profileFetchInProgress.current = true;
+          try {
+            const enrichedUser = await enrichUserWithProfile(refreshedSession?.user ?? null);
+            setUser(enrichedUser);
+          } finally {
+            profileFetchInProgress.current = false;
+          }
+        }
+        
         return true;
       }
       
@@ -47,9 +58,15 @@ export const useSessionManager = () => {
       setSession(currentSession);
       
       // Make sure we have the user data even if just validating
-      if (!user && currentSession.user) {
-        const enrichedUser = await enrichUserWithProfile(currentSession.user);
-        setUser(enrichedUser);
+      // Prevent duplicate profile fetches
+      if (!user && currentSession.user && !profileFetchInProgress.current) {
+        profileFetchInProgress.current = true;
+        try {
+          const enrichedUser = await enrichUserWithProfile(currentSession.user);
+          setUser(enrichedUser);
+        } finally {
+          profileFetchInProgress.current = false;
+        }
       }
       
       return true;
@@ -61,7 +78,10 @@ export const useSessionManager = () => {
   }, [enrichUserWithProfile, session, user]);
 
   const initializeSession = useCallback(async () => {
+    if (profileFetchInProgress.current) return;
+    
     try {
+      profileFetchInProgress.current = true;
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       if (existingSession) {
         setSession(existingSession);
@@ -71,6 +91,8 @@ export const useSessionManager = () => {
     } catch (error) {
       console.error("Error initializing session:", error);
       // Don't throw here - allow the app to continue even if session init fails
+    } finally {
+      profileFetchInProgress.current = false;
     }
   }, [enrichUserWithProfile]);
 
