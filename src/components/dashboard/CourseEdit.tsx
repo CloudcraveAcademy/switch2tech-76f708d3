@@ -141,7 +141,7 @@ const CourseEdit = () => {
         timezone: course.timezone || "",
         replayAccess: course.replay_access || false,
         discountEnabled: course.discounted_price !== null && course.discounted_price !== undefined,
-        discountedPrice: course.discounted_price ? course.discountedPrice.toString() : "",
+        discountedPrice: course.discounted_price ? course.discounted_price.toString() : "",
       });
 
       if (course.image_url) {
