@@ -1,10 +1,10 @@
 
-import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Settings, PenTool } from "lucide-react";
+import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Settings, PenTool, BookOpen, Folder } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const iconMap = {
+const iconMap: Record<string, React.ElementType> = {
   code: Code,
   shield: Shield,
   database: Database,
@@ -12,10 +12,17 @@ const iconMap = {
   smartphone: Smartphone,
   settings: Settings,
   "pen-tool": PenTool,
+  book: BookOpen,
+  folder: Folder,
 };
 
 const ExploreCategoriesSection = () => {
-  const { data: categories, isLoading } = useCategories();
+  const { data: categories, isLoading, error } = useCategories();
+
+  // Add console logs for debugging
+  console.log('Categories data:', categories);
+  console.log('Loading state:', isLoading);
+  console.log('Error state:', error);
 
   if (isLoading) {
     return (
@@ -35,6 +42,37 @@ const ExploreCategoriesSection = () => {
     );
   }
 
+  if (error) {
+    console.error('Error loading categories:', error);
+    return (
+      <section className="py-24 bg-background border-t border-border">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold mb-4 text-foreground">
+            Oops! Something went wrong
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            We couldn't load the categories. Please try again later.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!categories || categories.length === 0) {
+    return (
+      <section className="py-24 bg-background border-t border-border">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold mb-4 text-foreground">
+            Explore By Categories
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            No categories available at the moment. Check back soon!
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-24 bg-background border-t border-border">
       <div className="container mx-auto px-6">
@@ -45,8 +83,8 @@ const ExploreCategoriesSection = () => {
           Find the perfect course by exploring our diverse range of tech categories.
         </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {categories?.map((category) => {
-            const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Code;
+          {categories.map((category) => {
+            const IconComponent = iconMap[category.icon] || Code;
             
             return (
               <div 

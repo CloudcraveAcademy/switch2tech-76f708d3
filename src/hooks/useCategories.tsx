@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Category {
+export interface Category {
   id: string;
   name: string;
   description: string;
@@ -18,7 +18,11 @@ export function useCategories() {
         .select('*')
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
+      
       return data as Category[];
     },
   });
