@@ -65,8 +65,7 @@ export function useCategories() {
           return fallbackCategories;
         }
 
-        // Get course counts for each category using a different approach
-        // Instead of using group which isn't available, we'll count manually
+        // Get course counts for each category
         const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
           .select('category');
@@ -99,7 +98,7 @@ export function useCategories() {
         }));
         
         console.log('Formatted categories:', formattedCategories);
-        return formattedCategories;
+        return formattedCategories.length > 0 ? formattedCategories : fallbackCategories;
       } catch (err) {
         console.error('Exception in categories fetch:', err);
         console.log('Returning fallback categories due to error');

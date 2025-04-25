@@ -29,7 +29,7 @@ const ExploreCategoriesSection = () => {
   useEffect(() => {
     console.log('Categories useEffect running with data:', fetchedCategories);
     
-    if (fetchedCategories && Array.isArray(fetchedCategories) && fetchedCategories.length > 0) {
+    if (fetchedCategories && Array.isArray(fetchedCategories)) {
       console.log('Setting categories from API:', fetchedCategories);
       setCategories(fetchedCategories);
     } else if (!isLoading && error) {
