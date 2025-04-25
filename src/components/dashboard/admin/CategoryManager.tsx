@@ -32,6 +32,13 @@ const categorySchema = z.object({
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
 
+interface CategoryDbValues {
+  name: string;
+  description: string;
+  icon: string;
+  id?: string;
+}
+
 export function CategoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -60,7 +67,7 @@ export function CategoryManager() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (values: CategoryFormValues) => {
+    mutationFn: async (values: CategoryDbValues) => {
       const { error } = await supabase
         .from('course_categories')
         .insert([values]);
@@ -85,11 +92,12 @@ export function CategoryManager() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...values }: CategoryFormValues & { id: string }) => {
+    mutationFn: async (values: CategoryDbValues) => {
+      const { id, ...updateValues } = values;
       const { error } = await supabase
         .from('course_categories')
-        .update(values)
-        .eq('id', id);
+        .update(updateValues)
+        .eq('id', id!);
       
       if (error) throw error;
     },
@@ -137,10 +145,16 @@ export function CategoryManager() {
   });
 
   const onSubmit = (values: CategoryFormValues) => {
+    const dbValues: CategoryDbValues = {
+      name: values.name,
+      description: values.description,
+      icon: values.icon,
+    };
+
     if (editingId) {
-      updateMutation.mutate({ ...values, id: editingId });
+      updateMutation.mutate({ ...dbValues, id: editingId });
     } else {
-      createMutation.mutate(values);
+      createMutation.mutate(dbValues);
     }
   };
 
