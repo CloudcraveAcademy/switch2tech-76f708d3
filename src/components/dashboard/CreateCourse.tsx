@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -155,8 +154,8 @@ const CreateCourse = () => {
         preview_video: data.previewVideo,
         course_materials: materialUrls.length > 0 ? materialUrls : null,
         access_duration: data.accessDuration,
-        registration_deadline: data.registrationDeadline,
-        course_start_date: data.courseStartDate,
+        registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
+        course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
         class_days: data.classDays,
         class_time: data.classTime,
         timezone: data.timezone,
@@ -164,7 +163,6 @@ const CreateCourse = () => {
         discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
       };
       
-      // Fix: Remove the array brackets and pass the object directly
       const { data: course, error } = await supabase
         .from('courses')
         .insert(courseData)

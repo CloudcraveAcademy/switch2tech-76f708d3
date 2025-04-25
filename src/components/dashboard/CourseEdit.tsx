@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -66,7 +65,6 @@ const CourseEdit = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
   
-  // Initialize the form
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -86,7 +84,6 @@ const CourseEdit = () => {
     },
   });
   
-  // Fetch course data
   const { data: course, isLoading, refetch } = useQuery({
     queryKey: ["course", id],
     queryFn: async () => {
@@ -102,7 +99,6 @@ const CourseEdit = () => {
     enabled: !!id,
   });
   
-  // Populate form with course data when loaded
   useEffect(() => {
     if (course) {
       form.reset({
@@ -112,7 +108,9 @@ const CourseEdit = () => {
         duration: course.duration_hours ? course.duration_hours.toString() : "",
         level: course.level || "",
         category: course.category || "",
-        mode: course.mode || "self-paced",
+        mode: (course.mode === "self-paced" || course.mode === "virtual-live")
+          ? course.mode
+          : "self-paced",
         language: course.language || "English",
         multiLanguageSupport: course.multi_language_support || false,
         additionalLanguages: course.additional_languages || [],
@@ -125,7 +123,7 @@ const CourseEdit = () => {
         classTime: course.class_time || "",
         timezone: course.timezone || "",
         replayAccess: course.replay_access || false,
-        discountEnabled: course.discounted_price !== null,
+        discountEnabled: course.discounted_price !== null && course.discounted_price !== undefined,
         discountedPrice: course.discounted_price ? course.discounted_price.toString() : "",
       });
 
@@ -160,7 +158,6 @@ const CourseEdit = () => {
       let finalImageUrl = imageUrl;
       let materialUrls: string[] = course?.course_materials || [];
       
-      // Upload new image if selected
       if (image) {
         const fileExt = image.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -178,7 +175,6 @@ const CourseEdit = () => {
         finalImageUrl = imageData.publicUrl;
       }
       
-      // Upload new course materials if selected
       if (courseMaterials.length > 0) {
         for (const material of courseMaterials) {
           const fileExt = material.name.split('.').pop();
@@ -198,7 +194,6 @@ const CourseEdit = () => {
         }
       }
       
-      // Format dates as ISO strings for database storage
       const courseData = {
         title: data.title,
         description: data.description,
@@ -237,7 +232,6 @@ const CourseEdit = () => {
         description: "Course updated successfully",
       });
       
-      // Refresh course data
       refetch();
     } catch (error: any) {
       console.error("Error updating course:", error);
