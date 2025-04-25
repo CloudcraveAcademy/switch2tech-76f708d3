@@ -256,7 +256,7 @@ const Profile = () => {
                   
                   <div className="border-t pt-4 pb-4">
                     <p className="text-sm font-medium text-gray-500">Member Since</p>
-                    <p>{profileData?.created_at ? formatDate(new Date(profileData.created_at)) : "N/A"}</p>
+                    <p>{profileData?.created_at ? formatDate(profileData.created_at) : "N/A"}</p>
                   </div>
                   
                   {user?.role === 'student' && (
@@ -656,7 +656,7 @@ const Profile = () => {
 
                 <TabsContent value="banking">
                   <BankDetails 
-                    profileData={profileData || {}} 
+                    profileData={profileData || {id: "", role: ""} as ProfileData} 
                     onBankDetailsChange={(field, value) => 
                       setFormData(prev => ({ ...prev, [field]: value }))
                     } 
