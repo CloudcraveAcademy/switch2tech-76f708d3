@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { User, Bell, Settings, LogOut } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 
 interface AccountNavigationProps {
   isActive: (path: string) => boolean;
@@ -19,7 +18,7 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
     
     setIsLoggingOut(true);
     try {
-      // The navigation is now handled by the AuthProvider
+      // Navigation is now handled by the AuthProvider's onLogout callback
       await onLogout();
     } catch (error) {
       console.error("Logout failed:", error);
