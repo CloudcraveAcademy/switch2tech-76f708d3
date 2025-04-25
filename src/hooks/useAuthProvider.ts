@@ -6,14 +6,14 @@ import type { Session } from "@supabase/supabase-js";
 import type { UserWithProfile, UserRole } from "@/types/auth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
-export const useAuthProvider = (onLogout?: () => void) => {
+export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const [user, setUser] = useState<UserWithProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { enrichUserWithProfile } = useUserProfile();
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       console.log("Attempting login for:", email);
       setLoading(true);
@@ -36,9 +36,9 @@ export const useAuthProvider = (onLogout?: () => void) => {
       setLoading(false);
       throw error;
     }
-  };
+  }, []);
 
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
+  const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
     try {
       console.log("Attempting registration for:", email);
       setLoading(true);
@@ -81,7 +81,7 @@ export const useAuthProvider = (onLogout?: () => void) => {
       setLoading(false);
       throw error;
     }
-  };
+  }, [toast]);
 
   const logout = useCallback(async () => {
     try {
@@ -130,56 +130,6 @@ export const useAuthProvider = (onLogout?: () => void) => {
     }
   }, [toast, onLogout]);
 
-  useEffect(() => {
-    console.log("Setting up auth state listener");
-    
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log("Auth state changed:", event, newSession ? "session exists" : "no session");
-        
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setSession(newSession);
-          // Use setTimeout to prevent potential Supabase deadlocks
-          setTimeout(async () => {
-            const enrichedUser = await enrichUserWithProfile(newSession?.user ?? null);
-            console.log("Enriched user data after sign in:", enrichedUser);
-            setUser(enrichedUser);
-            setLoading(false);
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          console.log("User signed out, clearing state");
-          setUser(null);
-          setSession(null);
-          setLoading(false);
-        }
-      }
-    );
-
-    // Then check for existing session
-    const initSession = async () => {
-      console.log("Checking for existing session");
-      const { data: { session: existingSession } } = await supabase.auth.getSession();
-      console.log("Existing session:", existingSession ? "exists" : "none");
-      
-      if (existingSession) {
-        setSession(existingSession);
-        const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
-        console.log("Initial enriched user:", enrichedUser);
-        setUser(enrichedUser);
-      }
-      setLoading(false);
-    };
-
-    initSession();
-    
-    return () => {
-      console.log("Cleaning up auth subscription");
-      subscription.unsubscribe();
-    };
-  }, [enrichUserWithProfile]);
-
-  // Add a method to validate the session
   const validateSession = useCallback(async () => {
     console.log("Validating session");
     try {
@@ -222,6 +172,62 @@ export const useAuthProvider = (onLogout?: () => void) => {
       setSession(null);
       return false;
     }
+  }, [enrichUserWithProfile]);
+
+  // Auth state management effect
+  useEffect(() => {
+    console.log("Setting up auth state listener");
+    
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log("Auth state changed:", event, newSession ? "session exists" : "no session");
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(newSession);
+          // Use setTimeout to prevent potential Supabase deadlocks
+          setTimeout(async () => {
+            try {
+              const enrichedUser = await enrichUserWithProfile(newSession?.user ?? null);
+              console.log("Enriched user data after sign in:", enrichedUser);
+              setUser(enrichedUser);
+            } finally {
+              setLoading(false);
+            }
+          }, 0);
+        } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing state");
+          setUser(null);
+          setSession(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    // Then check for existing session
+    const initSession = async () => {
+      try {
+        console.log("Checking for existing session");
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        console.log("Existing session:", existingSession ? "exists" : "none");
+        
+        if (existingSession) {
+          setSession(existingSession);
+          const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
+          console.log("Initial enriched user:", enrichedUser);
+          setUser(enrichedUser);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initSession();
+    
+    return () => {
+      console.log("Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
   }, [enrichUserWithProfile]);
 
   return {
