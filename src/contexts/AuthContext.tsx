@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useRef } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
 import type { AuthContextType } from "@/types/auth";
 
@@ -16,9 +16,11 @@ export const useAuth = () => {
 export const requireAuth = (Component: React.ComponentType<any>) => {
   const AuthenticatedComponent = (props: any) => {
     const { user, loading } = useAuth();
+    const authAttemptedRef = useRef(false);
     
     // Simple loading state - let Dashboard handle all validation logic
-    if (loading) {
+    if (loading && !authAttemptedRef.current) {
+      authAttemptedRef.current = true;
       return <div className="flex justify-center items-center h-screen">Loading...</div>;
     }
     
@@ -30,7 +32,7 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Pass handleLogout callback to useAuthProvider
+  // Use a stable handler for logout that won't cause re-renders
   const handleLogout = () => {
     console.log("Navigation after logout");
     window.location.href = "/";
@@ -38,9 +40,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const auth = useAuthProvider(handleLogout);
 
+  // Don't re-render children unnecessarily
+  const memoizedChildren = React.useMemo(() => children, [children]);
+
   return (
     <AuthContext.Provider value={auth}>
-      {children}
+      {memoizedChildren}
     </AuthContext.Provider>
   );
 };

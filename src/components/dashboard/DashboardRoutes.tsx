@@ -1,5 +1,6 @@
+
 import { Routes, Route } from "react-router-dom";
-import { useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import StudentDashboard from "./StudentDashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -19,14 +20,16 @@ const DashboardRoutes = () => {
   const { user } = useAuth();
   // Keep a stable reference to the user role
   const userRoleRef = useRef(user?.role);
+  const [stableRole, setStableRole] = useState(user?.role || "student");
   
-  // Only update the role ref if there is a user with a role
-  if (user?.role) {
-    userRoleRef.current = user.role;
-  }
-  
-  // Use the stable role reference
-  const stableRole = userRoleRef.current || user?.role;
+  // Only update the role when it's definitely changed and valid
+  useEffect(() => {
+    if (user?.role && user.role !== userRoleRef.current) {
+      userRoleRef.current = user.role;
+      setStableRole(user.role);
+      console.log("Dashboard role updated to:", user.role);
+    }
+  }, [user?.role]);
 
   const getInitialDashboard = () => {
     switch (stableRole) {

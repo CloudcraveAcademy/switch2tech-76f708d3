@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
-  const userRoleRef = useRef(user?.role);
+  const initialRenderRef = useRef(true);
   
   // Memoize validation logic to prevent unnecessary re-renders
   const validateAuthAndRedirect = useCallback(async () => {
@@ -41,6 +41,15 @@ const Dashboard = () => {
   }, [navigate, location.pathname, validateSession, isValidating]);
 
   useEffect(() => {
+    // Skip validation on initial render if we already have a user
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      if (user) {
+        console.log("User already available on initial render, skipping validation");
+        return;
+      }
+    }
+    
     // Only run validation when needed - avoid unnecessary checks
     if (!loading && !user && !validationAttemptedRef.current) {
       validateAuthAndRedirect();
@@ -51,15 +60,10 @@ const Dashboard = () => {
       console.log("User has no role, redirecting to home");
       navigate("/", { replace: true });
     }
-    
-    // Update role ref to prevent unnecessary re-renders
-    if (user?.role) {
-      userRoleRef.current = user.role;
-    }
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
   // Show loading state only during initial auth check or explicit validation
-  if (loading || isValidating) {
+  if ((loading && initialRenderRef.current) || isValidating) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="space-y-4 w-64">
@@ -76,9 +80,7 @@ const Dashboard = () => {
     return null;
   }
 
-  // Ensure we have a stable role before rendering dashboard
-  const stableRole = userRoleRef.current || user.role;
-  console.log("Dashboard rendering with user:", user.name, "role:", stableRole);
+  console.log("Dashboard rendering with user:", user.name, "role:", user.role);
 
   return (
     <div className="flex h-screen bg-gray-100">
