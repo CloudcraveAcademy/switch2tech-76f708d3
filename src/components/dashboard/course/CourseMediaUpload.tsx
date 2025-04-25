@@ -1,22 +1,30 @@
 
-import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { FileText, Video } from "lucide-react";
+import { FileText, Video, Loader, Check, X } from "lucide-react";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+
+interface UploadStatus {
+  file: File;
+  name: string;
+  status: 'idle' | 'uploading' | 'success' | 'error';
+  url?: string;
+}
 
 interface CourseMediaUploadProps {
   form: any;
   onImageChange: (file: File) => void;
   onMaterialsChange: (files: FileList) => void;
   imageUrl?: string;
+  materialUploads?: UploadStatus[]; // ADDED
 }
 
 export const CourseMediaUpload = ({ 
   form, 
   onImageChange, 
   onMaterialsChange, 
-  imageUrl 
+  imageUrl,
+  materialUploads = [],
 }: CourseMediaUploadProps) => {
   return (
     <div className="space-y-6">
@@ -105,6 +113,37 @@ export const CourseMediaUpload = ({
               }}
               className="sr-only"
             />
+
+            {/* Show upload indicators and results here */}
+            {materialUploads && materialUploads.length > 0 && (
+              <div className="w-full mt-4 space-y-2">
+                {materialUploads.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <span className="truncate flex-1 text-xs">{item.name}</span>
+                    {item.status === "uploading" && (
+                      <Loader className="h-4 w-4 animate-spin text-brand-600" />
+                    )}
+                    {item.status === "success" && (
+                      <Check className="h-4 w-4 text-green-600" />
+                    )}
+                    {item.status === "error" && (
+                      <X className="h-4 w-4 text-red-500" />
+                    )}
+                    {item.status === "success" && item.url ? (
+                      <a 
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-xs text-blue-600 underline"
+                      >
+                        View
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+
           </div>
         </div>
       </div>

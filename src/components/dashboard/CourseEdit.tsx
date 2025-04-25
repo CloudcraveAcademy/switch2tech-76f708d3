@@ -65,6 +65,7 @@ const CourseEdit = () => {
   const [image, setImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
+  const [materialUploads, setMaterialUploads] = useState<{ file: File, name: string, status: 'idle' | 'uploading' | 'success' | 'error', url?: string }[]>([]);
   
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
@@ -143,8 +144,62 @@ const CourseEdit = () => {
     setImageUrl(URL.createObjectURL(file));
   };
 
-  const handleMaterialsChange = (files: FileList) => {
-    setCourseMaterials(Array.from(files));
+  // Upload course materials right after selection
+  const handleMaterialsChange = async (files: FileList) => {
+    const selected = Array.from(files).map((file) => ({
+      file,
+      name: file.name,
+      status: 'idle',
+      url: undefined,
+    }));
+    setMaterialUploads(selected);
+
+    // Start uploading as soon as selected
+    for (let i = 0; i < selected.length; i++) {
+      uploadMaterial(selected[i], i);
+    }
+  };
+
+  // Upload helper for each file
+  const uploadMaterial = async (
+    item: { file: File; name: string }, 
+    idx: number
+  ) => {
+    setMaterialUploads((prev) => {
+      const next = [...prev];
+      if (next[idx]) next[idx].status = 'uploading';
+      return next;
+    });
+
+    try {
+      const file = item.file;
+      const ext = file.name.split('.').pop();
+      const rndFileName = `${Math.random().toString(36).substring(2)}.${ext}`;
+      const filePath = `course-materials/${rndFileName}`;
+
+      const { error } = await supabase.storage
+        .from('course-materials')
+        .upload(filePath, file);
+      if (error) throw new Error(`Upload error: ${error.message}`);
+
+      const { data } = supabase.storage.from('course-materials').getPublicUrl(filePath);
+
+      setMaterialUploads((prev) => {
+        const next = [...prev];
+        if (next[idx]) {
+          next[idx].status = 'success';
+          next[idx].url = data.publicUrl;
+        }
+        return next;
+      });
+    } catch (e) {
+      setMaterialUploads((prev) => {
+        const next = [...prev];
+        if (next[idx]) next[idx].status = 'error';
+        return next;
+      });
+      toast({ title: "Upload failed", description: item.name, variant: "destructive" });
+    }
   };
   
   const onSubmit = async (data: CourseFormValues) => {
@@ -161,7 +216,9 @@ const CourseEdit = () => {
     
     try {
       let finalImageUrl = imageUrl;
-      let materialUrls: string[] = course?.course_materials || [];
+      let materialUrls: string[] = (materialUploads
+        .filter((u) => u.status === 'success' && u.url)
+        .map((u) => u.url!));
       
       if (image) {
         const fileExt = image.name.split('.').pop();
@@ -178,25 +235,6 @@ const CourseEdit = () => {
         
         const { data: imageData } = supabase.storage.from('course-materials').getPublicUrl(filePath);
         finalImageUrl = imageData.publicUrl;
-      }
-      
-      if (courseMaterials.length > 0) {
-        for (const material of courseMaterials) {
-          const fileExt = material.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-          const filePath = `course-materials/${fileName}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('course-materials')
-            .upload(filePath, material);
-            
-          if (uploadError) {
-            throw new Error(`Error uploading material: ${uploadError.message}`);
-          }
-          
-          const { data: materialData } = supabase.storage.from('course-materials').getPublicUrl(filePath);
-          materialUrls.push(materialData.publicUrl);
-        }
       }
       
       const courseData = {
@@ -361,18 +399,20 @@ const CourseEdit = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="media">
-              <Card>
-                <CardContent className="pt-6">
-                  <CourseMediaUpload 
-                    form={form}
-                    onImageChange={handleImageChange}
-                    onMaterialsChange={handleMaterialsChange}
-                    imageUrl={imageUrl}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
+        <TabsContent value="media">
+          <Card>
+            <CardContent className="pt-6">
+              <CourseMediaUpload 
+                form={form}
+                onImageChange={handleImageChange}
+                onMaterialsChange={handleMaterialsChange}
+                imageUrl={imageUrl}
+                materialUploads={materialUploads}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
             
             <TabsContent value="pricing">
               <Card>
