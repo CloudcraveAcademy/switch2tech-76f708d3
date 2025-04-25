@@ -17,6 +17,7 @@ import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardRoutes = () => {
+  // Always call hooks at the top level
   const { user } = useAuth();
   const [currentRole, setCurrentRole] = useState(user?.role || "student");
   
@@ -28,8 +29,32 @@ const DashboardRoutes = () => {
     }
   }, [user?.role, currentRole]);
 
+  // Always define all components, regardless of role
+  const studentComponents = (
+    <>
+      <Route path="/certificates" element={<Certificates />} />
+    </>
+  );
+
+  const instructorComponents = (
+    <>
+      <Route path="/students" element={<MyStudents />} />
+      <Route path="/revenue" element={<MyRevenue />} />
+      <Route path="/create-course" element={<CreateCourse />} />
+      <Route path="/courses/:id/edit" element={<CourseEdit />} />
+      <Route path="/courses/:id/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
+    </>
+  );
+
+  const adminComponents = (
+    <>
+      <Route path="/users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1></div>} />
+      <Route path="/courses" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Management</h1></div>} />
+    </>
+  );
+
   // Determine which dashboard to render based on role
-  const renderInitialDashboard = () => {
+  const initialDashboard = (() => {
     switch (currentRole) {
       case "instructor":
         return <InstructorDashboard />;
@@ -40,11 +65,11 @@ const DashboardRoutes = () => {
       default:
         return <StudentDashboard />;
     }
-  };
+  })();
 
   return (
     <Routes>
-      <Route path="/" element={renderInitialDashboard()} />
+      <Route path="/" element={initialDashboard} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/settings" element={<Settings />} />
@@ -53,29 +78,10 @@ const DashboardRoutes = () => {
       <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
       <Route path="/courses/:courseId" element={<CourseView />} />
       
-      {/* Student-only Routes */}
-      {currentRole === "student" && (
-        <Route path="/certificates" element={<Certificates />} />
-      )}
-      
-      {/* Instructor Routes */}
-      {currentRole === "instructor" && (
-        <>
-          <Route path="/students" element={<MyStudents />} />
-          <Route path="/revenue" element={<MyRevenue />} />
-          <Route path="/create-course" element={<CreateCourse />} />
-          <Route path="/courses/:id/edit" element={<CourseEdit />} />
-          <Route path="/courses/:id/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
-        </>
-      )}
-      
-      {/* Admin Routes */}
-      {(currentRole === "admin" || currentRole === "super_admin") && (
-        <>
-          <Route path="/users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1></div>} />
-          <Route path="/courses" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Management</h1></div>} />
-        </>
-      )}
+      {/* Conditional routes based on role */}
+      {currentRole === "student" && studentComponents}
+      {currentRole === "instructor" && instructorComponents}
+      {(currentRole === "admin" || currentRole === "super_admin") && adminComponents}
       
       {/* Common Routes */}
       <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />

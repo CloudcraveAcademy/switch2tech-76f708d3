@@ -9,6 +9,7 @@ import DashboardRoutes from "@/components/dashboard/DashboardRoutes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
+  // Always call hooks at the top level
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading, validateSession } = useAuth();
@@ -56,49 +57,42 @@ const Dashboard = () => {
     initialRenderRef.current = false;
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
-  // Always return the same structure to maintain consistent hook execution
-  // Show loading state only during initial auth check or explicit validation
-  if ((loading && initialRenderRef.current) || isValidating) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="space-y-4 w-64">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  // If no user and we're not loading, show empty state while redirect happens
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="space-y-4 w-64">
-          <Skeleton className="h-12 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  // Main dashboard content when authenticated
+  // Use a single return statement with conditional rendering
   return (
-    <div className="flex h-screen bg-gray-100">
-      <DashboardSidebar />
-      <DashboardMobileNav 
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-      <DashboardMobileMenu 
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
-      
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-100 pt-16 md:pt-0">
-        <DashboardRoutes />
-      </main>
-    </div>
+    <>
+      {(loading && initialRenderRef.current) || isValidating ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="space-y-4 w-64">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+      ) : !user ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="space-y-4 w-64">
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex h-screen bg-gray-100">
+          <DashboardSidebar />
+          <DashboardMobileNav 
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
+          <DashboardMobileMenu 
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          />
+          
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto bg-gray-100 pt-16 md:pt-0">
+            <DashboardRoutes />
+          </main>
+        </div>
+      )}
+    </>
   );
 };
 

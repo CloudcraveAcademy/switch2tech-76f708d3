@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useRef, useState, useEffect } from "react";
+import React, { createContext, useContext, useRef, useState } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
 import type { AuthContextType } from "@/types/auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,21 +18,25 @@ export const useAuth = () => {
 export const requireAuth = (Component: React.ComponentType<any>) => {
   // Create a wrapped component that handles auth checking
   const AuthWrappedComponent = (props: any) => {
+    // IMPORTANT: Always call hooks at the top level
     const { user, loading } = useAuth();
     
-    // Always render something - don't use early returns that might break hook order
-    if (loading) {
-      return <div className="flex justify-center items-center h-screen">
-        <div className="space-y-4 w-64">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-      </div>;
-    }
-    
-    // Always render the component - the Dashboard component will handle redirects if needed
-    return <Component {...props} />;
+    // Render based on auth state, but don't use early returns that might break hook order
+    return (
+      <>
+        {loading ? (
+          <div className="flex justify-center items-center h-screen">
+            <div className="space-y-4 w-64">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
+        ) : (
+          <Component {...props} />
+        )}
+      </>
+    );
   };
   
   AuthWrappedComponent.displayName = `RequireAuth(${Component.displayName || Component.name || 'Component'})`;
