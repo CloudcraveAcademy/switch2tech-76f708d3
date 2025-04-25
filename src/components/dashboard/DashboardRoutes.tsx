@@ -15,6 +15,7 @@ import CreateCourse from "./CreateCourse";
 import CourseEdit from "./CourseEdit";
 import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
+import InstructorMyCourses from "./MyCourses";
 
 const DashboardRoutes = () => {
   // Always call hooks at the top level
@@ -29,7 +30,7 @@ const DashboardRoutes = () => {
     }
   }, [user?.role, currentRole]);
 
-  // Always define all components, regardless of role
+  // Define all components regardless of role
   const studentComponents = (
     <>
       <Route path="/certificates" element={<Certificates />} />
@@ -88,8 +89,5 @@ const DashboardRoutes = () => {
     </Routes>
   );
 };
-
-// Fix missing import
-import InstructorMyCourses from "./MyCourses";
 
 export default DashboardRoutes;

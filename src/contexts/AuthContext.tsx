@@ -16,12 +16,10 @@ export const useAuth = () => {
 };
 
 export const requireAuth = (Component: React.ComponentType<any>) => {
-  // Create a wrapped component that handles auth checking
   const AuthWrappedComponent = (props: any) => {
-    // IMPORTANT: Always call hooks at the top level
     const { user, loading } = useAuth();
     
-    // Render based on auth state, but don't use early returns that might break hook order
+    // No early returns to avoid hook inconsistencies
     return (
       <>
         {loading ? (
@@ -29,6 +27,12 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
             <div className="space-y-4 w-64">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
+        ) : !user ? (
+          <div className="flex justify-center items-center h-screen">
+            <div className="space-y-4 w-64">
               <Skeleton className="h-12 w-full" />
             </div>
           </div>
@@ -50,7 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = path || "/";
   });
   
-  // Use useState with function initialization to create stable auth state
   const [authState] = useState(() => useAuthProvider(logoutHandlerRef.current));
 
   return (

@@ -57,7 +57,7 @@ const Dashboard = () => {
     initialRenderRef.current = false;
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
-  // Use a single return statement with conditional rendering
+  // Use a single return statement with conditional rendering inside
   return (
     <>
       {(loading && initialRenderRef.current) || isValidating ? (
