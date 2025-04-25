@@ -6,6 +6,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardMobileNav from "@/components/dashboard/DashboardMobileNav";
 import DashboardMobileMenu from "@/components/dashboard/DashboardMobileMenu";
 import DashboardRoutes from "@/components/dashboard/DashboardRoutes";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -26,7 +27,11 @@ const Dashboard = () => {
     console.log("Dashboard is in loading state");
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+        <div className="space-y-4 w-64">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
       </div>
     );
   }
@@ -41,7 +46,7 @@ const Dashboard = () => {
     );
   }
 
-  console.log("Dashboard rendering with user:", user.name);
+  console.log("Dashboard rendering with user:", user.name, "role:", user.role);
   return (
     <div className="flex h-screen bg-gray-100">
       <DashboardSidebar />

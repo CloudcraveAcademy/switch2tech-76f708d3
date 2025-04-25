@@ -23,7 +23,7 @@ export const useUserProfile = () => {
       console.log("Profile data fetched:", profile);
       return {
         ...user,
-        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || undefined,
         avatar: profile.avatar_url,
         role: profile.role as UserWithProfile['role']
       };
