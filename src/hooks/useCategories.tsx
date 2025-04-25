@@ -13,6 +13,8 @@ export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
+      console.log('Fetching categories from Supabase...');
+      
       const { data, error } = await supabase
         .from('course_categories')
         .select('*')
@@ -21,6 +23,12 @@ export function useCategories() {
       if (error) {
         console.error('Error fetching categories:', error);
         throw error;
+      }
+      
+      console.log('Categories fetched successfully:', data);
+      
+      if (!data || data.length === 0) {
+        console.log('No categories found in the database');
       }
       
       return data as Category[];
