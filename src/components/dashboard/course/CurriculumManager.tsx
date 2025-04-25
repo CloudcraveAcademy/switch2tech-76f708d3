@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +21,9 @@ interface Lesson {
 
 export function CurriculumManager({ courseId }: { courseId: string }) {
   const queryClient = useQueryClient();
-  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [editingLesson, setEditingLesson] = useState<
+    (Lesson & { duration_minutes: string }) | null
+  >(null);
   const [newLesson, setNewLesson] = useState({
     title: "",
     duration_minutes: "",
@@ -45,8 +48,16 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
   });
 
   // Add or update a lesson
-  const saveLesson = async (lesson: Partial<Lesson> & { title: string; duration_minutes: string | number; content: string; }, id?: string) => {
-    if (!lesson.title.trim() || !lesson.duration_minutes || isNaN(Number(lesson.duration_minutes))) {
+  const saveLesson = async (
+    lesson: Partial<Lesson> & {
+      title: string;
+      duration_minutes: string | number;
+      content: string;
+    },
+    id?: string
+  ) => {
+    const duration = Number(lesson.duration_minutes);
+    if (!lesson.title.trim() || !lesson.duration_minutes || isNaN(duration)) {
       throw new Error("Title and valid duration are required");
     }
     if (id) {
@@ -55,7 +66,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         .from("lessons")
         .update({
           title: lesson.title,
-          duration_minutes: Number(lesson.duration_minutes),
+          duration_minutes: duration,
           content: lesson.content,
           video_url: lesson.video_url,
         })
@@ -67,7 +78,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
       const { error } = await supabase.from("lessons").insert({
         course_id: courseId,
         title: lesson.title,
-        duration_minutes: Number(lesson.duration_minutes),
+        duration_minutes: duration,
         content: lesson.content,
         video_url: lesson.video_url,
         order_number: nextOrder,
@@ -79,7 +90,10 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
 
   // Delete lesson
   const deleteLesson = async (lessonId: string) => {
-    const { error } = await supabase.from("lessons").delete().eq("id", lessonId);
+    const { error } = await supabase
+      .from("lessons")
+      .delete()
+      .eq("id", lessonId);
     if (error) throw error;
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
@@ -92,8 +106,14 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     const l1 = lessons[idx];
     const l2 = lessons[targetIdx];
     // Swap their order numbers
-    const { error: err1 } = await supabase.from("lessons").update({ order_number: l2.order_number }).eq("id", l1.id);
-    const { error: err2 } = await supabase.from("lessons").update({ order_number: l1.order_number }).eq("id", l2.id);
+    const { error: err1 } = await supabase
+      .from("lessons")
+      .update({ order_number: l2.order_number })
+      .eq("id", l1.id);
+    const { error: err2 } = await supabase
+      .from("lessons")
+      .update({ order_number: l1.order_number })
+      .eq("id", l2.id);
     if (err1 || err2) throw err1 || err2;
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
@@ -116,13 +136,14 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
       if (type === "add") return saveLesson(data);
       if (type === "update" && id) return saveLesson(data, id);
       if (type === "delete" && id) return deleteLesson(id);
-      if (type === "move" && idx !== undefined && direction) return moveLesson(direction, idx);
+      if (type === "move" && idx !== undefined && direction)
+        return moveLesson(direction, idx);
       return Promise.reject();
     },
     onSuccess: () => {},
     onError: (error: any) => {
       toast.error(error.message || String(error));
-    }
+    },
   });
 
   // Simple lesson form
@@ -143,14 +164,20 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
             if (editingLesson) {
               mutation.mutate({
                 type: "update",
-                data: editingLesson,
+                data: {
+                  ...editingLesson,
+                  duration_minutes: Number(editingLesson.duration_minutes),
+                },
                 id: editingLesson.id,
               });
               setEditingLesson(null);
             } else {
               mutation.mutate({
                 type: "add",
-                data: newLesson,
+                data: {
+                  ...newLesson,
+                  duration_minutes: Number(newLesson.duration_minutes),
+                },
               });
               setNewLesson({
                 title: "",
@@ -164,9 +191,16 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
           <Input
             placeholder="Lesson Title"
             value={editingLesson ? editingLesson.title : newLesson.title}
-            onChange={e => editingLesson
-              ? setEditingLesson({ ...editingLesson, title: e.target.value })
-              : setNewLesson(n => ({ ...n, title: e.target.value }))
+            onChange={e =>
+              editingLesson
+                ? setEditingLesson({
+                    ...editingLesson,
+                    title: e.target.value,
+                  })
+                : setNewLesson(n => ({
+                    ...n,
+                    title: e.target.value,
+                  }))
             }
             required
           />
@@ -175,9 +209,16 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
             type="number"
             min={1}
             value={editingLesson ? editingLesson.duration_minutes : newLesson.duration_minutes}
-            onChange={e => editingLesson
-              ? setEditingLesson({ ...editingLesson, duration_minutes: e.target.value })
-              : setNewLesson(n => ({ ...n, duration_minutes: e.target.value }))
+            onChange={e =>
+              editingLesson
+                ? setEditingLesson({
+                    ...editingLesson,
+                    duration_minutes: e.target.value,
+                  })
+                : setNewLesson(n => ({
+                    ...n,
+                    duration_minutes: e.target.value,
+                  }))
             }
             required
           />
@@ -185,9 +226,16 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
             placeholder="Lesson Content"
             className="col-span-2"
             value={editingLesson ? editingLesson.content : newLesson.content}
-            onChange={e => editingLesson
-              ? setEditingLesson({ ...editingLesson, content: e.target.value })
-              : setNewLesson(n => ({ ...n, content: e.target.value }))
+            onChange={e =>
+              editingLesson
+                ? setEditingLesson({
+                    ...editingLesson,
+                    content: e.target.value,
+                  })
+                : setNewLesson(n => ({
+                    ...n,
+                    content: e.target.value,
+                  }))
             }
             required
             rows={3}
@@ -195,18 +243,32 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
           <Input
             placeholder="Video URL (optional)"
             className="col-span-2"
-            value={editingLesson ? (editingLesson.video_url || "") : newLesson.video_url}
-            onChange={e => editingLesson
-              ? setEditingLesson({ ...editingLesson, video_url: e.target.value })
-              : setNewLesson(n => ({ ...n, video_url: e.target.value }))
+            value={editingLesson ? editingLesson.video_url || "" : newLesson.video_url}
+            onChange={e =>
+              editingLesson
+                ? setEditingLesson({
+                    ...editingLesson,
+                    video_url: e.target.value,
+                  })
+                : setNewLesson(n => ({
+                    ...n,
+                    video_url: e.target.value,
+                  }))
             }
           />
           <div className="col-span-2 flex gap-2">
-            <Button
-              type="submit"
-              disabled={mutation.isPending}
-            >
-              {editingLesson ? <><Edit className="mr-1 h-4 w-4" />Save Changes</> : <><Plus className="mr-1 h-4 w-4" />Add Lesson</>}
+            <Button type="submit" disabled={mutation.isPending}>
+              {editingLesson ? (
+                <>
+                  <Edit className="mr-1 h-4 w-4" />
+                  Save Changes
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add Lesson
+                </>
+              )}
             </Button>
             {editingLesson && (
               <Button
@@ -222,7 +284,9 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
 
         {/* List lessons */}
         {isLoading ? (
-          <div className="flex justify-center py-10"><Loader2 className="animate-spin" /></div>
+          <div className="flex justify-center py-10">
+            <Loader2 className="animate-spin" />
+          </div>
         ) : !lessons || lessons.length === 0 ? (
           <div className="text-gray-500 py-8 text-center">
             <BookOpen className="h-8 w-8 mx-auto mb-2" />
@@ -231,16 +295,71 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         ) : (
           <ul>
             {lessons.map((lesson, idx) => (
-              <li key={lesson.id} className="mb-3 flex items-center gap-2 border-b pb-3 last:border-0 last:pb-0">
+              <li
+                key={lesson.id}
+                className="mb-3 flex items-center gap-2 border-b pb-3 last:border-0 last:pb-0"
+              >
                 <div className="flex-1">
-                  <div className="font-semibold">{lesson.order_number}. {lesson.title} <span className="text-xs text-gray-400 ml-2">{lesson.duration_minutes ?? 0} min</span></div>
-                  <div className="text-gray-600 text-sm line-clamp-2">{lesson.content}</div>
-                  {lesson.video_url && <div className="text-xs mt-1 text-blue-700 truncate">Video: {lesson.video_url}</div>}
+                  <div className="font-semibold">
+                    {lesson.order_number}. {lesson.title}{" "}
+                    <span className="text-xs text-gray-400 ml-2">
+                      {lesson.duration_minutes ?? 0} min
+                    </span>
+                  </div>
+                  <div className="text-gray-600 text-sm line-clamp-2">
+                    {lesson.content}
+                  </div>
+                  {lesson.video_url && (
+                    <div className="text-xs mt-1 text-blue-700 truncate">
+                      Video: {lesson.video_url}
+                    </div>
+                  )}
                 </div>
-                <Button size="icon" variant="ghost" title="Move up" disabled={idx === 0} onClick={() => mutation.mutate({ type: "move", idx, direction: "up" })}><Move className="rotate-180 h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" title="Move down" disabled={idx === lessons.length - 1} onClick={() => mutation.mutate({ type: "move", idx, direction: "down" })}><Move className="h-4 w-4" /></Button>
-                <Button size="icon" variant="outline" title="Edit" onClick={() => setEditingLesson({ ...lesson, duration_minutes: String(lesson.duration_minutes ?? "") })}><Edit className="h-4 w-4" /></Button>
-                <Button size="icon" variant="destructive" title="Delete" onClick={() => mutation.mutate({ type: "delete", id: lesson.id })}><Trash2 className="h-4 w-4" /></Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Move up"
+                  disabled={idx === 0}
+                  onClick={() =>
+                    mutation.mutate({ type: "move", idx, direction: "up" })
+                  }
+                >
+                  <Move className="rotate-180 h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Move down"
+                  disabled={idx === lessons.length - 1}
+                  onClick={() =>
+                    mutation.mutate({ type: "move", idx, direction: "down" })
+                  }
+                >
+                  <Move className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  title="Edit"
+                  onClick={() =>
+                    setEditingLesson({
+                      ...lesson,
+                      duration_minutes: String(lesson.duration_minutes ?? ""),
+                    })
+                  }
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  title="Delete"
+                  onClick={() =>
+                    mutation.mutate({ type: "delete", id: lesson.id })
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </li>
             ))}
           </ul>
@@ -249,3 +368,4 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     </Card>
   );
 }
+
