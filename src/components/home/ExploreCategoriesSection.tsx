@@ -21,33 +21,19 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const ExploreCategoriesSection = () => {
-  const { data: fetchedCategories, isLoading, error } = useCategories();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { data: categories = [], isLoading, error } = useCategories();
   const { toast } = useToast();
   
-  // Effect to handle category data once loaded
   useEffect(() => {
-    console.log('Categories useEffect running with data:', fetchedCategories);
-    
-    if (fetchedCategories && Array.isArray(fetchedCategories)) {
-      console.log('Setting categories from API:', fetchedCategories);
-      setCategories(fetchedCategories);
-    } else if (!isLoading && error) {
-      console.log('Error fetching categories:', error);
+    if (error) {
+      console.error('Error loading categories:', error);
       toast({
         title: "Couldn't load categories",
         description: "Using default categories instead",
         variant: "destructive"
       });
     }
-  }, [fetchedCategories, isLoading, error, toast]);
-
-  console.log('Rendering ExploreCategoriesSection with:', { 
-    fetchedCategories, 
-    isLoading, 
-    error, 
-    categoriesState: categories 
-  });
+  }, [error, toast]);
 
   return (
     <section className="py-24 bg-background border-t border-border">

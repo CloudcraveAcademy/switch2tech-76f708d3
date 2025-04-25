@@ -98,6 +98,8 @@ export function useCategories() {
         }));
         
         console.log('Formatted categories:', formattedCategories);
+        
+        // Always return something - either the formatted categories or fallback data
         return formattedCategories.length > 0 ? formattedCategories : fallbackCategories;
       } catch (err) {
         console.error('Exception in categories fetch:', err);
@@ -105,6 +107,7 @@ export function useCategories() {
         return fallbackCategories;
       }
     },
+    initialData: fallbackCategories, // Provide initial data to prevent undefined state
     retry: 1,
     staleTime: 60000, // Cache data for 1 minute
   });
