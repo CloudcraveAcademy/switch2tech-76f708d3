@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useRef, useState, useEffect } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
 import type { AuthContextType } from "@/types/auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Create a context with a default undefined value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,15 +19,19 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
   // Create a wrapped component that handles auth checking
   const AuthWrappedComponent = (props: any) => {
     const { user, loading } = useAuth();
-    const authAttemptedRef = useRef(false);
     
-    // Simple loading state
-    if (loading && !authAttemptedRef.current) {
-      authAttemptedRef.current = true;
-      return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    // Always render something - don't use early returns that might break hook order
+    if (loading) {
+      return <div className="flex justify-center items-center h-screen">
+        <div className="space-y-4 w-64">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>;
     }
     
-    // Pass control to Dashboard which will handle validation
+    // Always render the component - the Dashboard component will handle redirects if needed
     return <Component {...props} />;
   };
   
@@ -35,16 +40,14 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Prevent recreating the logout handler on every render
+  // Create a stable reference for the logout handler
   const logoutHandlerRef = useRef((path?: string) => {
     console.log("Navigation after logout");
     window.location.href = path || "/";
   });
   
-  // Create a stable instance of the auth provider
-  const [authState] = useState(() => 
-    useAuthProvider(logoutHandlerRef.current)
-  );
+  // Use useState with function initialization to create stable auth state
+  const [authState] = useState(() => useAuthProvider(logoutHandlerRef.current));
 
   return (
     <AuthContext.Provider value={authState}>

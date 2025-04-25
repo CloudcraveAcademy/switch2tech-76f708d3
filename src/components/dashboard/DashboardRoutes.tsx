@@ -1,6 +1,6 @@
 
 import { Routes, Route } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import StudentDashboard from "./StudentDashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -20,7 +20,7 @@ const DashboardRoutes = () => {
   const { user } = useAuth();
   const [currentRole, setCurrentRole] = useState(user?.role || "student");
   
-  // Update the role only once when the user is loaded
+  // Update the role only when the user is loaded and different from current role
   useEffect(() => {
     if (user?.role && user.role !== currentRole) {
       console.log("Dashboard role updated to:", user.role);
@@ -28,16 +28,15 @@ const DashboardRoutes = () => {
     }
   }, [user?.role, currentRole]);
 
-  // Render the appropriate dashboard based on the user role
+  // Determine which dashboard to render based on role
   const renderInitialDashboard = () => {
     switch (currentRole) {
-      case "student":
-        return <StudentDashboard />;
       case "instructor":
         return <InstructorDashboard />;
       case "admin":
       case "super_admin":
         return <AdminDashboard />;
+      case "student":
       default:
         return <StudentDashboard />;
     }
@@ -50,15 +49,13 @@ const DashboardRoutes = () => {
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/settings" element={<Settings />} />
       
-      {/* Student Routes */}
-      {(currentRole === "student" || currentRole === "instructor") && (
-        <>
-          <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
-          <Route path="/courses/:courseId" element={<CourseView />} />
-          {currentRole === "student" && (
-            <Route path="/certificates" element={<Certificates />} />
-          )}
-        </>
+      {/* Student and Instructor Routes */}
+      <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
+      <Route path="/courses/:courseId" element={<CourseView />} />
+      
+      {/* Student-only Routes */}
+      {currentRole === "student" && (
+        <Route path="/certificates" element={<Certificates />} />
       )}
       
       {/* Instructor Routes */}

@@ -17,7 +17,7 @@ const Dashboard = () => {
   const validationAttemptedRef = useRef(false);
   const initialRenderRef = useRef(true);
   
-  // Memoize validation logic to prevent unnecessary re-renders
+  // Memoize validation logic
   const validateAuthAndRedirect = useCallback(async () => {
     if (validationAttemptedRef.current || loading) return;
     
@@ -40,18 +40,8 @@ const Dashboard = () => {
     }
   }, [navigate, location.pathname, validateSession, loading]);
 
+  // Auth validation effect
   useEffect(() => {
-    // Skip validation on initial render if we already have a user
-    if (initialRenderRef.current) {
-      initialRenderRef.current = false;
-      
-      if (!user && !loading && !validationAttemptedRef.current) {
-        validateAuthAndRedirect();
-      }
-      return;
-    }
-    
-    // Only run validation when needed - avoid unnecessary checks
     if (!user && !loading && !validationAttemptedRef.current) {
       validateAuthAndRedirect();
     }
@@ -61,8 +51,12 @@ const Dashboard = () => {
       console.log("User has no role, redirecting to home");
       navigate("/", { replace: true });
     }
+    
+    // Reset initial render flag
+    initialRenderRef.current = false;
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
+  // Always return the same structure to maintain consistent hook execution
   // Show loading state only during initial auth check or explicit validation
   if ((loading && initialRenderRef.current) || isValidating) {
     return (
@@ -76,11 +70,18 @@ const Dashboard = () => {
     );
   }
 
-  // If we're not loading and there's no user, the effect will handle the redirect
+  // If no user and we're not loading, show empty state while redirect happens
   if (!user) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="space-y-4 w-64">
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    );
   }
 
+  // Main dashboard content when authenticated
   return (
     <div className="flex h-screen bg-gray-100">
       <DashboardSidebar />
