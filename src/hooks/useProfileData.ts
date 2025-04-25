@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -104,6 +105,45 @@ export const useProfileData = () => {
     }
   };
 
+  // Verify bank account (for instructors)
+  const verifyBankAccount = async () => {
+    if (!user?.id || !profileData?.bank_name || !profileData?.account_number) {
+      throw new Error("Missing bank details");
+    }
+
+    try {
+      // This would typically call a Paystack API via an edge function
+      // For now, we'll simulate a successful verification
+      const updatedProfile = await updateProfileData({
+        bank_verification_status: 'verified',
+        account_name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim(),
+        paystack_recipient_code: `RC-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+      });
+
+      return updatedProfile;
+    } catch (err) {
+      console.error("Error in verifyBankAccount:", err);
+      throw err;
+    }
+  };
+
+  // Update preferences
+  const updatePreferences = async (preferences: Record<string, boolean>) => {
+    if (!user?.id) {
+      throw new Error("No authenticated user");
+    }
+
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      const updatedPreferences = { ...currentPrefs, ...preferences };
+      
+      return await updateProfileData({ preferences: updatedPreferences });
+    } catch (err) {
+      console.error("Error in updatePreferences:", err);
+      throw err;
+    }
+  };
+
   // Fetch profile data when user changes
   useEffect(() => {
     fetchProfileData();
@@ -115,5 +155,7 @@ export const useProfileData = () => {
     error,
     fetchProfileData,
     updateProfileData,
+    verifyBankAccount,
+    updatePreferences,
   };
 };

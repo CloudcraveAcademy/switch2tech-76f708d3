@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,10 +18,9 @@ import {
   Settings, 
   Award, 
   Wallet, 
-  Calendar, 
+  Briefcase,
   GraduationCap, 
   UserPlus, 
-  Briefcase,
   ShieldCheck,
   Users,
   BookOpen 
@@ -36,7 +34,13 @@ import BankDetails from './profile/BankDetails';
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { profileData, loading, updateProfileData } = useProfileData();
+  const { 
+    profileData, 
+    loading, 
+    updateProfileData,
+    verifyBankAccount,
+    updatePreferences
+  } = useProfileData();
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -71,7 +75,7 @@ const Profile = () => {
         last_name: profileData.last_name || "",
         bio: profileData.bio || "Tech enthusiast passionate about learning new skills.",
         country: profileData.country || "Nigeria",
-        phone: profileData.phone || "+234 812 345 6789",
+        phone: profileData.phone || "",
         website: profileData.website || "",
         jobTitle: profileData.job_title || "Software Developer",
         skills: profileData.skills || "JavaScript, React, TypeScript, Node.js",
@@ -104,6 +108,17 @@ const Profile = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleBankDetailsChange = (field: string, value: string) => {
+    updateProfileData({ [field]: value })
+      .catch(error => {
+        toast({
+          title: "Update failed",
+          description: `Failed to update ${field}: ${error.message}`,
+          variant: "destructive"
+        });
+      });
+  };
+
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPasswordForm((prev) => ({ ...prev, [name]: value }));
@@ -127,10 +142,6 @@ const Profile = () => {
         twitter_url: formData.twitter,
         student_status: formData.studentStatus,
         career_level: formData.careerLevel,
-        preferences: {
-          notifications: formData.preference_notifications,
-          newsletter: formData.preference_newsletter
-        }
       };
       
       await updateProfileData(dataToUpdate);
@@ -139,11 +150,33 @@ const Profile = () => {
         title: "Profile updated",
         description: "Your profile information has been updated successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error);
       toast({
         title: "Update failed",
-        description: "There was a problem updating your profile. Please try again.",
+        description: error.message || "There was a problem updating your profile. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handlePreferencesSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      await updatePreferences({
+        notifications: formData.preference_notifications,
+        newsletter: formData.preference_newsletter
+      });
+      
+      toast({
+        title: "Preferences updated",
+        description: "Your preferences have been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message || "There was a problem updating your preferences. Please try again.",
         variant: "destructive"
       });
     }
@@ -657,15 +690,14 @@ const Profile = () => {
 
                 <TabsContent value="banking">
                   <BankDetails 
-                    profileData={profileData || {id: "", role: ""} as ProfileData} 
-                    onBankDetailsChange={(field, value) => 
-                      setFormData(prev => ({ ...prev, [field]: value }))
-                    } 
+                    profileData={profileData || {id: "", role: ""} as ProfileData}
+                    onBankDetailsChange={handleBankDetailsChange}
+                    onVerifyBankAccount={verifyBankAccount}
                   />
                 </TabsContent>
 
                 <TabsContent value="preferences">
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handlePreferencesSubmit} className="space-y-4">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>

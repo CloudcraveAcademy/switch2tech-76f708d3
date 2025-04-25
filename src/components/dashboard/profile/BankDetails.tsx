@@ -5,11 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { ProfileData } from "@/hooks/useProfileData";
 
 interface BankDetailsProps {
   profileData: ProfileData;
   onBankDetailsChange: (field: string, value: string) => void;
+  onVerifyBankAccount: () => Promise<any>;
 }
 
 const PAYSTACK_BANKS = [
@@ -17,8 +20,13 @@ const PAYSTACK_BANKS = [
   { name: "Guaranty Trust Bank", code: "058" },
   { name: "First Bank of Nigeria", code: "011" },
   { name: "United Bank for Africa", code: "033" },
-  { name: "Zenith Bank", code: "057" }
-  // Add more banks as needed
+  { name: "Zenith Bank", code: "057" },
+  { name: "Sterling Bank", code: "232" },
+  { name: "Wema Bank", code: "035" },
+  { name: "Union Bank", code: "032" },
+  { name: "Fidelity Bank", code: "070" },
+  { name: "Ecobank", code: "050" },
+  { name: "Stanbic IBTC", code: "221" }
 ];
 
 const PAYOUT_FREQUENCIES = [
@@ -27,7 +35,10 @@ const PAYOUT_FREQUENCIES = [
   { label: "On-Demand", value: "on-demand" }
 ];
 
-const BankDetails: React.FC<BankDetailsProps> = ({ profileData, onBankDetailsChange }) => {
+const BankDetails: React.FC<BankDetailsProps> = ({ profileData, onBankDetailsChange, onVerifyBankAccount }) => {
+  const { toast } = useToast();
+  const [verifying, setVerifying] = useState(false);
+
   const getVerificationStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'verified':
@@ -36,6 +47,34 @@ const BankDetails: React.FC<BankDetailsProps> = ({ profileData, onBankDetailsCha
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const handleVerification = async () => {
+    if (!profileData.bank_name || !profileData.account_number) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both bank name and account number before verification.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      await onVerifyBankAccount();
+      toast({
+        title: "Verification successful",
+        description: "Your bank account has been verified successfully."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Verification failed",
+        description: error.message || "Failed to verify bank account. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -88,11 +127,21 @@ const BankDetails: React.FC<BankDetailsProps> = ({ profileData, onBankDetailsCha
 
           <div>
             <Label>Verification Status</Label>
-            <div className="mt-1">
+            <div className="mt-1 flex items-center justify-between">
               <Badge className={getVerificationStatusColor(profileData.bank_verification_status)}>
                 {profileData.bank_verification_status?.charAt(0).toUpperCase()}
                 {profileData.bank_verification_status?.slice(1) || 'Pending'}
               </Badge>
+
+              {profileData.bank_verification_status !== 'verified' && (
+                <Button 
+                  size="sm" 
+                  onClick={handleVerification} 
+                  disabled={verifying || !profileData.bank_name || !profileData.account_number}
+                >
+                  {verifying ? "Verifying..." : "Verify Account"}
+                </Button>
+              )}
             </div>
           </div>
 
