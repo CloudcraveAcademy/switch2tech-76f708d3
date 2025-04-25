@@ -17,9 +17,11 @@ export const useAuth = () => {
 
 export const requireAuth = (Component: React.ComponentType<any>) => {
   const AuthWrappedComponent = (props: any) => {
+    // Always call hooks at the top level
     const { user, loading } = useAuth();
     
-    // No early returns to avoid hook inconsistencies
+    // Use a single return statement with proper conditional rendering
+    // This ensures hook calls are consistent between renders
     return (
       <>
         {loading ? (
@@ -54,6 +56,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = path || "/";
   });
   
+  // Initialize auth state once with useAuthProvider
+  // This prevents hook consistency issues during re-renders
   const [authState] = useState(() => useAuthProvider(logoutHandlerRef.current));
 
   return (

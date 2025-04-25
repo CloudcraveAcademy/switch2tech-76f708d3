@@ -30,7 +30,7 @@ const DashboardRoutes = () => {
     }
   }, [user?.role, currentRole]);
 
-  // Define all components regardless of role
+  // Define all components regardless of role - no conditional hook calls
   const studentComponents = (
     <>
       <Route path="/certificates" element={<Certificates />} />
@@ -54,7 +54,7 @@ const DashboardRoutes = () => {
     </>
   );
 
-  // Determine which dashboard to render based on role
+  // Determine which dashboard to render based on role - no conditional hook calls
   const initialDashboard = (() => {
     switch (currentRole) {
       case "instructor":

@@ -9,7 +9,7 @@ import DashboardRoutes from "@/components/dashboard/DashboardRoutes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
-  // Always call hooks at the top level
+  // Always call all hooks at the top level unconditionally
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading, validateSession } = useAuth();
@@ -41,7 +41,7 @@ const Dashboard = () => {
     }
   }, [navigate, location.pathname, validateSession, loading]);
 
-  // Auth validation effect
+  // Auth validation effect - no early returns
   useEffect(() => {
     if (!user && !loading && !validationAttemptedRef.current) {
       validateAuthAndRedirect();
@@ -57,7 +57,7 @@ const Dashboard = () => {
     initialRenderRef.current = false;
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
-  // Use a single return statement with conditional rendering inside
+  // Single return statement with conditional rendering inside
   return (
     <>
       {(loading && initialRenderRef.current) || isValidating ? (
