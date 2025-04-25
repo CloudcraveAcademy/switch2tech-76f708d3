@@ -68,7 +68,11 @@ const CourseEdit = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("basic");
+  const [activeTab, setActiveTab] = useState(() => {
+    // Optionally restore tab state from localStorage (uncomment if preferred)
+    // return localStorage.getItem("course-edit-tab") || "basic";
+    return "basic";
+  });
   const [image, setImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
@@ -137,7 +141,7 @@ const CourseEdit = () => {
         timezone: course.timezone || "",
         replayAccess: course.replay_access || false,
         discountEnabled: course.discounted_price !== null && course.discounted_price !== undefined,
-        discountedPrice: course.discounted_price ? course.discounted_price.toString() : "",
+        discountedPrice: course.discounted_price ? course.discountedPrice.toString() : "",
       });
 
       if (course.image_url) {
@@ -335,6 +339,12 @@ const CourseEdit = () => {
     );
   }
   
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Optionally persist tab to localStorage (uncomment if desired)
+    // localStorage.setItem("course-edit-tab", tab);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -390,7 +400,7 @@ const CourseEdit = () => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="mb-6">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
