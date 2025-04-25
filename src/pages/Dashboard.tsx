@@ -18,7 +18,7 @@ const Dashboard = () => {
   const validationAttemptedRef = useRef(false);
   const initialRenderRef = useRef(true);
   
-  // Memoize validation logic
+  // Memoize validation logic to ensure it's stable across renders
   const validateAuthAndRedirect = useCallback(async () => {
     if (validationAttemptedRef.current || loading) return;
     
@@ -41,7 +41,7 @@ const Dashboard = () => {
     }
   }, [navigate, location.pathname, validateSession, loading]);
 
-  // Auth validation effect - no early returns
+  // Auth validation effect with consistent hooks usage - no early returns
   useEffect(() => {
     // Check auth status only if user is not loaded and we haven't attempted validation yet
     if (!user && !loading && !validationAttemptedRef.current) {

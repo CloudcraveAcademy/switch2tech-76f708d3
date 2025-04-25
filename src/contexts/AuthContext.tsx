@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useRef, useState, useMemo } from "react";
+import React, { createContext, useContext, useRef, useState, useMemo, useEffect } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
 import type { AuthContextType } from "@/types/auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.location.href = path || "/";
   });
   
-  // Use useMemo to make sure the hook is called only once and with consistent behavior
+  // Use useMemo to ensure consistent hook execution and prevent re-creation on renders
   const authState = useMemo(() => {
     return useAuthProvider(logoutHandlerRef.current);
   }, []);

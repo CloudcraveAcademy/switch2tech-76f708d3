@@ -30,14 +30,14 @@ const DashboardRoutes = () => {
     }
   }, [user?.role, currentRole]);
 
-  // Define all route components regardless of role - no conditional hook calls
-  const studentRoutes = (
+  // Define all route fragments to avoid conditional hooks
+  const studentRoutesFragment = (
     <>
       <Route path="/certificates" element={<Certificates />} />
     </>
   );
 
-  const instructorRoutes = (
+  const instructorRoutesFragment = (
     <>
       <Route path="/students" element={<MyStudents />} />
       <Route path="/revenue" element={<MyRevenue />} />
@@ -47,15 +47,15 @@ const DashboardRoutes = () => {
     </>
   );
 
-  const adminRoutes = (
+  const adminRoutesFragment = (
     <>
       <Route path="/users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1></div>} />
       <Route path="/courses" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Management</h1></div>} />
     </>
   );
 
-  // Determine which dashboard to render based on role - no conditional hook calls
-  const getDashboardComponent = () => {
+  // Get dashboard component based on role
+  const dashboardComponent = (() => {
     switch (currentRole) {
       case "instructor":
         return <InstructorDashboard />;
@@ -66,11 +66,12 @@ const DashboardRoutes = () => {
       default:
         return <StudentDashboard />;
     }
-  };
+  })();
 
+  // This ensures we're always returning the same structure
   return (
     <Routes>
-      <Route path="/" element={getDashboardComponent()} />
+      <Route path="/" element={dashboardComponent} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/settings" element={<Settings />} />
@@ -79,10 +80,10 @@ const DashboardRoutes = () => {
       <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
       <Route path="/courses/:courseId" element={<CourseView />} />
       
-      {/* Conditional routes based on role */}
-      {currentRole === "student" && studentRoutes}
-      {currentRole === "instructor" && instructorRoutes}
-      {(currentRole === "admin" || currentRole === "super_admin") && adminRoutes}
+      {/* Role-specific routes - using fragments to avoid conditional hooks */}
+      {currentRole === "student" && studentRoutesFragment}
+      {currentRole === "instructor" && instructorRoutesFragment}
+      {(currentRole === "admin" || currentRole === "super_admin") && adminRoutesFragment}
       
       {/* Common Routes */}
       <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
