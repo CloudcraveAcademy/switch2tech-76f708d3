@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -234,13 +233,13 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
             {lessons.map((lesson, idx) => (
               <li key={lesson.id} className="mb-3 flex items-center gap-2 border-b pb-3 last:border-0 last:pb-0">
                 <div className="flex-1">
-                  <div className="font-semibold">{lesson.order_number}. {lesson.title} <span className="text-xs text-gray-400 ml-2">{lesson.duration_minutes} min</span></div>
+                  <div className="font-semibold">{lesson.order_number}. {lesson.title} <span className="text-xs text-gray-400 ml-2">{lesson.duration_minutes ?? 0} min</span></div>
                   <div className="text-gray-600 text-sm line-clamp-2">{lesson.content}</div>
                   {lesson.video_url && <div className="text-xs mt-1 text-blue-700 truncate">Video: {lesson.video_url}</div>}
                 </div>
                 <Button size="icon" variant="ghost" title="Move up" disabled={idx === 0} onClick={() => mutation.mutate({ type: "move", idx, direction: "up" })}><Move className="rotate-180 h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" title="Move down" disabled={idx === lessons.length - 1} onClick={() => mutation.mutate({ type: "move", idx, direction: "down" })}><Move className="h-4 w-4" /></Button>
-                <Button size="icon" variant="outline" title="Edit" onClick={() => setEditingLesson({ ...lesson })}><Edit className="h-4 w-4" /></Button>
+                <Button size="icon" variant="outline" title="Edit" onClick={() => setEditingLesson({ ...lesson, duration_minutes: String(lesson.duration_minutes ?? "") })}><Edit className="h-4 w-4" /></Button>
                 <Button size="icon" variant="destructive" title="Delete" onClick={() => mutation.mutate({ type: "delete", id: lesson.id })}><Trash2 className="h-4 w-4" /></Button>
               </li>
             ))}
