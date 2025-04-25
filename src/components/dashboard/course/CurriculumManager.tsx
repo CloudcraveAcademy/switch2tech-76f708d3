@@ -25,7 +25,12 @@ interface LessonFormState {
   video_url?: string | null;
 }
 
-export function CurriculumManager({ courseId }: { courseId: string }) {
+interface CurriculumManagerProps {
+  courseId: string;
+  onLessonAdded?: () => void;
+}
+
+export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManagerProps) {
   const queryClient = useQueryClient();
   const [editingLesson, setEditingLesson] = useState<(LessonFormState & { id: string; course_id: string; order_number: number }) | null>(null);
   const [newLesson, setNewLesson] = useState<LessonFormState>({
@@ -55,6 +60,10 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
       });
   }, [courseId]);
 
+  useEffect(() => {
+    console.log("CurriculumManager: courseId =", courseId);
+  }, [courseId]);
+
   const { data: lessons, isLoading } = useQuery<Lesson[]>({
     queryKey: ["lessons", courseId],
     queryFn: async () => {
@@ -70,7 +79,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         throw error;
       }
 
-      console.log("Fetched lessons:", data);
+      console.log("Fetched lessons for courseId", courseId, ":", data);
       return data || [];
     },
     enabled: !!courseId,
@@ -232,6 +241,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
           video_url: "",
         });
         toast.success("Lesson added!");
+        if (onLessonAdded) onLessonAdded();
       }
       queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
     } catch (e: any) {

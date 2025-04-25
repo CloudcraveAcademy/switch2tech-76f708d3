@@ -69,8 +69,9 @@ const CourseEdit = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
-    // Optionally restore tab state from localStorage (uncomment if preferred)
-    // return localStorage.getItem("course-edit-tab") || "basic";
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("course-edit-tab") || "basic";
+    }
     return "basic";
   });
   const [image, setImage] = useState<File | null>(null);
@@ -341,8 +342,16 @@ const CourseEdit = () => {
   
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    // Optionally persist tab to localStorage (uncomment if desired)
-    // localStorage.setItem("course-edit-tab", tab);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("course-edit-tab", tab);
+    }
+  };
+
+  const handleGoToCurriculumTab = () => {
+    setActiveTab("curriculum");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("course-edit-tab", "curriculum");
+    }
   };
 
   return (
@@ -457,7 +466,12 @@ const CourseEdit = () => {
             </TabsContent>
 
             <TabsContent value="curriculum">
-              {course?.id && <CurriculumManager courseId={course.id} />}
+              {course?.id && (
+                <CurriculumManager 
+                  courseId={course.id}
+                  onLessonAdded={handleGoToCurriculumTab}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </form>
