@@ -16,11 +16,10 @@ const Dashboard = () => {
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
   const initialRenderRef = useRef(true);
-  const hasRenderedWithUserRef = useRef(false);
   
   // Memoize validation logic to prevent unnecessary re-renders
   const validateAuthAndRedirect = useCallback(async () => {
-    if (isValidating || validationAttemptedRef.current) return;
+    if (validationAttemptedRef.current || loading) return;
     
     console.log("Dashboard validating session - user not found");
     setIsValidating(true);
@@ -39,24 +38,22 @@ const Dashboard = () => {
     } finally {
       setIsValidating(false);
     }
-  }, [navigate, location.pathname, validateSession, isValidating]);
+  }, [navigate, location.pathname, validateSession, loading]);
 
   useEffect(() => {
     // Skip validation on initial render if we already have a user
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
-      if (user) {
-        console.log("User already available on initial render, skipping validation");
-        hasRenderedWithUserRef.current = true;
-        return;
+      
+      if (!user && !loading && !validationAttemptedRef.current) {
+        validateAuthAndRedirect();
       }
+      return;
     }
     
     // Only run validation when needed - avoid unnecessary checks
-    if (!loading && !user && !validationAttemptedRef.current) {
+    if (!user && !loading && !validationAttemptedRef.current) {
       validateAuthAndRedirect();
-    } else if (user && !hasRenderedWithUserRef.current) {
-      hasRenderedWithUserRef.current = true;
     }
     
     // Handle redirect for users without roles
@@ -82,12 +79,6 @@ const Dashboard = () => {
   // If we're not loading and there's no user, the effect will handle the redirect
   if (!user) {
     return null;
-  }
-
-  // Only log once when the dashboard initially renders with a user
-  if (hasRenderedWithUserRef.current) {
-    console.log("Dashboard rendering with user:", user.name, "role:", user.role);
-    hasRenderedWithUserRef.current = false; // Only log once
   }
 
   return (

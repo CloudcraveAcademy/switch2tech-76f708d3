@@ -15,12 +15,12 @@ export const useAuth = () => {
 };
 
 export const requireAuth = (Component: React.ComponentType<any>) => {
-  // Memoize the authenticated component to prevent unnecessary re-renders
-  const MemoizedAuthComponent = React.memo((props: any) => {
+  // Create a wrapped component that handles auth checking
+  const AuthWrappedComponent = (props: any) => {
     const { user, loading } = useAuth();
     const authAttemptedRef = useRef(false);
     
-    // Simple loading state - let Dashboard handle all validation logic
+    // Simple loading state
     if (loading && !authAttemptedRef.current) {
       authAttemptedRef.current = true;
       return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -28,28 +28,27 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
     
     // Pass control to Dashboard which will handle validation
     return <Component {...props} />;
-  });
+  };
   
-  MemoizedAuthComponent.displayName = `RequireAuth(${Component.displayName || Component.name || 'Component'})`;
-  return MemoizedAuthComponent;
+  AuthWrappedComponent.displayName = `RequireAuth(${Component.displayName || Component.name || 'Component'})`;
+  return AuthWrappedComponent;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Prevent recreating the logout handler on every render
-  const handleLogout = React.useCallback(() => {
+  const logoutHandlerRef = useRef((path?: string) => {
     console.log("Navigation after logout");
-    window.location.href = "/";
-  }, []);
+    window.location.href = path || "/";
+  });
   
-  // Store auth state in a singleton instance to prevent duplicate subscriptions
-  const [authInstance] = useState(() => useAuthProvider(handleLogout));
-
-  // Memoize children to prevent unnecessary re-renders
-  const memoizedChildren = React.useMemo(() => children, [children]);
+  // Create a stable instance of the auth provider
+  const [authState] = useState(() => 
+    useAuthProvider(logoutHandlerRef.current)
+  );
 
   return (
-    <AuthContext.Provider value={authInstance}>
-      {memoizedChildren}
+    <AuthContext.Provider value={authState}>
+      {children}
     </AuthContext.Provider>
   );
 };

@@ -1,6 +1,6 @@
 
 import { Routes, Route } from "react-router-dom";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import StudentDashboard from "./StudentDashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -18,23 +18,19 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardRoutes = () => {
   const { user } = useAuth();
-  // Keep a stable reference to the user role
-  const userRoleRef = useRef(user?.role);
-  const [stableRole, setStableRole] = useState(() => user?.role || "student");
+  const [currentRole, setCurrentRole] = useState(user?.role || "student");
   
-  // Only update the role when it's definitely changed and valid
+  // Update the role only once when the user is loaded
   useEffect(() => {
-    if (user?.role && user.role !== userRoleRef.current) {
-      userRoleRef.current = user.role;
-      setStableRole(user.role);
+    if (user?.role && user.role !== currentRole) {
       console.log("Dashboard role updated to:", user.role);
+      setCurrentRole(user.role);
     }
-  }, [user?.role]);
+  }, [user?.role, currentRole]);
 
-  // Memoize the dashboard component to prevent unnecessary re-renders
-  const initialDashboard = useMemo(() => {
-    console.log("Rendering dashboard for role:", stableRole);
-    switch (stableRole) {
+  // Render the appropriate dashboard based on the user role
+  const renderInitialDashboard = () => {
+    switch (currentRole) {
       case "student":
         return <StudentDashboard />;
       case "instructor":
@@ -45,29 +41,28 @@ const DashboardRoutes = () => {
       default:
         return <StudentDashboard />;
     }
-  }, [stableRole]);
+  };
 
-  // Memoize routes to prevent unnecessary re-renders
-  return useMemo(() => (
+  return (
     <Routes>
-      <Route path="/" element={initialDashboard} />
+      <Route path="/" element={renderInitialDashboard()} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/settings" element={<Settings />} />
       
       {/* Student Routes */}
-      {(stableRole === "student" || stableRole === "instructor") && (
+      {(currentRole === "student" || currentRole === "instructor") && (
         <>
-          <Route path="/my-courses" element={stableRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
+          <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
           <Route path="/courses/:courseId" element={<CourseView />} />
-          {stableRole === "student" && (
+          {currentRole === "student" && (
             <Route path="/certificates" element={<Certificates />} />
           )}
         </>
       )}
       
       {/* Instructor Routes */}
-      {stableRole === "instructor" && (
+      {currentRole === "instructor" && (
         <>
           <Route path="/students" element={<MyStudents />} />
           <Route path="/revenue" element={<MyRevenue />} />
@@ -78,7 +73,7 @@ const DashboardRoutes = () => {
       )}
       
       {/* Admin Routes */}
-      {(stableRole === "admin" || stableRole === "super_admin") && (
+      {(currentRole === "admin" || currentRole === "super_admin") && (
         <>
           <Route path="/users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1></div>} />
           <Route path="/courses" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Management</h1></div>} />
@@ -88,7 +83,7 @@ const DashboardRoutes = () => {
       {/* Common Routes */}
       <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
     </Routes>
-  ), [initialDashboard, stableRole]);
+  );
 };
 
 // Fix missing import
