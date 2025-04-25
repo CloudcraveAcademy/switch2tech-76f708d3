@@ -102,13 +102,17 @@ const CourseEdit = () => {
   
   useEffect(() => {
     if (course) {
+      // Debug: Confirm type of course.category
+      // eslint-disable-next-line no-console
+      console.log("category from course record:", course.category, "typeof:", typeof course.category);
+
       form.reset({
         title: course.title || "",
         description: course.description || "",
         price: course.price ? course.price.toString() : "",
         duration: course.duration_hours ? course.duration_hours.toString() : "",
         level: course.level || "",
-        category: course.category || "",
+        category: course.category ? String(course.category) : "",  // Force category to be string
         mode: (course.mode === "self-paced" || course.mode === "virtual-live")
           ? course.mode
           : "self-paced",
