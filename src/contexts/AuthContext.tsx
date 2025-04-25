@@ -17,8 +17,8 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
   const AuthenticatedComponent = (props: any) => {
     const { user, loading } = useAuth();
     
-    // Simplified approach - Dashboard component now handles validation
-    // This prevents multiple validation loops
+    // Simplified approach - Only show loading state
+    // Dashboard component handles the validation and redirect logic
     if (loading) {
       return <div className="flex justify-center items-center h-screen">Loading...</div>;
     }

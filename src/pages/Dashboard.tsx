@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
+  const initialRenderRef = useRef(true);
   
   // Memoize validation logic to prevent unnecessary re-renders
   const validateAuthAndRedirect = useCallback(async () => {
@@ -41,16 +42,19 @@ const Dashboard = () => {
   }, [navigate, location.pathname, validateSession, isValidating]);
 
   useEffect(() => {
-    // Reset validation attempt flag when loading or user changes
-    if (loading === false) {
-      // Only validate if we don't have a user and initial load is complete
-      if (!user && !validationAttemptedRef.current) {
-        validateAuthAndRedirect();
-      } else if (user && !user.role) {
-        // If user exists but has no role, redirect to home
-        console.log("User has no role, redirecting to home");
-        navigate("/", { replace: true });
-      }
+    // Skip validation on initial render to prevent flash
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      return;
+    }
+    
+    // Only validate when loading is complete and user is null
+    if (loading === false && !user && !validationAttemptedRef.current) {
+      validateAuthAndRedirect();
+    } else if (user && !user.role) {
+      // If user exists but has no role, redirect to home
+      console.log("User has no role, redirecting to home");
+      navigate("/", { replace: true });
     }
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
