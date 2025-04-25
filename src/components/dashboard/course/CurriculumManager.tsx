@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,24 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     video_url: "",
   });
   const [reordering, setReordering] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentCourseInstructor, setCurrentCourseInstructor] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (data?.user?.id) {
+        setCurrentUserId(data.user.id);
+      }
+    });
+    supabase
+      .from("courses")
+      .select("instructor_id")
+      .eq("id", courseId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (data?.instructor_id) setCurrentCourseInstructor(data.instructor_id);
+      });
+  }, [courseId]);
 
   const { data: lessons, isLoading } = useQuery<Lesson[]>({
     queryKey: ["lessons", courseId],
@@ -62,6 +80,20 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     id?: string
   ) => {
     const duration = Number(lesson.duration_minutes);
+    if (!id) {
+      toast.info(
+        `Attempting to insert lesson. Your user id: ${currentUserId}, Course instructor_id: ${currentCourseInstructor}`
+      );
+      if (currentUserId !== currentCourseInstructor) {
+        toast.error(
+          `You are not the instructor for this course. Only the instructor can add lessons.
+          Your id: ${currentUserId}, Instructor id: ${currentCourseInstructor}`
+        );
+        throw new Error(
+          `You are not the instructor for this course. Only the instructor can add lessons.`
+        );
+      }
+    }
     if (!lesson.title.trim() || !lesson.duration_minutes || isNaN(duration)) {
       toast.error("Title and a valid duration are required");
       throw new Error("Title and valid duration are required");
@@ -104,8 +136,15 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
       }).select();
 
       if (error) {
-        console.error("Error adding lesson:", error);
-        toast.error(error.message || "Could not add lesson");
+        toast.error(
+          `Insert failed: ${error.message || "Could not add lesson"} (User: ${currentUserId}, Instructor: ${currentCourseInstructor})`
+        );
+        console.error("Error adding lesson:", error, {
+          currentUserId,
+          currentCourseInstructor,
+          courseId,
+          nextOrder,
+        });
         throw error;
       }
       if (!data) {
