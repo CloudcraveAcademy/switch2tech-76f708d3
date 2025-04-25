@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useProfileData } from "@/hooks/useProfileData";
+import { useProfileData, ProfileData } from "@/hooks/useProfileData";
 import { Skeleton } from "@/components/ui/skeleton";
 import BankDetails from './profile/BankDetails';
 
