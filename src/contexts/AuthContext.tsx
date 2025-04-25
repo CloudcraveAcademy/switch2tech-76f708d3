@@ -34,9 +34,7 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
           </div>
         ) : !user ? (
           <div className="flex justify-center items-center h-screen">
-            <div className="space-y-4 w-64">
-              <Skeleton className="h-12 w-full" />
-            </div>
+            <p className="text-center">Please log in to continue</p>
           </div>
         ) : (
           <Component {...props} />
@@ -56,10 +54,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.location.href = path || "/";
   });
   
-  // Use useMemo to ensure consistent hook execution and prevent re-creation on renders
-  const authState = useMemo(() => {
-    return useAuthProvider(logoutHandlerRef.current);
-  }, []);
+  // Use the authState directly to avoid hook inconsistencies
+  const authState = useAuthProvider(logoutHandlerRef.current);
 
   return (
     <AuthContext.Provider value={authState}>

@@ -30,7 +30,7 @@ const DashboardRoutes = () => {
     }
   }, [user?.role, currentRole]);
 
-  // Define all route fragments to avoid conditional hooks
+  // Prepare all route fragments regardless of role
   const studentRoutesFragment = (
     <>
       <Route path="/certificates" element={<Certificates />} />
@@ -68,7 +68,7 @@ const DashboardRoutes = () => {
     }
   })();
 
-  // This ensures we're always returning the same structure
+  // Return routes with conditional fragments
   return (
     <Routes>
       <Route path="/" element={dashboardComponent} />
@@ -80,7 +80,7 @@ const DashboardRoutes = () => {
       <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
       <Route path="/courses/:courseId" element={<CourseView />} />
       
-      {/* Role-specific routes - using fragments to avoid conditional hooks */}
+      {/* Role-specific routes - conditionally rendered */}
       {currentRole === "student" && studentRoutesFragment}
       {currentRole === "instructor" && instructorRoutesFragment}
       {(currentRole === "admin" || currentRole === "super_admin") && adminRoutesFragment}

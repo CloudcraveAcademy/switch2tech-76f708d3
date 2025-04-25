@@ -16,7 +16,6 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
-  const initialRenderRef = useRef(true);
   
   // Memoize validation logic to ensure it's stable across renders
   const validateAuthAndRedirect = useCallback(async () => {
@@ -41,27 +40,24 @@ const Dashboard = () => {
     }
   }, [navigate, location.pathname, validateSession, loading]);
 
-  // Auth validation effect with consistent hooks usage - no early returns
+  // Auth validation effect - no conditional hook calls
   useEffect(() => {
-    // Check auth status only if user is not loaded and we haven't attempted validation yet
-    if (!user && !loading && !validationAttemptedRef.current) {
+    // Only run validation if user is null and we're not loading
+    if (!loading && !user && !validationAttemptedRef.current) {
       validateAuthAndRedirect();
     }
     
-    // Handle redirect for users without roles
+    // Handle redirect for users without roles - no early returns
     if (user && !user.role) {
       console.log("User has no role, redirecting to home");
       navigate("/", { replace: true });
     }
-    
-    // Reset initial render flag
-    initialRenderRef.current = false;
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
-  // Single return statement with conditional rendering inside
+  // Single render path with conditional content
   return (
     <>
-      {(loading && initialRenderRef.current) || isValidating ? (
+      {(loading || isValidating) ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="space-y-4 w-64">
             <Skeleton className="h-12 w-full" />
@@ -72,7 +68,7 @@ const Dashboard = () => {
       ) : !user ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="space-y-4 w-64">
-            <Skeleton className="h-12 w-full" />
+            <p className="text-center">Please log in to access the dashboard</p>
           </div>
         </div>
       ) : (
