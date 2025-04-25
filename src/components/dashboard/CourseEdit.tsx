@@ -55,6 +55,13 @@ const courseFormSchema = z.object({
 
 type CourseFormValues = z.infer<typeof courseFormSchema>;
 
+type UploadStatus = {
+  file: File;
+  name: string;
+  status: "idle" | "uploading" | "success" | "error";
+  url?: string;
+};
+
 const CourseEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -65,8 +72,8 @@ const CourseEdit = () => {
   const [image, setImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
-  const [materialUploads, setMaterialUploads] = useState<{ file: File, name: string, status: 'idle' | 'uploading' | 'success' | 'error', url?: string }[]>([]);
-  
+  const [materialUploads, setMaterialUploads] = useState<UploadStatus[]>([]);
+
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -85,7 +92,7 @@ const CourseEdit = () => {
       replayAccess: false,
     },
   });
-  
+
   const { data: course, isLoading, refetch } = useQuery({
     queryKey: ["course", id],
     queryFn: async () => {
@@ -100,7 +107,7 @@ const CourseEdit = () => {
     },
     enabled: !!id,
   });
-  
+
   useEffect(() => {
     if (course) {
       // Debug: Confirm type of course.category
@@ -136,6 +143,7 @@ const CourseEdit = () => {
       if (course.image_url) {
         setImageUrl(course.image_url);
       }
+      setMaterialUploads([]);
     }
   }, [course, form]);
 
@@ -144,64 +152,67 @@ const CourseEdit = () => {
     setImageUrl(URL.createObjectURL(file));
   };
 
-  // Upload course materials right after selection
-  const handleMaterialsChange = async (files: FileList) => {
-    const selected = Array.from(files).map((file) => ({
+  const handleMaterialsChange = (files: FileList) => {
+    const selected: UploadStatus[] = Array.from(files).map((file) => ({
       file,
       name: file.name,
-      status: 'idle',
+      status: "idle",
       url: undefined,
     }));
     setMaterialUploads(selected);
 
-    // Start uploading as soon as selected
-    for (let i = 0; i < selected.length; i++) {
-      uploadMaterial(selected[i], i);
-    }
+    selected.forEach((fileObj, idx) => {
+      uploadMaterial(fileObj, idx);
+    });
   };
 
-  // Upload helper for each file
-  const uploadMaterial = async (
-    item: { file: File; name: string }, 
-    idx: number
-  ) => {
+  const uploadMaterial = async (item: { file: File; name: string }, idx: number) => {
     setMaterialUploads((prev) => {
       const next = [...prev];
-      if (next[idx]) next[idx].status = 'uploading';
+      if (next[idx]) next[idx].status = "uploading";
       return next;
     });
 
     try {
       const file = item.file;
-      const ext = file.name.split('.').pop();
+      const ext = file.name.split('.').pop() || "dat";
       const rndFileName = `${Math.random().toString(36).substring(2)}.${ext}`;
       const filePath = `course-materials/${rndFileName}`;
 
       const { error } = await supabase.storage
-        .from('course-materials')
+        .from("course-materials")
         .upload(filePath, file);
+
       if (error) throw new Error(`Upload error: ${error.message}`);
 
-      const { data } = supabase.storage.from('course-materials').getPublicUrl(filePath);
+      const { data } = supabase.storage.from("course-materials").getPublicUrl(filePath);
 
       setMaterialUploads((prev) => {
         const next = [...prev];
         if (next[idx]) {
-          next[idx].status = 'success';
+          next[idx].status = "success";
           next[idx].url = data.publicUrl;
         }
         return next;
       });
-    } catch (e) {
+      toast({
+        title: "Upload succeeded",
+        description: item.name,
+      });
+    } catch (e: any) {
       setMaterialUploads((prev) => {
         const next = [...prev];
-        if (next[idx]) next[idx].status = 'error';
+        if (next[idx]) next[idx].status = "error";
         return next;
       });
-      toast({ title: "Upload failed", description: item.name, variant: "destructive" });
+      toast({
+        title: "Upload failed",
+        description: item.name,
+        variant: "destructive",
+      });
     }
   };
-  
+
   const onSubmit = async (data: CourseFormValues) => {
     if (!user?.id) {
       toast({
@@ -216,9 +227,9 @@ const CourseEdit = () => {
     
     try {
       let finalImageUrl = imageUrl;
-      let materialUrls: string[] = (materialUploads
-        .filter((u) => u.status === 'success' && u.url)
-        .map((u) => u.url!));
+      let materialUrls: string[] = materialUploads
+        .filter((u) => u.status === "success" && u.url)
+        .map((u) => u.url!);
       
       if (image) {
         const fileExt = image.name.split('.').pop();
@@ -287,7 +298,7 @@ const CourseEdit = () => {
       setLoading(false);
     }
   };
-  
+
   const isDraft = course && !course.is_published;
 
   if (isLoading) {
@@ -399,20 +410,19 @@ const CourseEdit = () => {
               </Card>
             </TabsContent>
             
-        <TabsContent value="media">
-          <Card>
-            <CardContent className="pt-6">
-              <CourseMediaUpload 
-                form={form}
-                onImageChange={handleImageChange}
-                onMaterialsChange={handleMaterialsChange}
-                imageUrl={imageUrl}
-                materialUploads={materialUploads}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
+            <TabsContent value="media">
+              <Card>
+                <CardContent className="pt-6">
+                  <CourseMediaUpload 
+                    form={form}
+                    onImageChange={handleImageChange}
+                    onMaterialsChange={handleMaterialsChange}
+                    imageUrl={imageUrl}
+                    materialUploads={materialUploads}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
             
             <TabsContent value="pricing">
               <Card>
