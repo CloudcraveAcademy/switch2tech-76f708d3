@@ -5,6 +5,7 @@ import { useCategories, Category } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 // Create a mapping of icon strings to Lucide icon components
 const iconMap: Record<string, React.ElementType> = {
@@ -50,6 +51,7 @@ const fallbackCategories: Category[] = [
 const ExploreCategoriesSection = () => {
   const { data: fetchedCategories, isLoading, error } = useCategories();
   const [categories, setCategories] = useState<Category[]>(fallbackCategories);
+  const { toast } = useToast();
   
   // Effect to handle category data once loaded
   useEffect(() => {
@@ -58,11 +60,15 @@ const ExploreCategoriesSection = () => {
     if (fetchedCategories && Array.isArray(fetchedCategories) && fetchedCategories.length > 0) {
       console.log('Setting categories from API:', fetchedCategories);
       setCategories(fetchedCategories);
-    } else if (!isLoading && !error) {
-      console.log('No valid categories from API, using fallbacks');
-      setCategories(fallbackCategories);
+    } else if (!isLoading && error) {
+      console.log('Error fetching categories:', error);
+      toast({
+        title: "Couldn't load categories",
+        description: "Using default categories instead",
+        variant: "destructive"
+      });
     }
-  }, [fetchedCategories, isLoading, error]);
+  }, [fetchedCategories, isLoading, error, toast]);
 
   console.log('Rendering ExploreCategoriesSection with:', { 
     fetchedCategories, 
@@ -71,39 +77,31 @@ const ExploreCategoriesSection = () => {
     categoriesState: categories 
   });
 
-  if (isLoading) {
-    return (
-      <section className="py-24 bg-background border-t border-border">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <Skeleton className="h-8 w-64 mx-auto mb-4" />
-            <Skeleton className="h-6 w-96 mx-auto" />
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-64 w-full" />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="py-24 bg-background border-t border-border">
-      <div className="container mx-auto px-6">
-        <h2 className="text-4xl font-bold text-center mb-4 text-foreground">
-          Explore By Categories
-        </h2>
-        <p className="text-center text-muted-foreground mb-16 text-lg">
-          Find the perfect course by exploring our diverse range of tech categories.
-        </p>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            Explore By Categories
+          </h2>
+          <p className="text-muted-foreground mx-auto max-w-2xl">
+            Find the perfect course by exploring our diverse range of tech categories.
+          </p>
         </div>
+        
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-64 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {categories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -117,10 +115,12 @@ function CategoryCard({ category }: { category: Category }) {
   return (
     <Card 
       key={category.id} 
-      className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border"
+      className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border h-full"
     >
       <div className="flex justify-start mb-6">
-        <IconComponent className="h-8 w-8 text-primary" />
+        <div className="p-3 rounded-full bg-primary/10">
+          <IconComponent className="h-8 w-8 text-primary" />
+        </div>
       </div>
       <h3 className="text-xl font-semibold mb-3 text-foreground">
         {category.name}
@@ -128,10 +128,10 @@ function CategoryCard({ category }: { category: Category }) {
       <p className="text-muted-foreground mb-6 text-sm">
         {category.description}
       </p>
-      <div className="flex items-center justify-between">
+      <div className="mt-auto">
         <Link 
           to={`/courses?category=${category.id}`}
-          className="text-brand hover:text-brand-dark flex items-center gap-2 text-sm font-medium transition-colors"
+          className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm font-medium transition-colors"
         >
           View Courses 
           <ArrowRight className="h-4 w-4" />
