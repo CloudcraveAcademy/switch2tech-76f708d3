@@ -42,6 +42,7 @@ interface CourseModeProps {
 
 export const CourseMode = ({ form }: CourseModeProps) => {
   const mode = form.watch("mode");
+  const isVirtualLive = mode === "virtual-live";
 
   return (
     <div className="space-y-6">
@@ -100,8 +101,12 @@ export const CourseMode = ({ form }: CourseModeProps) => {
             </FormItem>
           )}
         />
-      ) : (
-        <div className="space-y-6">
+      ) : null}
+
+      {/* Virtual Live Class Settings */}
+      {isVirtualLive && (
+        <div className="space-y-6 border p-4 rounded-lg bg-muted/30">
+          <h4 className="font-medium">Virtual Live Class Settings</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Registration Deadline */}
             <FormField
