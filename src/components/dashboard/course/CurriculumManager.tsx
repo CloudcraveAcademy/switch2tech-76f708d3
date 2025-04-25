@@ -37,6 +37,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
   const [reordering, setReordering] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentCourseInstructor, setCurrentCourseInstructor] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data, error }) => {
@@ -215,11 +216,13 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       if (editingLesson) {
         const { id, course_id, order_number, ...lessonData } = editingLesson;
         await saveLesson(lessonData, editingLesson.id);
         setEditingLesson(null);
+        toast.success("Lesson updated!");
       } else {
         await saveLesson(newLesson);
         setNewLesson({
@@ -228,10 +231,19 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
           content: "",
           video_url: "",
         });
+        toast.success("Lesson added!");
       }
       queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
     } catch (e: any) {
       console.error("Save lesson error:", e);
+      toast.error(
+        e?.message ||
+          (editingLesson
+            ? "Could not update lesson."
+            : "Could not add lesson.")
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -329,8 +341,13 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
             }
           />
           <div className="col-span-2 flex gap-2">
-            <Button type="submit" disabled={false}>
-              {editingLesson ? (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  {editingLesson ? "Saving..." : "Adding..."}
+                </>
+              ) : editingLesson ? (
                 <>
                   <Edit className="mr-1 h-4 w-4" />
                   Save Changes
@@ -347,6 +364,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
                 type="button"
                 variant="outline"
                 onClick={() => setEditingLesson(null)}
+                disabled={isSubmitting}
               >
                 Cancel Edit
               </Button>
