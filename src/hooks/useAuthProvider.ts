@@ -147,8 +147,8 @@ export const useAuthProvider = () => {
             setUser(enrichedUser);
             setLoading(false);
           }, 0);
-        } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          console.log("User signed out or deleted, clearing state");
+        } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing state");
           setUser(null);
           setSession(null);
           setLoading(false);
