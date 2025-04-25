@@ -101,7 +101,8 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         content: lesson.content,
         video_url: lesson.video_url,
         order_number: nextOrder,
-      });
+      }).select();
+
       if (error) {
         console.error("Error adding lesson:", error);
         toast.error(error.message || "Could not add lesson");
@@ -109,6 +110,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
       }
       if (!data) {
         toast.error("Failed to add lesson: No data returned");
+        console.warn("Insert did not return data; check RLS or required fields");
       } else {
         console.log("Lesson added:", data);
         toast.success("Lesson added!");
@@ -178,6 +180,18 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         <div className="text-gray-500 text-sm">
           Add, update, or reorder course lessons. These represent the curriculum students follow.
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            console.log("=== DEBUG (lessons):", lessons);
+            toast("Debug: lessons printed to console");
+          }}
+          className="mt-1"
+        >
+          Debug Lessons in Console
+        </Button>
       </CardHeader>
       <CardContent>
         <form
@@ -301,10 +315,18 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
           <div className="flex justify-center py-10">
             <Loader2 className="animate-spin" />
           </div>
-        ) : !lessons || lessons.length === 0 ? (
+        ) : !lessons ? (
+          <div className="text-gray-500 py-8 text-center">
+            <BookOpen className="h-8 w-8 mx-auto mb-2" />
+            <div>No lessons returned.<br/>
+              <span className="text-xs text-red-500">Check RLS settings in Supabase and query in console. courseId: {courseId}<br/>Result: {JSON.stringify(lessons)}</span>
+            </div>
+          </div>
+        ) : lessons.length === 0 ? (
           <div className="text-gray-500 py-8 text-center">
             <BookOpen className="h-8 w-8 mx-auto mb-2" />
             No lessons yet. Add lessons to build your curriculum.
+            <div className="mt-1 text-xs text-blue-500">courseId: {courseId}<br/>Fetched: {JSON.stringify(lessons)}</div>
           </div>
         ) : (
           <ul>
