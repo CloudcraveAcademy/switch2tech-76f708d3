@@ -1,5 +1,5 @@
-
 import { Routes, Route } from "react-router-dom";
+import { useRef } from "react";
 import StudentDashboard from "./StudentDashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -14,13 +14,22 @@ import CreateCourse from "./CreateCourse";
 import CourseEdit from "./CourseEdit";
 import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
-import InstructorMyCourses from "./MyCourses"; // Import instructor's MyCourses component
 
 const DashboardRoutes = () => {
   const { user } = useAuth();
+  // Keep a stable reference to the user role
+  const userRoleRef = useRef(user?.role);
+  
+  // Only update the role ref if there is a user with a role
+  if (user?.role) {
+    userRoleRef.current = user.role;
+  }
+  
+  // Use the stable role reference
+  const stableRole = userRoleRef.current || user?.role;
 
   const getInitialDashboard = () => {
-    switch (user?.role) {
+    switch (stableRole) {
       case "student":
         return <StudentDashboard />;
       case "instructor":
@@ -41,18 +50,18 @@ const DashboardRoutes = () => {
       <Route path="/settings" element={<Settings />} />
       
       {/* Student Routes */}
-      {(user?.role === "student" || user?.role === "instructor") && (
+      {(stableRole === "student" || stableRole === "instructor") && (
         <>
-          <Route path="/my-courses" element={user?.role === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
+          <Route path="/my-courses" element={stableRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
           <Route path="/courses/:courseId" element={<CourseView />} />
-          {user?.role === "student" && (
+          {stableRole === "student" && (
             <Route path="/certificates" element={<Certificates />} />
           )}
         </>
       )}
       
       {/* Instructor Routes */}
-      {user?.role === "instructor" && (
+      {stableRole === "instructor" && (
         <>
           <Route path="/students" element={<MyStudents />} />
           <Route path="/revenue" element={<MyRevenue />} />
@@ -63,7 +72,7 @@ const DashboardRoutes = () => {
       )}
       
       {/* Admin Routes */}
-      {(user?.role === "admin" || user?.role === "super_admin") && (
+      {(stableRole === "admin" || stableRole === "super_admin") && (
         <>
           <Route path="/users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1></div>} />
           <Route path="/courses" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Management</h1></div>} />
@@ -75,5 +84,8 @@ const DashboardRoutes = () => {
     </Routes>
   );
 };
+
+// Fix missing import
+import InstructorMyCourses from "./MyCourses";
 
 export default DashboardRoutes;

@@ -17,14 +17,13 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
   const AuthenticatedComponent = (props: any) => {
     const { user, loading } = useAuth();
     
-    // Simplified approach - Only show loading state
-    // Dashboard component handles the validation and redirect logic
+    // Simple loading state - let Dashboard handle all validation logic
     if (loading) {
       return <div className="flex justify-center items-center h-screen">Loading...</div>;
     }
     
-    // If not loading and no user, Dashboard will handle redirect
-    return user ? <Component {...props} /> : null;
+    // Pass control to Dashboard which will handle validation
+    return <Component {...props} />;
   };
   
   return AuthenticatedComponent;

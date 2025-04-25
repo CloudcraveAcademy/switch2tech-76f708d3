@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
-  const initialRenderRef = useRef(true);
+  const userRoleRef = useRef(user?.role);
   
   // Memoize validation logic to prevent unnecessary re-renders
   const validateAuthAndRedirect = useCallback(async () => {
@@ -34,7 +34,6 @@ const Dashboard = () => {
           replace: true,
           state: { from: location.pathname } 
         });
-        return;
       }
     } finally {
       setIsValidating(false);
@@ -42,23 +41,24 @@ const Dashboard = () => {
   }, [navigate, location.pathname, validateSession, isValidating]);
 
   useEffect(() => {
-    // Skip validation on initial render to prevent flash
-    if (initialRenderRef.current) {
-      initialRenderRef.current = false;
-      return;
+    // Only run validation when needed - avoid unnecessary checks
+    if (!loading && !user && !validationAttemptedRef.current) {
+      validateAuthAndRedirect();
     }
     
-    // Only validate when loading is complete and user is null
-    if (loading === false && !user && !validationAttemptedRef.current) {
-      validateAuthAndRedirect();
-    } else if (user && !user.role) {
-      // If user exists but has no role, redirect to home
+    // Handle redirect for users without roles
+    if (user && !user.role) {
       console.log("User has no role, redirecting to home");
       navigate("/", { replace: true });
     }
+    
+    // Update role ref to prevent unnecessary re-renders
+    if (user?.role) {
+      userRoleRef.current = user.role;
+    }
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
-  // Show loading state while checking authentication
+  // Show loading state only during initial auth check or explicit validation
   if (loading || isValidating) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -76,7 +76,10 @@ const Dashboard = () => {
     return null;
   }
 
-  console.log("Dashboard rendering with user:", user.name, "role:", user.role);
+  // Ensure we have a stable role before rendering dashboard
+  const stableRole = userRoleRef.current || user.role;
+  console.log("Dashboard rendering with user:", user.name, "role:", stableRole);
+
   return (
     <div className="flex h-screen bg-gray-100">
       <DashboardSidebar />
