@@ -44,7 +44,14 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         .select("*")
         .eq("course_id", courseId)
         .order("order_number", { ascending: true });
-      if (error) throw error;
+
+      if (error) {
+        console.error("Error fetching lessons:", error);
+        toast.error(error.message || "Could not load lessons");
+        throw error;
+      }
+
+      console.log("Fetched lessons:", data);
       return data || [];
     },
     enabled: !!courseId,
@@ -56,6 +63,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
   ) => {
     const duration = Number(lesson.duration_minutes);
     if (!lesson.title.trim() || !lesson.duration_minutes || isNaN(duration)) {
+      toast.error("Title and a valid duration are required");
       throw new Error("Title and valid duration are required");
     }
     if (id) {
@@ -68,15 +76,25 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
           video_url: lesson.video_url,
         })
         .eq("id", id);
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating lesson:", error);
+        toast.error(error.message || "Could not update lesson");
+        throw error;
+      }
+      toast.success("Lesson updated!");
     } else {
-      const { data: currentLessons } = await supabase
+      const { data: currentLessons, error: orderErr } = await supabase
         .from("lessons")
         .select("*")
         .eq("course_id", courseId)
         .order("order_number", { ascending: true });
+      if (orderErr) {
+        console.error("Error fetching lessons for order:", orderErr);
+        toast.error(orderErr.message || "Could not determine lesson order");
+        throw orderErr;
+      }
       const nextOrder = currentLessons ? currentLessons.length + 1 : 1;
-      const { error } = await supabase.from("lessons").insert({
+      const { error, data } = await supabase.from("lessons").insert({
         course_id: courseId,
         title: lesson.title,
         duration_minutes: duration,
@@ -84,7 +102,17 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         video_url: lesson.video_url,
         order_number: nextOrder,
       });
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding lesson:", error);
+        toast.error(error.message || "Could not add lesson");
+        throw error;
+      }
+      if (!data) {
+        toast.error("Failed to add lesson: No data returned");
+      } else {
+        console.log("Lesson added:", data);
+        toast.success("Lesson added!");
+      }
     }
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
