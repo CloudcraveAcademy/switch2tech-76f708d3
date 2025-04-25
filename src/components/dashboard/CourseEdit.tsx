@@ -143,7 +143,21 @@ const CourseEdit = () => {
       if (course.image_url) {
         setImageUrl(course.image_url);
       }
-      setMaterialUploads([]);
+
+      // Load saved course materials as "success"
+      if (Array.isArray(course.course_materials) && course.course_materials.length > 0) {
+        setMaterialUploads(
+          course.course_materials.map((url: string) => ({
+            // There is no actual File object for historical uploads, so will use null and just display the filename and URL.
+            file: null as unknown as File, // must cast to satisfy type, but is never used
+            name: url.split('/').pop() || 'material',
+            status: "success" as const,
+            url,
+          }))
+        );
+      } else {
+        setMaterialUploads([]);
+      }
     }
   }, [course, form]);
 
