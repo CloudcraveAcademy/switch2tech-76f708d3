@@ -16,13 +16,14 @@ import {
   TabsContent 
 } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Save, ArrowLeft } from "lucide-react";
+import { Loader2, Save, ArrowLeft, BookOpen } from "lucide-react";
 
 import { CourseBasicInfo } from "./course/CourseBasicInfo";
 import { CoursePricing } from "./course/CoursePricing";
 import { CourseMediaUpload } from "./course/CourseMediaUpload";
 import { CourseMode } from "./course/CourseMode";
 import { CourseSettings } from "./course/CourseSettings";
+import { CurriculumManager } from "./course/CurriculumManager";
 
 const courseFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -124,7 +125,7 @@ const CourseEdit = () => {
         timezone: course.timezone || "",
         replayAccess: course.replay_access || false,
         discountEnabled: course.discounted_price !== null && course.discounted_price !== undefined,
-        discountedPrice: course.discounted_price ? course.discounted_price.toString() : "",
+        discountedPrice: course.discounted_price ? course.discountedPrice.toString() : "",
       });
 
       if (course.image_url) {
@@ -245,6 +246,8 @@ const CourseEdit = () => {
     }
   };
   
+  const isDraft = course && !course.is_published;
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -275,17 +278,47 @@ const CourseEdit = () => {
           <h1 className="text-2xl font-bold mt-2">Edit Course</h1>
           <p className="text-gray-600">Manage and update your course details</p>
         </div>
-        <Button onClick={form.handleSubmit(onSubmit)} disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" /> Save Changes
-            </>
+        <div className="flex gap-3">
+          {isDraft && (
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                if (!course) return;
+                const { error } = await supabase
+                  .from("courses")
+                  .update({ is_published: true })
+                  .eq("id", course.id);
+                if (!error) {
+                  toast({
+                    title: "Published!",
+                    description: "Your course is now live and visible to students.",
+                  });
+                  refetch();
+                } else {
+                  toast({
+                    title: "Error",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              Publish Course
+            </Button>
           )}
-        </Button>
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" /> Save Changes
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <Form {...form}>
@@ -297,6 +330,7 @@ const CourseEdit = () => {
               <TabsTrigger value="mode">Course Mode</TabsTrigger>
               <TabsTrigger value="media">Media</TabsTrigger>
               <TabsTrigger value="pricing">Pricing</TabsTrigger>
+              <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
             </TabsList>
             
             <TabsContent value="basic">
@@ -342,6 +376,10 @@ const CourseEdit = () => {
                   <CoursePricing form={form} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="curriculum">
+              {course?.id && <CurriculumManager courseId={course.id} />}
             </TabsContent>
           </Tabs>
         </form>
