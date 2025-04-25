@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -163,9 +164,10 @@ const CreateCourse = () => {
         discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
       };
       
+      // Fix: Remove the array brackets and pass the object directly
       const { data: course, error } = await supabase
         .from('courses')
-        .insert([courseData])
+        .insert(courseData)
         .select('id')
         .single();
       
