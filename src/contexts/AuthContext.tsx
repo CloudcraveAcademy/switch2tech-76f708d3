@@ -18,11 +18,10 @@ export const useAuth = () => {
 export const requireAuth = (Component: React.ComponentType<any>) => {
   // Use a named function instead of anonymous to help with debugging
   function AuthWrappedComponent(props: any) {
-    // Always call hooks at the top level
+    // Always call hooks at the top level - consistent across all renders
     const { user, loading } = useAuth();
     
-    // Use a single return statement with proper conditional rendering
-    // This ensures hook calls are consistent between renders
+    // Use a render-only approach without early returns
     return (
       <>
         {loading ? (
@@ -57,8 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.location.href = path || "/";
   });
   
-  // Use useMemo to create the auth state - this ensures we only call hooks once
-  // and maintains proper hook execution order
+  // Use useMemo to make sure the hook is called only once and with consistent behavior
   const authState = useMemo(() => {
     return useAuthProvider(logoutHandlerRef.current);
   }, []);

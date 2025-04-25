@@ -43,6 +43,7 @@ const Dashboard = () => {
 
   // Auth validation effect - no early returns
   useEffect(() => {
+    // Check auth status only if user is not loaded and we haven't attempted validation yet
     if (!user && !loading && !validationAttemptedRef.current) {
       validateAuthAndRedirect();
     }
