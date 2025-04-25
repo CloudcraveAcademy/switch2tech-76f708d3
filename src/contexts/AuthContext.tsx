@@ -16,7 +16,8 @@ export const useAuth = () => {
 };
 
 export const requireAuth = (Component: React.ComponentType<any>) => {
-  const AuthWrappedComponent = (props: any) => {
+  // Use a named function instead of anonymous to help with debugging
+  function AuthWrappedComponent(props: any) {
     // Always call hooks at the top level
     const { user, loading } = useAuth();
     
@@ -43,13 +44,13 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
         )}
       </>
     );
-  };
+  }
   
   AuthWrappedComponent.displayName = `RequireAuth(${Component.displayName || Component.name || 'Component'})`;
   return AuthWrappedComponent;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Create a stable reference for the logout handler
   const logoutHandlerRef = useRef((path?: string) => {
     console.log("Navigation after logout");
@@ -58,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Initialize auth state once with useAuthProvider
   // This prevents hook consistency issues during re-renders
-  const [authState] = useState(() => useAuthProvider(logoutHandlerRef.current));
+  const authState = useAuthProvider(logoutHandlerRef.current);
 
   return (
     <AuthContext.Provider value={authState}>
