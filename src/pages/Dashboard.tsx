@@ -13,44 +13,41 @@ const Dashboard = () => {
   const location = useLocation();
   const { user, loading, validateSession } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isValidating, setIsValidating] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
-    const validateAuthAndRedirect = async () => {
-      console.log("Dashboard component - validating auth state");
-      setIsValidating(true);
+    // Only run validation if we don't already have a user and we're not already loading auth state
+    if (!user && !loading && !isValidating) {
+      console.log("Dashboard validating session - user not found");
+      const validateAuthAndRedirect = async () => {
+        setIsValidating(true);
+        try {
+          const isValid = await validateSession();
+          
+          if (!isValid) {
+            console.log("Session invalid, redirecting to login");
+            navigate("/login", { 
+              replace: true,
+              state: { from: location.pathname } 
+            });
+            return;
+          }
+          
+        } finally {
+          setIsValidating(false);
+        }
+      };
       
-      try {
-        const isValid = await validateSession();
-        
-        if (!isValid) {
-          console.log("Session invalid, redirecting to login");
-          navigate("/login", { 
-            replace: true,
-            state: { from: location.pathname } 
-          });
-          return;
-        }
-        
-        // Session is valid but we need to check if user has the right role
-        if (!user?.role) {
-          console.log("User has no role or unauthorized role, redirecting to home");
-          navigate("/", { replace: true });
-          return;
-        }
-        
-        console.log("Auth validation successful for role:", user.role);
-      } finally {
-        setIsValidating(false);
-      }
-    };
-
-    validateAuthAndRedirect();
-  }, [user, navigate, location.pathname, validateSession]);
+      validateAuthAndRedirect();
+    } else if (user && !user.role) {
+      // If user exists but has no role, redirect to home
+      console.log("User has no role, redirecting to home");
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate, location.pathname, validateSession, isValidating]);
 
   // Show loading state while checking authentication
   if (loading || isValidating) {
-    console.log("Dashboard is in loading/validating state");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="space-y-4 w-64">
@@ -62,7 +59,7 @@ const Dashboard = () => {
     );
   }
 
-  // If we're not loading and there's no user, the validateAuthAndRedirect function will handle the redirect
+  // If we're not loading and there's no user, the effect will handle the redirect
   if (!user) {
     return null;
   }

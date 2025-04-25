@@ -47,27 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const auth = useAuthProvider(handleLogout);
-  const { user, loading, validateSession } = auth;
-
-  // Global auth validation effect
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      // Only validate on dashboard or protected routes
-      if (window.location.pathname.startsWith('/dashboard')) {
-        console.log("Validating auth for protected route:", window.location.pathname);
-        const isValid = await validateSession();
-        
-        if (!isValid && !loading) {
-          console.log("Auth validation failed, redirecting to login");
-          // Use direct window location for redirect
-          const currentPath = encodeURIComponent(window.location.pathname);
-          window.location.href = `/login?from=${currentPath}`;
-        }
-      }
-    };
-    
-    checkAuthStatus();
-  }, [validateSession, loading]);
+  
+  // We're removing the validation effect from here because each protected component
+  // should handle its own auth validation. This prevents duplicate validation checks.
 
   return (
     <AuthContext.Provider value={auth}>
