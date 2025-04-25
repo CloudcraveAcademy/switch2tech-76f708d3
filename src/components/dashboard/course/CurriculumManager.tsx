@@ -113,6 +113,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
         toast.error(error.message || "Could not update lesson");
         throw error;
       }
+      console.log("Lesson updated: ", id);
       toast.success("Lesson updated!");
     } else {
       const { data: currentLessons, error: orderErr } = await supabase
@@ -212,6 +213,28 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
     },
   });
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      if (editingLesson) {
+        const { id, course_id, order_number, ...lessonData } = editingLesson;
+        await saveLesson(lessonData, editingLesson.id);
+        setEditingLesson(null);
+      } else {
+        await saveLesson(newLesson);
+        setNewLesson({
+          title: "",
+          duration_minutes: "",
+          content: "",
+          video_url: "",
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
+    } catch (e: any) {
+      console.error("Save lesson error:", e);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -235,26 +258,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
       <CardContent>
         <form
           className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
-          onSubmit={e => {
-            e.preventDefault();
-            if (editingLesson) {
-              const { id, course_id, order_number, ...lessonData } = editingLesson;
-              saveLesson(lessonData, editingLesson.id)
-                .then(() => setEditingLesson(null))
-                .catch(() => {});
-            } else {
-              saveLesson(newLesson)
-                .then(() =>
-                  setNewLesson({
-                    title: "",
-                    duration_minutes: "",
-                    content: "",
-                    video_url: "",
-                  })
-                )
-                .catch(() => {});
-            }
-          }}
+          onSubmit={handleSubmit}
         >
           <Input
             placeholder="Lesson Title"
@@ -325,7 +329,7 @@ export function CurriculumManager({ courseId }: { courseId: string }) {
             }
           />
           <div className="col-span-2 flex gap-2">
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" disabled={false}>
               {editingLesson ? (
                 <>
                   <Edit className="mr-1 h-4 w-4" />
