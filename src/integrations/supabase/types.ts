@@ -901,32 +901,50 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          account_name: string | null
+          account_number: string | null
           avatar_url: string | null
+          bank_name: string | null
+          bank_verification_status: string | null
           bio: string | null
           created_at: string | null
           first_name: string | null
           id: string
           last_name: string | null
+          payout_frequency: string | null
+          paystack_recipient_code: string | null
           role: string
           updated_at: string | null
         }
         Insert: {
+          account_name?: string | null
+          account_number?: string | null
           avatar_url?: string | null
+          bank_name?: string | null
+          bank_verification_status?: string | null
           bio?: string | null
           created_at?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
+          payout_frequency?: string | null
+          paystack_recipient_code?: string | null
           role: string
           updated_at?: string | null
         }
         Update: {
+          account_name?: string | null
+          account_number?: string | null
           avatar_url?: string | null
+          bank_name?: string | null
+          bank_verification_status?: string | null
           bio?: string | null
           created_at?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
+          payout_frequency?: string | null
+          paystack_recipient_code?: string | null
           role?: string
           updated_at?: string | null
         }

@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +30,7 @@ import { formatDate } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfileData } from "@/hooks/useProfileData";
 import { Skeleton } from "@/components/ui/skeleton";
+import BankDetails from './profile/BankDetails';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -62,7 +62,6 @@ const Profile = () => {
     confirmPassword: "",
   });
 
-  // Update form when profile data is loaded
   useEffect(() => {
     if (profileData) {
       setFormData(prevData => ({
@@ -113,7 +112,6 @@ const Profile = () => {
     e.preventDefault();
     
     try {
-      // Prepare data for update
       const dataToUpdate = {
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -202,7 +200,6 @@ const Profile = () => {
     });
   };
 
-  // Show loading state while fetching profile data
   if (loading) {
     return (
       <div className="p-6">
@@ -225,7 +222,6 @@ const Profile = () => {
       <h1 className="text-2xl font-bold mb-8">My Profile</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Profile Summary */}
         <div>
           <Card>
             <CardContent className="pt-6">
@@ -373,7 +369,6 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Opportunities Card - Only shown to students */}
           {user?.role === 'student' && (
             <Card className="mt-6">
               <CardHeader>
@@ -409,7 +404,6 @@ const Profile = () => {
             </Card>
           )}
 
-          {/* Administration Actions - Only shown to admins */}
           {(user?.role === 'admin' || user?.role === 'super_admin') && (
             <Card className="mt-6">
               <CardHeader>
@@ -435,7 +429,6 @@ const Profile = () => {
           )}
         </div>
 
-        {/* Edit Profile Tabs */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -452,6 +445,12 @@ const Profile = () => {
                     <Briefcase className="h-4 w-4 mr-2" />
                     Professional
                   </TabsTrigger>
+                  {user?.role === 'instructor' && (
+                    <TabsTrigger value="banking">
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Banking
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="preferences">
                     <Settings className="h-4 w-4 mr-2" />
                     Preferences
@@ -653,6 +652,15 @@ const Profile = () => {
                       <Button type="submit">Save Changes</Button>
                     </div>
                   </form>
+                </TabsContent>
+
+                <TabsContent value="banking">
+                  <BankDetails 
+                    profileData={profileData || {}} 
+                    onBankDetailsChange={(field, value) => 
+                      setFormData(prev => ({ ...prev, [field]: value }))
+                    } 
+                  />
                 </TabsContent>
 
                 <TabsContent value="preferences">

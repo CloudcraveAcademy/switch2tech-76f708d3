@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +22,12 @@ export interface ProfileData {
   twitter_url?: string;
   student_status?: string;
   career_level?: string;
+  bank_name?: string;
+  account_number?: string;
+  account_name?: string;
+  paystack_recipient_code?: string;
+  bank_verification_status?: string;
+  payout_frequency?: string;
   preferences?: {
     notifications?: boolean;
     newsletter?: boolean;
