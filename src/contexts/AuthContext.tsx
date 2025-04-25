@@ -19,6 +19,9 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
     
     React.useEffect(() => {
       const checkAuth = async () => {
+        // Don't validate if we already have a user
+        if (user) return;
+        
         const isValid = await validateSession();
         if (!isValid && !loading) {
           // Navigation is now handled by the AuthProvider
@@ -26,8 +29,10 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
         }
       };
       
-      checkAuth();
-    }, [loading, validateSession]);
+      if (!user && !loading) {
+        checkAuth();
+      }
+    }, [user, loading, validateSession]);
     
     if (loading) {
       return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -47,9 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const auth = useAuthProvider(handleLogout);
-  
-  // We're removing the validation effect from here because each protected component
-  // should handle its own auth validation. This prevents duplicate validation checks.
 
   return (
     <AuthContext.Provider value={auth}>
