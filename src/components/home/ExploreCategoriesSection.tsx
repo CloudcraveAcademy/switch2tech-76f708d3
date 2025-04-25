@@ -1,5 +1,5 @@
 
-import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Settings, PenTool, BookOpen, Folder, BookOpen as Book } from "lucide-react";
+import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Settings, PenTool, BookOpen, Folder } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCategories, Category } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,45 +16,13 @@ const iconMap: Record<string, React.ElementType> = {
   smartphone: Smartphone,
   settings: Settings,
   "pen-tool": PenTool,
-  book: Book, 
+  book: BookOpen, 
   folder: Folder,
 };
 
-// Fallback categories to use if none are loaded from database
-const fallbackCategories: Category[] = [
-  {
-    id: "1",
-    name: "Web Development",
-    description: "Learn to build modern, responsive websites and web applications",
-    icon: "code",
-    count: 45
-  },
-  {
-    id: "2",
-    name: "Data Science",
-    description: "Master data analysis, visualization and machine learning",
-    icon: "database",
-    count: 28
-  },
-  {
-    id: "3",
-    name: "Mobile Development",
-    description: "Create native and cross-platform mobile applications",
-    icon: "smartphone",
-    count: 32
-  },
-  {
-    id: "4",
-    name: "Cloud Computing",
-    description: "Deploy and manage applications in the cloud",
-    icon: "cloud",
-    count: 20
-  },
-];
-
 const ExploreCategoriesSection = () => {
   const { data: fetchedCategories, isLoading, error } = useCategories();
-  const [categories, setCategories] = useState<Category[]>(fallbackCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
   
   // Effect to handle category data once loaded
@@ -117,22 +85,22 @@ const CategoryCard = ({ category }: { category: Category }) => {
   const IconComponent = iconMap[category.icon] || Folder;
   
   return (
-    <Card className="bg-card p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border h-full flex flex-col">
+    <Card className="bg-card p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border h-full flex flex-col">
       <div className="flex justify-between items-start mb-6">
         <div className="p-3 rounded-full bg-primary/10">
-          <IconComponent className="h-8 w-8 text-primary" />
+          <IconComponent className="h-6 w-6 text-primary" />
         </div>
-        <div className="text-sm font-medium text-primary-foreground bg-primary px-3 py-1 rounded-full">
+        <div className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
           {category.count || 0} courses
         </div>
       </div>
-      <h3 className="text-xl font-semibold mb-3 text-foreground">
+      <h3 className="text-xl font-semibold mb-2 text-foreground">
         {category.name}
       </h3>
       <p className="text-muted-foreground mb-6 text-sm flex-grow">
         {category.description}
       </p>
-      <div className="mt-auto pt-4">
+      <div className="mt-auto">
         <Link 
           to={`/courses?category=${category.id}`}
           className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm font-medium transition-colors"

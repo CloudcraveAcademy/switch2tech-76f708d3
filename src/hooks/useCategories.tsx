@@ -65,24 +65,23 @@ export function useCategories() {
           return fallbackCategories;
         }
 
-        // Get course counts for each category
+        // Get course counts for each category using a different approach
+        // Instead of using group which isn't available, we'll count manually
         const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
-          .select('category, count')
-          .not('category', 'is', null)
-          .group('category');
+          .select('category');
         
         if (coursesError) {
           console.error('Error fetching course counts:', coursesError);
           // Continue with processing categories, even without counts
         }
         
-        // Create a map of category IDs to course counts
+        // Create a map of category IDs to course counts by manually counting
         const countMap: {[key: string]: number} = {};
         if (coursesData && coursesData.length > 0) {
-          coursesData.forEach(item => {
-            if (item.category) {
-              countMap[item.category] = parseInt(item.count);
+          coursesData.forEach(course => {
+            if (course.category) {
+              countMap[course.category] = (countMap[course.category] || 0) + 1;
             }
           });
         }
