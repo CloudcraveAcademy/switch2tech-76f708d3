@@ -4,7 +4,9 @@ import { Link } from "react-router-dom";
 import { useCategories, Category } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 
+// Create a mapping of icon strings to Lucide icon components
 const iconMap: Record<string, React.ElementType> = {
   code: Code,
   shield: Shield,
@@ -47,16 +49,27 @@ const fallbackCategories: Category[] = [
 
 const ExploreCategoriesSection = () => {
   const { data: fetchedCategories, isLoading, error } = useCategories();
-
-  // Add console logs for debugging
-  console.log('Categories data:', fetchedCategories);
-  console.log('Loading state:', isLoading);
-  console.log('Error state:', error);
+  const [categories, setCategories] = useState<Category[]>(fallbackCategories);
   
-  // Use database categories if available, otherwise use fallback categories
-  const categories = (fetchedCategories && fetchedCategories.length > 0) 
-    ? fetchedCategories 
-    : fallbackCategories;
+  // Effect to handle category data once loaded
+  useEffect(() => {
+    console.log('Categories useEffect running with data:', fetchedCategories);
+    
+    if (fetchedCategories && Array.isArray(fetchedCategories) && fetchedCategories.length > 0) {
+      console.log('Setting categories from API:', fetchedCategories);
+      setCategories(fetchedCategories);
+    } else if (!isLoading && !error) {
+      console.log('No valid categories from API, using fallbacks');
+      setCategories(fallbackCategories);
+    }
+  }, [fetchedCategories, isLoading, error]);
+
+  console.log('Rendering ExploreCategoriesSection with:', { 
+    fetchedCategories, 
+    isLoading, 
+    error, 
+    categoriesState: categories 
+  });
 
   if (isLoading) {
     return (
@@ -76,25 +89,6 @@ const ExploreCategoriesSection = () => {
     );
   }
 
-  if (error) {
-    console.error('Error loading categories:', error);
-    return (
-      <section className="py-24 bg-background border-t border-border">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-4 text-foreground">
-            Explore By Categories
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            We're using our fallback categories while we fix some technical issues.
-          </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {fallbackCategories.map((category) => renderCategoryCard(category))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="py-24 bg-background border-t border-border">
       <div className="container mx-auto px-6">
@@ -104,17 +98,21 @@ const ExploreCategoriesSection = () => {
         <p className="text-center text-muted-foreground mb-16 text-lg">
           Find the perfect course by exploring our diverse range of tech categories.
         </p>
+        
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {categories.map((category) => renderCategoryCard(category))}
+          {categories.map((category) => (
+            <CategoryCard key={category.id} category={category} />
+          ))}
         </div>
       </div>
     </section>
   );
 };
 
-// Extract category card rendering to a separate function for reuse
-function renderCategoryCard(category: Category) {
-  const IconComponent = iconMap[category.icon] || Code;
+// Extract category card rendering to a separate component
+function CategoryCard({ category }: { category: Category }) {
+  // Default to the Folder icon if the specified icon is not found
+  const IconComponent = iconMap[category.icon] || Folder;
   
   return (
     <Card 
