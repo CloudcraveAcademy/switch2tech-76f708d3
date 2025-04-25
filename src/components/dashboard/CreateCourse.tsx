@@ -11,14 +11,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-// Import our new components
 import { CourseBasicInfo } from "./course/CourseBasicInfo";
 import { CoursePricing } from "./course/CoursePricing";
 import { CourseMediaUpload } from "./course/CourseMediaUpload";
 import { CourseMode } from "./course/CourseMode";
 import { CourseSettings } from "./course/CourseSettings";
 
-// Form schema for course creation
 const courseFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
@@ -58,7 +56,6 @@ const CreateCourse = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
 
-  // Initialize the form
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -103,7 +100,6 @@ const CreateCourse = () => {
       let finalImageUrl = "";
       let materialUrls: string[] = [];
       
-      // Upload image to Supabase Storage if available
       if (image) {
         const fileExt = image.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -121,7 +117,6 @@ const CreateCourse = () => {
         finalImageUrl = imageData.publicUrl;
       }
       
-      // Upload course materials if available
       if (courseMaterials.length > 0) {
         for (const material of courseMaterials) {
           const fileExt = material.name.split('.').pop();
@@ -141,7 +136,6 @@ const CreateCourse = () => {
         }
       }
       
-      // Prepare course data for database
       const courseData = {
         instructor_id: user.id,
         title: data.title,
@@ -169,7 +163,6 @@ const CreateCourse = () => {
         discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
       };
       
-      // Create course in database
       const { data: course, error } = await supabase
         .from('courses')
         .insert([courseData])
@@ -183,7 +176,6 @@ const CreateCourse = () => {
         description: "Your course has been saved as a draft",
       });
       
-      // Navigate to the course edit route
       navigate(`/dashboard/courses/${course.id}/edit`);
     } catch (error: any) {
       toast({
@@ -215,25 +207,21 @@ const CreateCourse = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Course Basic Information */}
               <div className="space-y-6">
                 <h3 className="text-lg font-medium">Basic Information</h3>
                 <CourseBasicInfo form={form} />
               </div>
 
-              {/* Course Settings */}
               <div className="space-y-6 border-t pt-6">
                 <h3 className="text-lg font-medium">Course Settings</h3>
                 <CourseSettings form={form} />
               </div>
 
-              {/* Course Mode */}
               <div className="space-y-6 border-t pt-6">
                 <h3 className="text-lg font-medium">Course Mode</h3>
                 <CourseMode form={form} />
               </div>
 
-              {/* Course Media */}
               <div className="space-y-6 border-t pt-6">
                 <h3 className="text-lg font-medium">Course Media</h3>
                 <CourseMediaUpload 
@@ -244,13 +232,11 @@ const CreateCourse = () => {
                 />
               </div>
 
-              {/* Course Pricing */}
               <div className="space-y-6 border-t pt-6">
                 <h3 className="text-lg font-medium">Pricing</h3>
                 <CoursePricing form={form} />
               </div>
               
-              {/* Form Actions */}
               <div className="flex justify-end gap-4 pt-4 border-t">
                 <Button
                   type="button"

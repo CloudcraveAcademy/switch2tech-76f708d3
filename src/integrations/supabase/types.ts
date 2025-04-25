@@ -243,44 +243,89 @@ export type Database = {
       }
       courses: {
         Row: {
+          access_duration: string | null
+          additional_languages: string[] | null
           category: string | null
+          certificate_enabled: boolean | null
+          class_days: string[] | null
+          class_time: string | null
+          course_materials: string[] | null
+          course_start_date: string | null
           created_at: string | null
           description: string | null
+          discounted_price: number | null
           duration_hours: number | null
           id: string
           image_url: string | null
           instructor_id: string
           is_published: boolean | null
+          language: string | null
           level: string | null
+          mode: string | null
+          multi_language_support: boolean | null
+          preview_video: string | null
           price: number | null
+          registration_deadline: string | null
+          replay_access: boolean | null
+          timezone: string | null
           title: string
           updated_at: string | null
         }
         Insert: {
+          access_duration?: string | null
+          additional_languages?: string[] | null
           category?: string | null
+          certificate_enabled?: boolean | null
+          class_days?: string[] | null
+          class_time?: string | null
+          course_materials?: string[] | null
+          course_start_date?: string | null
           created_at?: string | null
           description?: string | null
+          discounted_price?: number | null
           duration_hours?: number | null
           id?: string
           image_url?: string | null
           instructor_id: string
           is_published?: boolean | null
+          language?: string | null
           level?: string | null
+          mode?: string | null
+          multi_language_support?: boolean | null
+          preview_video?: string | null
           price?: number | null
+          registration_deadline?: string | null
+          replay_access?: boolean | null
+          timezone?: string | null
           title: string
           updated_at?: string | null
         }
         Update: {
+          access_duration?: string | null
+          additional_languages?: string[] | null
           category?: string | null
+          certificate_enabled?: boolean | null
+          class_days?: string[] | null
+          class_time?: string | null
+          course_materials?: string[] | null
+          course_start_date?: string | null
           created_at?: string | null
           description?: string | null
+          discounted_price?: number | null
           duration_hours?: number | null
           id?: string
           image_url?: string | null
           instructor_id?: string
           is_published?: boolean | null
+          language?: string | null
           level?: string | null
+          mode?: string | null
+          multi_language_support?: boolean | null
+          preview_video?: string | null
           price?: number | null
+          registration_deadline?: string | null
+          replay_access?: boolean | null
+          timezone?: string | null
           title?: string
           updated_at?: string | null
         }
