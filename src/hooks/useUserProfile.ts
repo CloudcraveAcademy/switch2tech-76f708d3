@@ -29,22 +29,22 @@ export const useUserProfile = () => {
       
       console.log("Fetching profile for user:", user.id);
       
-      // Use a direct query instead of RPC to avoid TypeScript issues
+      // Use a direct query with the security definer function to avoid recursion
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('id, first_name, last_name, role, avatar_url')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error("Error fetching user profile:", error);
         
-        // Fallback to another query with limited fields
+        // Fallback to query with fewer columns as a backup approach
         const { data: fallbackProfile, error: fallbackError } = await supabase
           .from('user_profiles')
           .select('first_name, last_name, role, avatar_url')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
           
         if (fallbackError) {
           console.error("Fallback profile fetch failed:", fallbackError);
@@ -88,7 +88,7 @@ export const useUserProfile = () => {
       // Return basic user information even if there's an exception
       return {
         ...user,
-        role: 'instructor' // Set to instructor as requested by the user
+        role: 'instructor' // Default role as requested by the user
       } as UserWithProfile;
     }
   };

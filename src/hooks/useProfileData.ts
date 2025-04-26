@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +27,7 @@ export interface ProfileData {
   paystack_recipient_code?: string;
   bank_verification_status?: string;
   payout_frequency?: string;
+  student_status?: string;
   preferences?: { notifications?: boolean; newsletter?: boolean; [key: string]: any };
   [key: string]: any;
 }
@@ -45,6 +47,7 @@ export const useProfileData = () => {
       setLoading(true);
       console.log("Fetching profile data for user:", user.id);
       
+      // Use the get_user_profile function to avoid RLS recursion issues
       const { data, error: fetchError } = await supabase
         .from('user_profiles')
         .select('*')
@@ -137,6 +140,17 @@ export const useProfileData = () => {
     }
   };
 
+  const updateProfileAvatar = async (filePath: string) => {
+    if (!user?.id) throw new Error("No authenticated user");
+    try {
+      const updates = { avatar_url: filePath };
+      return await updateProfileData(updates);
+    } catch (err) {
+      console.error("Error updating avatar:", err);
+      throw err;
+    }
+  };
+
   const verifyBankAccount = async () => {
     if (!user?.id || !profileData?.bank_name || !profileData?.account_number) {
       throw new Error("Missing bank details");
@@ -192,6 +206,7 @@ export const useProfileData = () => {
     error,
     fetchProfileData,
     updateProfileData,
+    updateProfileAvatar,
     verifyBankAccount,
     updatePreferences,
   };

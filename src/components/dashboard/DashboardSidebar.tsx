@@ -9,6 +9,7 @@ import StudentNavigation from './sidebar/StudentNavigation';
 import InstructorNavigation from './sidebar/InstructorNavigation';
 import AdminNavigation from './sidebar/AdminNavigation';
 import AccountNavigation from './sidebar/AccountNavigation';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const DashboardSidebar = () => {
   const location = useLocation();
@@ -18,10 +19,29 @@ const DashboardSidebar = () => {
     return location.pathname === path;
   };
 
+  // Add a timestamp to avatar URL to prevent caching issues
+  const avatarUrl = user?.avatar 
+    ? `${user.avatar}?t=${new Date().getTime()}`
+    : undefined;
+
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200">
       <div className="p-4 border-b">
         <Logo />
+      </div>
+      
+      {/* User profile section */}
+      <div className="p-4 border-b flex items-center gap-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={avatarUrl} alt={user?.name || "User avatar"} />
+          <AvatarFallback>
+            {user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "U"}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col">
+          <span className="font-medium text-sm">{user?.name || "User"}</span>
+          <span className="text-xs text-gray-500 capitalize">{user?.role || "User"}</span>
+        </div>
       </div>
       
       <nav className="flex-1 pt-4 pb-4 overflow-y-auto">

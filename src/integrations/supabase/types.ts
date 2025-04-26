@@ -1034,6 +1034,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_role: {
         Args: { role: string }
         Returns: boolean
@@ -1044,6 +1048,10 @@ export type Database = {
       }
       is_course_instructor_for_lessons: {
         Args: { course_id: string }
+        Returns: boolean
+      }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
