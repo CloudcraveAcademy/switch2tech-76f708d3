@@ -1,14 +1,115 @@
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { mockCourses } from "@/utils/mockData";
 import CourseCard from "@/components/CourseCard";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface SupabaseInstructor {
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string | null;
+}
+
+interface SupabaseCategory {
+  id: string;
+  name: string;
+}
+
+interface SupabaseCourse {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number | null;
+  level: "beginner" | "intermediate" | "advanced" | null;
+  rating?: number;
+  reviews?: number;
+  mode: "self-paced" | "virtual" | "live" | null;
+  enrolledStudents?: number;
+  lessons?: number;
+  image_url: string | null;
+  category: string | null;
+  instructor_id: string;
+  instructor?: SupabaseInstructor;
+  course_categories?: SupabaseCategory;
+  duration_hours?: number;
+}
 
 const FeaturedCoursesSection = () => {
-  // Instead of using getFeaturedCourses(), directly get 6 courses from the mockCourses array
-  // This ensures we have exactly 6 courses regardless of how many are marked as featured
-  const featuredCourses = mockCourses.slice(0, 6);
+  const [courses, setCourses] = useState<SupabaseCourse[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch the latest 6 published courses
+    const fetchCourses = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error } = await supabase
+        .from("courses")
+        .select(
+          `
+          *,
+          course_categories (
+            id,
+            name
+          ),
+          user_profiles:instructor_id (
+            id,
+            first_name,
+            last_name,
+            avatar_url
+          )
+          `
+        )
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (error) {
+        setError("Failed to load courses.");
+        setLoading(false);
+        return;
+      }
+      // Ensure fallback values for the CourseCard props
+      const formatted = (data || []).map((course: any) => ({
+        ...course,
+        rating: course.rating || Math.round(4 + Math.random()),
+        reviews: course.reviews || Math.floor(20 + Math.random() * 500),
+        enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
+        lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
+        instructor: course.user_profiles
+          ? {
+              ...course.user_profiles,
+              name:
+                course.user_profiles.first_name +
+                " " +
+                course.user_profiles.last_name,
+              avatar: course.user_profiles.avatar_url || "/placeholder.svg",
+            }
+          : {
+              name: "Unknown",
+              avatar: "/placeholder.svg",
+            },
+        category: course.course_categories?.name || "General",
+        image: course.image_url || "/placeholder.svg",
+        mode: course.mode || "self-paced",
+        price: typeof course.price === "number" ? course.price : 0,
+        level: course.level || "beginner",
+        featured: false, // set to true if you have a featured flag in db; adjust as needed
+        tags: [],
+        duration: course.duration_hours !== undefined && course.duration_hours !== null
+          ? String(course.duration_hours)
+          : "0",
+      }));
+      setCourses(formatted);
+      setLoading(false);
+    };
+
+    fetchCourses();
+  }, []);
 
   return (
     <section className="py-24 bg-background border-t border-border">
@@ -24,10 +125,31 @@ const FeaturedCoursesSection = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {featuredCourses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
+        <div className="min-h-[320px] grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="animate-pulse rounded-lg bg-accent h-80"
+              />
+            ))
+          ) : error ? (
+            <div className="col-span-full text-center text-destructive">
+              <p className="mb-4">{error}</p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                Retry
+              </Button>
+            </div>
+          ) : courses.length === 0 ? (
+            <div className="col-span-full text-center text-muted-foreground">
+              No featured courses available.
+            </div>
+          ) : (
+            courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))
+          )}
         </div>
 
         <div className="flex justify-center gap-4">
