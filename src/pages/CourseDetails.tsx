@@ -30,7 +30,8 @@ const CourseDetails = () => {
               id,
               first_name,
               last_name,
-              avatar_url
+              avatar_url,
+              bio
             ),
             course_categories (
               id,
@@ -392,7 +393,7 @@ const CourseDetails = () => {
               <div>
                 <h4 className="text-xl font-bold mb-3">About the Instructor</h4>
                 <p className="text-gray-700 mb-4">
-                  {course.user_profiles?.bio
+                  {"bio" in (course.user_profiles || {}) && course.user_profiles.bio
                     ? course.user_profiles.bio
                     : `With years of experience, ${course.instructor?.name || "the instructor"} is a leading expert in ${course.category_name}.`}
                 </p>
