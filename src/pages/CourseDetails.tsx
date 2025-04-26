@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -13,18 +12,15 @@ import { CheckCircle, Clock, File, Play, Star, Users, Video } from "lucide-react
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// Public marketing preview page for a single course (for students/the public)
 const CourseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Fetch real course info from Supabase
   const { data: course, isLoading } = useQuery({
     queryKey: ["public-course", id],
     queryFn: async () => {
       if (!id) return null;
-      // Fetch course by ID (with relevant info)
       const { data: courseData, error } = await supabase
         .from("courses")
         .select(
@@ -35,6 +31,10 @@ const CourseDetails = () => {
               first_name,
               last_name,
               avatar_url
+            ),
+            course_categories (
+              id,
+              name
             )
           `
         )
@@ -43,38 +43,48 @@ const CourseDetails = () => {
 
       if (error || !courseData) return null;
 
-      // Optionally fetch category name
-      let categoryName = "";
-      if (courseData.category) {
-        const { data: cat } = await supabase
-          .from("course_categories")
-          .select("name")
-          .eq("id", courseData.category)
-          .maybeSingle();
-        categoryName = cat?.name || "";
+      const { data: lessonRows } = await supabase
+        .from("lessons")
+        .select("*")
+        .eq("course_id", id)
+        .order("order_number", { ascending: true });
+
+      let curriculum = [];
+      if (lessonRows && lessonRows.length) {
+        curriculum = [
+          {
+            id: "section-main",
+            title: "Full Curriculum",
+            lessons: lessonRows.map(l => ({
+              id: l.id,
+              title: l.title,
+              duration: l.duration_minutes ? `${l.duration_minutes} min` : "N/A",
+              type: "video"
+            }))
+          }
+        ];
       }
 
-      // Mock fields for marketing page if needed
-      // TODO: You can fetch reviews, lessons count, rating, students, etc, if needed.
       return {
         ...courseData,
-        category_name: categoryName,
+        category_name: courseData.course_categories?.name || "",
         rating: 4.8,
-        reviews: 80,
-        enrolledStudents: 324, // You can fetch real data if you want
-        lessons: 12,
-        duration: `${courseData.duration_hours || 0}h`,
-        image: courseData.image_url,
+        reviews: 12,
+        enrolledStudents: 324,
+        duration:
+          courseData.duration_hours !== null && courseData.duration_hours !== undefined
+            ? `${courseData.duration_hours}h`
+            : "N/A",
         instructor: courseData.user_profiles && {
           name: `${courseData.user_profiles.first_name || ""} ${courseData.user_profiles.last_name || ""}`.trim(),
-          avatar: courseData.user_profiles.avatar_url || ""
-        }
+          avatar: courseData.user_profiles.avatar_url || "",
+        },
+        curriculum
       };
     },
     enabled: !!id,
   });
 
-  // Loading
   if (isLoading) {
     return (
       <Layout>
@@ -85,7 +95,6 @@ const CourseDetails = () => {
     );
   }
 
-  // Not found
   if (!course) {
     return (
       <Layout>
@@ -100,20 +109,18 @@ const CourseDetails = () => {
     );
   }
 
-  // Level/Mode styling
   const levelColor = {
     beginner: "bg-green-100 text-green-800",
     intermediate: "bg-yellow-100 text-yellow-800",
     advanced: "bg-red-100 text-red-800",
-  }[course.level];
+  }[course?.level];
 
   const modeColor = {
     "self-paced": "bg-blue-100 text-blue-800",
     "virtual": "bg-purple-100 text-purple-800",
     "live": "bg-pink-100 text-pink-800",
-  }[course.mode];
+  }[course?.mode];
 
-  // Price formatter
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -130,25 +137,38 @@ const CourseDetails = () => {
     "Willingness to learn and practice",
   ];
 
-  // Mock curriculum for preview (real curriculum would use lessons)
-  const curriculum = [
-    {
-      id: "section-1",
-      title: "Getting Started",
-      lessons: [
-        { id: "lesson-1", title: "Introduction to the Course", duration: "10:00", type: "video" },
-        { id: "lesson-2", title: "Setting up Your Environment", duration: "15:30", type: "video" },
-      ]
-    },
-    {
-      id: "section-2",
-      title: "Core Concepts",
-      lessons: [
-        { id: "lesson-3", title: "Understanding the Basics", duration: "20:45", type: "video" },
-        { id: "lesson-4", title: "Practice Exercise", duration: "30:00", type: "exercise" },
-      ]
-    },
-  ];
+  const renderVideo = (url?: string) => {
+    if (!url) return null;
+    const ytMatch = url.match(
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    );
+    if (ytMatch) {
+      return (
+        <iframe
+          src={`https://www.youtube.com/embed/${ytMatch[1]}`}
+          title="Course Preview"
+          allowFullScreen
+          className="w-full h-48 md:h-56 rounded-lg"
+        />
+      );
+    }
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      return (
+        <iframe
+          src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+          title="Course Preview"
+          allowFullScreen
+          className="w-full h-48 md:h-56 rounded-lg"
+        />
+      );
+    }
+    return (
+      <div className="w-full h-48 bg-gray-200 flex justify-center items-center rounded-lg">
+        <Play className="h-8 w-8 text-gray-400" />
+      </div>
+    );
+  };
 
   return (
     <Layout>
@@ -194,34 +214,27 @@ const CourseDetails = () => {
             <div className="md:w-1/3">
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <div className="relative mb-6 rounded-lg overflow-hidden">
-                  {course.image ? (
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 flex justify-center items-center">
-                      <Play className="h-8 w-8 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                    <button className="bg-white bg-opacity-90 rounded-full p-4">
-                      <Play className="h-8 w-8 text-brand-600" />
-                    </button>
-                  </div>
+                  {course.preview_video
+                    ? renderVideo(course.preview_video)
+                    : (course.image ? (
+                      <img
+                        src={course.image}
+                        alt={course.title}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex justify-center items-center rounded-lg">
+                        <Play className="h-8 w-8 text-gray-400" />
+                      </div>
+                    ))}
                 </div>
-
                 <div className="mb-6">
                   <p className="text-3xl font-bold text-brand-600 mb-4">
                     {formatPrice(course.price || 0)}
                   </p>
-
                   <Button className="w-full mb-4">Enroll Now</Button>
-
                   <Button variant="outline" className="w-full">Add to Wishlist</Button>
                 </div>
-
                 <div className="border-t border-gray-200 pt-4 space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600 flex items-center">
@@ -233,7 +246,11 @@ const CourseDetails = () => {
                     <span className="text-gray-600 flex items-center">
                       <Video className="h-5 w-5 mr-2" /> Total Lessons
                     </span>
-                    <span className="font-medium">{course.lessons}</span>
+                    <span className="font-medium">
+                      {course.curriculum && course.curriculum.length > 0
+                        ? course.curriculum[0].lessons.length
+                        : 0}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 flex items-center">
@@ -261,28 +278,23 @@ const CourseDetails = () => {
             <div>
               <h3 className="text-xl font-bold mb-4">Course Description</h3>
               <p className="text-gray-700">
-                {course.description} This comprehensive course is designed to give you hands-on experience and practical skills
-                that you can immediately apply to real-world projects. Whether you're a beginner looking to enter the tech industry
-                or a professional wanting to upgrade your skills, this course is tailored to help you achieve your goals.
+                {course.description}
               </p>
             </div>
 
             <div>
               <h3 className="text-xl font-bold mb-4">What You'll Learn</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <span>
-                      {i === 0 && "Master the core concepts and principles"}
-                      {i === 1 && "Build real-world projects from scratch"}
-                      {i === 2 && "Learn best practices and industry standards"}
-                      {i === 3 && "Troubleshoot common issues effectively"}
-                      {i === 4 && "Apply advanced techniques to solve complex problems"}
-                      {i === 5 && "Prepare for certification and job interviews"}
-                    </span>
-                  </div>
-                ))}
+                {course.curriculum && course.curriculum.length > 0 && course.curriculum[0].lessons.length > 0 ? (
+                  course.curriculum[0].lessons.map((lesson, i) => (
+                    <div key={lesson.id} className="flex items-start">
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <span>{lesson.title}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-gray-500">Course lessons will be revealed soon.</div>
+                )}
               </div>
             </div>
 
@@ -314,60 +326,52 @@ const CourseDetails = () => {
             <div>
               <h3 className="text-xl font-bold mb-4">Course Content</h3>
               <div className="mb-4 flex flex-wrap gap-3 text-sm text-gray-600">
-                <div>{curriculum.reduce((acc, section) => acc + section.lessons.length, 0)} lessons</div>
+                <div>
+                  {course.curriculum && course.curriculum.length > 0 ? course.curriculum[0].lessons.length : 0} lessons
+                </div>
                 <div>•</div>
                 <div>{course.duration} total length</div>
                 <div>•</div>
-                <div>{curriculum.length} sections</div>
+                <div>{course.curriculum ? course.curriculum.length : 1} sections</div>
               </div>
-
-              <Accordion type="single" collapsible className="w-full">
-                {curriculum.map((section, idx) => (
-                  <AccordionItem key={section.id} value={section.id}>
-                    <AccordionTrigger className="hover:bg-gray-50 px-4">
-                      <div className="flex justify-between w-full pr-4">
-                        <div className="font-medium">
-                          Section {idx + 1}: {section.title}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {section.lessons.length} lessons
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-2 px-4">
-                        {section.lessons.map((lesson) => (
-                          <div
-                            key={lesson.id}
-                            className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-md"
-                          >
-                            <div className="flex items-center">
-                              {lesson.type === "video" && <Play className="h-4 w-4 text-brand-600 mr-3" />}
-                              {lesson.type === "document" && <File className="h-4 w-4 text-blue-600 mr-3" />}
-                              {lesson.type === "exercise" && <CheckCircle className="h-4 w-4 text-green-600 mr-3" />}
-                              {lesson.type === "quiz" && <CheckCircle className="h-4 w-4 text-yellow-600 mr-3" />}
-                              {lesson.type === "project" && <CheckCircle className="h-4 w-4 text-purple-600 mr-3" />}
-                              <span>{lesson.title}</span>
-                              {lesson.type === "quiz" && (
-                                <Badge className="ml-2 bg-yellow-100 text-yellow-800">Quiz</Badge>
-                              )}
-                              {lesson.type === "exercise" && (
-                                <Badge className="ml-2 bg-green-100 text-green-800">Exercise</Badge>
-                              )}
-                              {lesson.type === "project" && (
-                                <Badge className="ml-2 bg-purple-100 text-purple-800">Project</Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {lesson.duration}
-                            </div>
+              {course.curriculum && course.curriculum.length > 0 ? (
+                <Accordion type="single" collapsible className="w-full">
+                  {course.curriculum.map((section, idx) => (
+                    <AccordionItem key={section.id} value={section.id}>
+                      <AccordionTrigger className="hover:bg-gray-50 px-4">
+                        <div className="flex justify-between w-full pr-4">
+                          <div className="font-medium">
+                            Section {idx + 1}: {section.title}
                           </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+                          <div className="text-sm text-gray-500">
+                            {section.lessons.length} lessons
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-2 px-4">
+                          {section.lessons.map((lesson) => (
+                            <div
+                              key={lesson.id}
+                              className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-md"
+                            >
+                              <div className="flex items-center">
+                                <Play className="h-4 w-4 text-brand-600 mr-3" />
+                                <span>{lesson.title}</span>
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {lesson.duration}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              ) : (
+                <div className="text-gray-500">Curriculum will be updated soon.</div>
+              )}
             </div>
           </TabsContent>
 
@@ -385,31 +389,12 @@ const CourseDetails = () => {
                   <p className="text-gray-600">Senior {course.category_name} Expert</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="font-bold text-xl">{Math.floor(Math.random() * 50) + 5}</p>
-                  <p className="text-gray-600">Courses</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="font-bold text-xl">{Math.floor(Math.random() * 10000) + 1000}</p>
-                  <p className="text-gray-600">Students</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="font-bold text-xl">{(Math.random() * 1 + 4).toFixed(1)}</p>
-                  <p className="text-gray-600">Average Rating</p>
-                </div>
-              </div>
-
               <div>
                 <h4 className="text-xl font-bold mb-3">About the Instructor</h4>
                 <p className="text-gray-700 mb-4">
-                  With over 10 years of industry experience, {course.instructor?.name || "The instructor"} is a renowned expert in {course.category_name}.
-                  They have worked with leading companies in the field and bring real-world insights into their teaching.
-                </p>
-                <p className="text-gray-700">
-                  Their teaching methodology focuses on practical skills development, ensuring students gain not just theoretical
-                  knowledge but also the ability to apply concepts to real-world scenarios.
+                  {course.user_profiles?.bio
+                    ? course.user_profiles.bio
+                    : `With years of experience, ${course.instructor?.name || "the instructor"} is a leading expert in ${course.category_name}.`}
                 </p>
               </div>
             </div>
@@ -429,65 +414,11 @@ const CourseDetails = () => {
                     ))}
                   </div>
                   <p className="text-gray-600">{course.reviews} reviews</p>
-
-                  <div className="mt-6 space-y-2">
-                    {[5, 4, 3, 2, 1].map((star) => {
-                      const percentage = star === 5 ? 70 :
-                        star === 4 ? 20 :
-                          star === 3 ? 7 :
-                            star === 2 ? 2 : 1;
-                      return (
-                        <div key={star} className="flex items-center">
-                          <span className="text-sm mr-2">{star}</span>
-                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-2" />
-                          <Progress value={percentage} className="h-2 flex-grow" />
-                          <span className="text-sm ml-2">{percentage}%</span>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
 
                 <div className="md:w-2/3 space-y-6">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="border-b pb-6 last:border-0">
-                      <div className="flex justify-between mb-2">
-                        <div className="flex items-center">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=review${i}`} />
-                            <AvatarFallback>U{i}</AvatarFallback>
-                          </Avatar>
-                          <div className="ml-4">
-                            <p className="font-medium">
-                              {i === 0 ? "Michael O." : i === 1 ? "Sarah J." : "David T."}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {i === 0 ? "2 weeks ago" : i === 1 ? "1 month ago" : "3 months ago"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex">
-                          {Array(5).fill(0).map((_, j) => (
-                            <Star
-                              key={j}
-                              className={`h-4 w-4 ${j < (i === 0 ? 5 : i === 1 ? 4 : 5) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-gray-700">
-                        {i === 0 ?
-                          "This course exceeded my expectations. The instructor explains complex concepts in a simple way, and the practical exercises helped me apply what I learned. Highly recommended!" :
-                          i === 1 ?
-                            "Great course for anyone looking to advance in this field. The content is well-structured and the instructor is knowledgeable. I would have liked more practice exercises though." :
-                            "Excellent course that helped me transition into a new role. The real-world projects were especially valuable and gave me portfolio pieces to show potential employers."
-                        }
-                      </p>
-                    </div>
-                  ))}
-
-                  <div className="text-center mt-4">
-                    <Button variant="outline">Load More Reviews</Button>
+                  <div className="text-center text-gray-500">
+                    Reviews will appear here soon.
                   </div>
                 </div>
               </div>
@@ -513,4 +444,3 @@ const CourseDetails = () => {
 };
 
 export default CourseDetails;
-
