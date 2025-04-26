@@ -85,6 +85,7 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
         throw new Error("Could not get avatar URL");
       }
 
+      // Make sure to call onUpload with the public URL
       onUpload(publicUrl);
 
       toast({
@@ -105,7 +106,7 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
   return (
     <div className="flex items-center space-x-4 mt-2">
       <Avatar className="h-24 w-24">
-        <AvatarImage src={avatarSrc} />
+        <AvatarImage src={avatarSrc} alt={fullName || "User avatar"} />
         <AvatarFallback>
           {fullName
             ? fullName
@@ -113,7 +114,7 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
                 .map((n) => n[0])
                 .join("")
                 .toUpperCase()
-            : profileData?.email?.charAt(0).toUpperCase()}
+            : profileData?.email?.charAt(0)?.toUpperCase() || "U"}
         </AvatarFallback>
       </Avatar>
       <div>

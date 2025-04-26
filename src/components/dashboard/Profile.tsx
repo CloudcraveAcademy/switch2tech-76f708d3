@@ -89,7 +89,7 @@ const Profile = () => {
         country: profileData.country || "Nigeria",
         phone: profileData.phone || "",
         // --- PROFESSIONAL ---
-        professional_title: profileData.career_level || "", // Use as display title
+        professional_title: profileData.career_level || "", // Use career_level as the professional title
         skills: profileData.skills || "",
         website: profileData.website || "",
         linkedin_url: profileData.linkedin_url || "",
@@ -153,7 +153,7 @@ const Profile = () => {
         country: formData.country,
         phone: formData.phone,
         website: formData.website,
-        career_level: formData.professional_title, // Map professional_title to career_level
+        career_level: formData.professional_title, // Use professional_title to update career_level
         skills: formData.skills,
         linkedin_url: formData.linkedin_url,
         github_url: formData.github_url,
@@ -176,7 +176,7 @@ const Profile = () => {
       });
     }
   };
-  
+
   const handlePreferencesSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

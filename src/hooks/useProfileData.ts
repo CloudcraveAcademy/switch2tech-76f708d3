@@ -100,6 +100,11 @@ export const useProfileData = () => {
           : {})
       };
 
+      // If career_level is being updated separately from professional_title
+      if (updates.professional_title) {
+        updatesWithJsonPrefs.career_level = updates.professional_title;
+      }
+
       const { data, error } = await supabase
         .from('user_profiles')
         .update(updatesWithJsonPrefs)
