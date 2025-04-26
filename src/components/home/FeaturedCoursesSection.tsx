@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -70,65 +71,93 @@ const FeaturedCoursesSection = () => {
     const fetchCourses = async () => {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from("courses")
-        .select(
-          `
-          *,
-          course_categories (
-            id,
-            name
-          ),
-          user_profiles:instructor_id (
-            id,
-            first_name,
-            last_name,
-            avatar_url
+      
+      try {
+        console.log("Fetching featured courses...");
+        
+        // First fetch the courses without instructor data to avoid RLS recursion
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("courses")
+          .select(
+            `
+            *,
+            course_categories (
+              id,
+              name
+            )
+            `
           )
-          `
-        )
-        .eq("is_published", true)
-        .order("created_at", { ascending: false })
-        .limit(6);
+          .eq("is_published", true)
+          .order("created_at", { ascending: false })
+          .limit(6);
 
-      if (error) {
-        setError("Failed to load courses.");
-        setLoading(false);
-        return;
-      }
+        if (coursesError) {
+          console.error("Error fetching courses:", coursesError);
+          setError("Failed to load courses.");
+          setLoading(false);
+          return;
+        }
 
-      const formatted: Course[] = (data || []).map((course: any) => ({
-        id: course.id,
-        title: course.title,
-        description: course.description,
-        price: typeof course.price === "number" ? course.price : 0,
-        level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-        rating: course.rating || Math.round(4 + Math.random()),
-        reviews: course.reviews || Math.floor(20 + Math.random() * 500),
-        mode: course.mode || "self-paced",
-        enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
-        lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
-        instructor: course.user_profiles
-          ? {
-              id: course.user_profiles.id,
-              name: course.user_profiles.first_name + " " + course.user_profiles.last_name,
-              avatar: course.user_profiles.avatar_url || "/placeholder.svg",
-            }
-          : {
+        // Then fetch instructor data separately for each course
+        const coursesWithInstructors = await Promise.all(
+          coursesData.map(async (course: any) => {
+            // Fetch instructor details separately
+            let instructor = {
+              id: undefined,
               name: "Unknown",
               avatar: "/placeholder.svg",
-            },
-        category: course.course_categories?.name || "General",
-        image: course.image_url || "/placeholder.svg",
-        featured: false,
-        tags: [],
-        duration:
-          course.duration_hours !== undefined && course.duration_hours !== null
-            ? String(course.duration_hours)
-            : "0",
-      }));
-      setCourses(formatted);
-      setLoading(false);
+            };
+
+            if (course.instructor_id) {
+              const { data: instructorData, error: instructorError } = await supabase
+                .from("user_profiles")
+                .select("id, first_name, last_name, avatar_url")
+                .eq("id", course.instructor_id)
+                .single();
+
+              if (!instructorError && instructorData) {
+                instructor = {
+                  id: instructorData.id,
+                  name: `${instructorData.first_name || ''} ${instructorData.last_name || ''}`.trim(),
+                  avatar: instructorData.avatar_url || "/placeholder.svg",
+                };
+              } else {
+                console.warn("Could not fetch instructor:", instructorError);
+              }
+            }
+
+            return {
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              price: typeof course.price === "number" ? course.price : 0,
+              level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+              rating: course.rating || Math.round(4 + Math.random()),
+              reviews: course.reviews || Math.floor(20 + Math.random() * 500),
+              mode: course.mode || "self-paced",
+              enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
+              lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
+              instructor: instructor,
+              category: course.course_categories?.name || "General",
+              image: course.image_url || "/placeholder.svg",
+              featured: false,
+              tags: [],
+              duration:
+                course.duration_hours !== undefined && course.duration_hours !== null
+                  ? String(course.duration_hours)
+                  : "0",
+            };
+          })
+        );
+
+        console.log("Successfully fetched featured courses:", coursesWithInstructors.length);
+        setCourses(coursesWithInstructors);
+      } catch (error) {
+        console.error("Error in fetchCourses:", error);
+        setError("Failed to load courses.");
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchCourses();

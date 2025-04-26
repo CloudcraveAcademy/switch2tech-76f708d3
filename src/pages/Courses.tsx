@@ -48,40 +48,66 @@ interface SupabaseCourse {
 const PAGE_SIZE = 9;
 
 const fetchCoursesWithExtra = async (): Promise<SupabaseCourse[]> => {
-  const { data, error } = await supabase
-    .from("courses")
-    .select(
-      `
-      *,
-      course_categories (
-        id,
-        name
-      ),
-      user_profiles:instructor_id (
-        id,
-        first_name,
-        last_name,
-        avatar_url
+  try {
+    console.log("Fetching courses from database...");
+    
+    const { data, error } = await supabase
+      .from("courses")
+      .select(
+        `
+        *,
+        course_categories (
+          id,
+          name
+        )
+        `
       )
-      `
-    )
-    .eq("is_published", true);
+      .eq("is_published", true);
 
-  if (error) {
-    console.error("Error fetching courses:", error);
-    throw error;
+    if (error) {
+      console.error("Error fetching courses:", error);
+      throw error;
+    }
+
+    const coursesWithInstructors = await Promise.all(
+      data.map(async (course) => {
+        if (course.instructor_id) {
+          const { data: instructor, error: instructorError } = await supabase
+            .from("user_profiles")
+            .select("id, first_name, last_name, avatar_url")
+            .eq("id", course.instructor_id)
+            .single();
+
+          if (instructorError) {
+            console.warn("Could not fetch instructor:", instructorError);
+            return {
+              ...course,
+              instructor: null
+            };
+          }
+
+          return {
+            ...course,
+            instructor
+          };
+        }
+        return course;
+      })
+    );
+
+    return (
+      coursesWithInstructors?.map((course: any) => ({
+        ...course,
+        rating: course.rating || Math.round(4 + Math.random()),
+        reviews: course.reviews || Math.floor(20 + Math.random() * 500),
+        enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
+        lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
+      })) || []
+    );
+  } catch (error) {
+    console.error("Failed to fetch courses:", error);
+    return [];
   }
-
-  return (
-    data?.map((course: any) => ({
-      ...course,
-      rating: course.rating || Math.round(4 + Math.random()),
-      reviews: course.reviews || Math.floor(20 + Math.random() * 500),
-      enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
-      lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
-      instructor: course.user_profiles,
-    })) || []
-  );
 };
 
 const fetchCategories = async (): Promise<SupabaseCategory[]> => {
@@ -117,11 +143,16 @@ const Courses = () => {
     setError(null);
     Promise.all([fetchCategories(), fetchCoursesWithExtra()])
       .then(([cats, courses]) => {
+        console.log("Successfully fetched categories and courses:", { 
+          categoriesCount: cats.length, 
+          coursesCount: courses.length 
+        });
         setCategories(cats);
         setAllCourses(courses);
         setLoading(false);
       })
       .catch((e) => {
+        console.error("Failed to load courses or categories:", e);
         setError("Failed to load courses. Please try again.");
         setLoading(false);
       });
