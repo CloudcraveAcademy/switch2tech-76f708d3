@@ -89,15 +89,15 @@ const Profile = () => {
         country: profileData.country || "Nigeria",
         phone: profileData.phone || "",
         // --- PROFESSIONAL ---
-        job_title: profileData.job_title || "Software Developer",
-        skills: profileData.skills || "JavaScript, React, TypeScript, Node.js",
+        job_title: profileData.job_title || "",
+        skills: profileData.skills || "",
+        website: profileData.website || "",
         linkedin_url: profileData.linkedin_url || "",
         github_url: profileData.github_url || "",
         twitter_url: profileData.twitter_url || "",
-        website: profileData.website || "",
+        career_level: profileData.career_level || "",
         // --- STUDENT ---
         student_status: profileData.student_status || "Current",
-        career_level: profileData.career_level || "Junior",
         // --- BANKING ---
         bank_name: profileData.bank_name || "",
         account_number: profileData.account_number || "",
@@ -788,6 +788,20 @@ const Profile = () => {
                       />
                     </div>
                     
+                    <div>
+                      <Label htmlFor="career_level">Career Level</Label>
+                      <Select name="career_level" value={formData.career_level} onValueChange={(value) => setFormData(prev => ({ ...prev, career_level: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select career level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {careerLevels.map(level => (
+                            <SelectItem key={level} value={level}>{level}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
                     <div className="mt-6 flex justify-end">
                       <Button type="submit">Save Changes</Button>
                     </div>
@@ -800,7 +814,6 @@ const Profile = () => {
                       profileData={profileData || { id: "", role: "" } as ProfileData}
                       onBankDetailsChange={handleBankDetailsChange}
                       onVerifyBankAccount={verifyBankAccount}
-                      // Add payout_frequency & account_name support (via BankDetails)
                     />
                   )}
                   {user?.role === "instructor" && (
