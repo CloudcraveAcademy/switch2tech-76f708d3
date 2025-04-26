@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
-import { mockCourses, mockCategories } from "@/utils/mockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,38 +11,138 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, LoaderCircle } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+interface SupabaseCategory {
+  id: string;
+  name: string;
+}
+
+interface SupabaseInstructor {
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string | null;
+}
+
+interface SupabaseCourse {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number | null;
+  level: string | null;
+  rating?: number;
+  reviews?: number;
+  mode: string | null;
+  enrolledStudents?: number;
+  lessons?: number;
+  image_url: string | null;
+  category: string | null;
+  instructor_id: string;
+  instructor?: SupabaseInstructor;
+  course_categories?: SupabaseCategory;
+  // add more as needed
+}
+
+const fetchCoursesWithExtra = async (): Promise<SupabaseCourse[]> => {
+  // Grab courses with category and instructor info, and optionally fake rating/reviews for now
+  const { data, error } = await supabase
+    .from("courses")
+    .select(
+      `
+      *,
+      course_categories (
+        id,
+        name
+      ),
+      user_profiles:instructor_id (
+        id,
+        first_name,
+        last_name,
+        avatar_url
+      )
+      `
+    )
+    .eq("is_published", true);
+
+  if (error) {
+    console.error("Error fetching courses:", error);
+    throw error;
+  }
+
+  // Add demo values for rating, reviews, lessons, enrolledStudents
+  return (
+    data?.map((course: any) => ({
+      ...course,
+      rating: course.rating || Math.round(4 + Math.random()),
+      reviews: course.reviews || Math.floor(20 + Math.random() * 500),
+      enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
+      lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
+      instructor: course.user_profiles,
+      category_name: course.course_categories?.name,
+    })) || []
+  );
+};
+
+const fetchCategories = async (): Promise<SupabaseCategory[]> => {
+  const { data, error } = await supabase.from("course_categories").select("*");
+  if (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  }
+  return data || [];
+};
 
 const Courses = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const categoryFromURL = queryParams.get("category");
-  
-  const [courses, setCourses] = useState(mockCourses);
+
+  const [courses, setCourses] = useState<SupabaseCourse[]>([]);
+  const [allCourses, setAllCourses] = useState<SupabaseCourse[]>([]);
+  const [categories, setCategories] = useState<SupabaseCategory[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(categoryFromURL || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch categories and courses on mount
   useEffect(() => {
-    // Filter courses based on selected filters and search term
-    let filteredCourses = [...mockCourses];
+    setLoading(true);
+    setError(null);
+    Promise.all([fetchCategories(), fetchCoursesWithExtra()])
+      .then(([cats, courses]) => {
+        setCategories(cats);
+        setAllCourses(courses);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError("Failed to load courses. Please try again.");
+        setLoading(false);
+      });
+  }, []);
+
+  // Apply filters and search
+  useEffect(() => {
+    let filteredCourses = [...allCourses];
 
     // Apply search term filter
     if (searchTerm) {
       filteredCourses = filteredCourses.filter(
         (course) =>
-          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+          (course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+          (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
       );
     }
 
     // Apply category filter
     if (selectedCategory !== "all") {
       filteredCourses = filteredCourses.filter(
-        (course) => course.category === mockCategories.find(cat => cat.id === selectedCategory)?.name
+        (course) => course.category === selectedCategory
       );
     }
 
@@ -62,11 +161,11 @@ const Courses = () => {
     }
 
     setCourses(filteredCourses);
-  }, [searchTerm, selectedCategory, selectedLevel, selectedMode]);
+  }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // The filtering is already handled by the useEffect
+    // Filtering is already handled in useEffect
   };
 
   return (
@@ -104,7 +203,7 @@ const Courses = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {mockCategories.map((category) => (
+                    {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
                       </SelectItem>
@@ -146,7 +245,11 @@ const Courses = () => {
 
             <div className="flex justify-between items-center mt-6">
               <p className="text-sm text-gray-600">
-                Showing <span className="font-medium">{courses.length}</span> results
+                {loading
+                  ? "Loading courses..."
+                  : (
+                    <>Showing <span className="font-medium">{courses.length}</span> results</>
+                  )}
               </p>
               <Button 
                 variant="outline" 
@@ -163,11 +266,63 @@ const Courses = () => {
           </div>
         </div>
 
-        {/* Course Grid */}
-        {courses.length > 0 ? (
+        {/* Loading/Error State */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <LoaderCircle className="animate-spin h-10 w-10 text-brand-500" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 text-destructive">
+            <p>{error}</p>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                  const [cats, courses] = await Promise.all([fetchCategories(), fetchCoursesWithExtra()]);
+                  setCategories(cats);
+                  setAllCourses(courses);
+                } catch (e) {
+                  setError("Failed to load. Try again.");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : courses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course) => (
-              <CourseCard key={course.id} course={course} />
+              <CourseCard
+                key={course.id}
+                course={{
+                  ...course,
+                  instructor: course.instructor
+                    ? {
+                        ...course.instructor,
+                        name: course.instructor.first_name + " " + course.instructor.last_name,
+                        avatar: course.instructor.avatar_url || "/placeholder.svg",
+                      }
+                    : {
+                        name: "Unknown",
+                        avatar: "/placeholder.svg",
+                      },
+                  category: categories.find((cat) => cat.id === course.category)?.name || course.category_name || "General",
+                  rating: course.rating,
+                  reviews: course.reviews,
+                  enrolledStudents: course.enrolledStudents,
+                  lessons: course.lessons,
+                  image: course.image_url || "/placeholder.svg",
+                  mode: course.mode || "self-paced",
+                  price: typeof course.price === "number" ? course.price : 0,
+                  level: course.level || "beginner",
+                  featured: false,
+                  tags: [],
+                }}
+              />
             ))}
           </div>
         ) : (
@@ -189,7 +344,7 @@ const Courses = () => {
         )}
 
         {/* Pagination - simplified for demo */}
-        {courses.length > 0 && (
+        {!loading && courses.length > 0 && (
           <div className="mt-12 flex justify-center">
             <div className="flex items-center space-x-2">
               <Button variant="outline" disabled>Previous</Button>
@@ -206,3 +361,4 @@ const Courses = () => {
 };
 
 export default Courses;
+
