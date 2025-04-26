@@ -1,17 +1,19 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import CourseCard from "@/components/CourseCard";
 import { ArrowRight, Loader } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Course as MockCourse } from "@/utils/mockData";
 
-type Course = Omit<MockCourse, 'level'> & {
+// Try to import Course type from CourseCard for reuse if available
+// If CourseCard exports its prop type, prefer importing from there:
+type Course = {
   id: string;
   title: string;
   description: string | null;
   price: number;
-  level: "beginner" | "intermediate" | "advanced";
+  level: string;
   rating: number;
   reviews: number;
   mode: string;
@@ -96,13 +98,13 @@ const FeaturedCoursesSection = () => {
         setLoading(false);
         return;
       }
-
+      // Map to expected CourseCard prop
       const formatted: Course[] = (data || []).map((course: any) => ({
         id: course.id,
         title: course.title,
         description: course.description,
         price: typeof course.price === "number" ? course.price : 0,
-        level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+        level: course.level || "beginner",
         rating: course.rating || Math.round(4 + Math.random()),
         reviews: course.reviews || Math.floor(20 + Math.random() * 500),
         mode: course.mode || "self-paced",
