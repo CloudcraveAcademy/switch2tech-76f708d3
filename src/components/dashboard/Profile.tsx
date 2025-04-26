@@ -45,20 +45,28 @@ const Profile = () => {
   } = useProfileData();
 
   const [formData, setFormData] = useState({
+    // --- PERSONAL ---
     first_name: "",
     last_name: "",
     email: user?.email || "",
     bio: "",
     country: "Nigeria",
     phone: "",
-    website: "",
-    jobTitle: "Software Developer",
+    // --- PROFESSIONAL ---
+    job_title: "Software Developer", // fixed key, not jobTitle
     skills: "",
-    linkedIn: "",
-    github: "",
-    twitter: "",
-    studentStatus: "Current", 
-    careerLevel: "Junior",
+    linkedin_url: "",
+    github_url: "",
+    twitter_url: "",
+    website: "",
+    // --- STUDENT FIELDS ---
+    student_status: "Current", 
+    career_level: "Junior",
+    // --- BANKING ---
+    bank_name: "",
+    account_number: "",
+    payout_frequency: "monthly",
+    // --- PREFERENCES ---
     preference_notifications: true,
     preference_newsletter: true,
   });
@@ -73,20 +81,28 @@ const Profile = () => {
     if (profileData) {
       setFormData(prevData => ({
         ...prevData,
+        // --- PERSONAL ---
         first_name: profileData.first_name || "",
         last_name: profileData.last_name || "",
         email: user?.email || "",
         bio: profileData.bio || "Tech enthusiast passionate about learning new skills.",
         country: profileData.country || "Nigeria",
         phone: profileData.phone || "",
-        website: profileData.website || "",
-        jobTitle: profileData.job_title || "Software Developer",
+        // --- PROFESSIONAL ---
+        job_title: profileData.job_title || "Software Developer",
         skills: profileData.skills || "JavaScript, React, TypeScript, Node.js",
-        linkedIn: profileData.linkedin_url || "",
-        github: profileData.github_url || "",
-        twitter: profileData.twitter_url || "",
-        studentStatus: profileData.student_status || "Current",
-        careerLevel: profileData.career_level || "Junior",
+        linkedin_url: profileData.linkedin_url || "",
+        github_url: profileData.github_url || "",
+        twitter_url: profileData.twitter_url || "",
+        website: profileData.website || "",
+        // --- STUDENT ---
+        student_status: profileData.student_status || "Current",
+        career_level: profileData.career_level || "Junior",
+        // --- BANKING ---
+        bank_name: profileData.bank_name || "",
+        account_number: profileData.account_number || "",
+        payout_frequency: profileData.payout_frequency || "monthly",
+        // --- PREFERENCES ---
         preference_notifications: profileData.preferences?.notifications !== false,
         preference_newsletter: profileData.preferences?.newsletter !== false,
       }));
@@ -129,7 +145,6 @@ const Profile = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       const dataToUpdate = {
         first_name: formData.first_name,
@@ -138,23 +153,24 @@ const Profile = () => {
         country: formData.country,
         phone: formData.phone,
         website: formData.website,
-        job_title: formData.jobTitle,
+        job_title: formData.job_title,
         skills: formData.skills,
-        linkedin_url: formData.linkedIn,
-        github_url: formData.github,
-        twitter_url: formData.twitter,
-        student_status: formData.studentStatus,
-        career_level: formData.careerLevel,
+        linkedin_url: formData.linkedin_url,
+        github_url: formData.github_url,
+        twitter_url: formData.twitter_url,
+        student_status: formData.student_status,
+        career_level: formData.career_level,
+        // The following are only for Banking tab but are harmless here
+        bank_name: formData.bank_name,
+        account_number: formData.account_number,
+        payout_frequency: formData.payout_frequency,
       };
-      
       await updateProfileData(dataToUpdate);
-      
       toast({
         title: "Profile updated",
         description: "Your profile information has been updated successfully.",
       });
     } catch (error: any) {
-      console.error("Error updating profile:", error);
       toast({
         title: "Update failed",
         description: error.message || "There was a problem updating your profile. Please try again.",
@@ -332,16 +348,16 @@ const Profile = () => {
                 />
                 
                 <h2 className="mt-4 text-xl font-bold">{fullName || user?.email}</h2>
-                <p className="text-gray-500 capitalize">{formData.jobTitle}</p>
+                <p className="text-gray-500 capitalize">{formData.job_title}</p>
                 <div className="flex items-center mt-1">
                   {user?.role && (
                     <Badge className="bg-indigo-100 text-indigo-800 mr-2 capitalize">{user.role}</Badge>
                   )}
                   {user?.role === 'student' && (
-                    <Badge className="bg-blue-100 text-blue-800 mr-2">{formData.studentStatus} Student</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 mr-2">{formData.student_status} Student</Badge>
                   )}
                   {(user?.role === 'student' || user?.role === 'instructor') && (
-                    <Badge className="bg-purple-100 text-purple-800">{formData.careerLevel}</Badge>
+                    <Badge className="bg-purple-100 text-purple-800">{formData.career_level}</Badge>
                   )}
                 </div>
                 <p className="text-sm text-gray-500 mt-2">{formData.country}</p>
@@ -651,8 +667,8 @@ const Profile = () => {
                     {user?.role === 'student' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="studentStatus">Student Status</Label>
-                          <Select name="studentStatus" value={formData.studentStatus} onValueChange={(value) => setFormData(prev => ({ ...prev, studentStatus: value }))}>
+                          <Label htmlFor="student_status">Student Status</Label>
+                          <Select name="student_status" value={formData.student_status} onValueChange={(value) => setFormData(prev => ({ ...prev, student_status: value }))}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
@@ -665,8 +681,8 @@ const Profile = () => {
                         </div>
                         
                         <div>
-                          <Label htmlFor="careerLevel">Career Level</Label>
-                          <Select name="careerLevel" value={formData.careerLevel} onValueChange={(value) => setFormData(prev => ({ ...prev, careerLevel: value }))}>
+                          <Label htmlFor="career_level">Career Level</Label>
+                          <Select name="career_level" value={formData.career_level} onValueChange={(value) => setFormData(prev => ({ ...prev, career_level: value }))}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select career level" />
                             </SelectTrigger>
@@ -704,11 +720,11 @@ const Profile = () => {
                 <TabsContent value="professional">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="jobTitle">Job Title</Label>
+                      <Label htmlFor="job_title">Job Title</Label>
                       <Input
-                        id="jobTitle"
-                        name="jobTitle"
-                        value={formData.jobTitle}
+                        id="job_title"
+                        name="job_title"
+                        value={formData.job_title}
                         onChange={handleChange}
                         placeholder="e.g. Software Developer"
                       />
@@ -739,22 +755,22 @@ const Profile = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="linkedIn">LinkedIn Profile</Label>
+                        <Label htmlFor="linkedin_url">LinkedIn Profile</Label>
                         <Input
-                          id="linkedIn"
-                          name="linkedIn"
-                          value={formData.linkedIn}
+                          id="linkedin_url"
+                          name="linkedin_url"
+                          value={formData.linkedin_url}
                           onChange={handleChange}
                           placeholder="Your LinkedIn profile URL"
                         />
                       </div>
                       
                       <div>
-                        <Label htmlFor="github">Github Profile</Label>
+                        <Label htmlFor="github_url">Github Profile</Label>
                         <Input
-                          id="github"
-                          name="github"
-                          value={formData.github}
+                          id="github_url"
+                          name="github_url"
+                          value={formData.github_url}
                           onChange={handleChange}
                           placeholder="Your Github profile URL"
                         />
@@ -762,11 +778,11 @@ const Profile = () => {
                     </div>
                     
                     <div>
-                      <Label htmlFor="twitter">Twitter Profile</Label>
+                      <Label htmlFor="twitter_url">Twitter Profile</Label>
                       <Input
-                        id="twitter"
-                        name="twitter"
-                        value={formData.twitter}
+                        id="twitter_url"
+                        name="twitter_url"
+                        value={formData.twitter_url}
                         onChange={handleChange}
                         placeholder="Your Twitter profile URL"
                       />
@@ -784,7 +800,48 @@ const Profile = () => {
                       profileData={profileData || { id: "", role: "" } as ProfileData}
                       onBankDetailsChange={handleBankDetailsChange}
                       onVerifyBankAccount={verifyBankAccount}
+                      // Add payout_frequency & account_name support (via BankDetails)
                     />
+                  )}
+                  {user?.role === "instructor" && (
+                    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                      <div>
+                        <Label htmlFor="bank_name">Bank Name</Label>
+                        <Input
+                          id="bank_name"
+                          name="bank_name"
+                          value={formData.bank_name}
+                          onChange={handleChange}
+                          placeholder="Your bank name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="account_number">Account Number</Label>
+                        <Input
+                          id="account_number"
+                          name="account_number"
+                          value={formData.account_number}
+                          onChange={handleChange}
+                          placeholder="Your account number"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="payout_frequency">Payout Frequency</Label>
+                        <Select name="payout_frequency" value={formData.payout_frequency} onValueChange={(value) => setFormData(prev => ({ ...prev, payout_frequency: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payout frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="mt-6 flex justify-end">
+                        <Button type="submit">Save Changes</Button>
+                      </div>
+                    </form>
                   )}
                 </TabsContent>
 
@@ -803,7 +860,6 @@ const Profile = () => {
                           onCheckedChange={(checked) => setFormData(prev => ({...prev, preference_notifications: checked}))}
                         />
                       </div>
-
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>
                           <h3 className="font-semibold">Weekly Newsletter</h3>
