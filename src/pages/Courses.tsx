@@ -32,10 +32,10 @@ interface SupabaseCourse {
   title: string;
   description: string | null;
   price: number | null;
-  level: string | null;
+  level: "beginner" | "intermediate" | "advanced" | null;
   rating?: number;
   reviews?: number;
-  mode: string | null;
+  mode: "self-paced" | "virtual" | "live" | null;
   enrolledStudents?: number;
   lessons?: number;
   image_url: string | null;
@@ -46,8 +46,9 @@ interface SupabaseCourse {
   // add more as needed
 }
 
+const PAGE_SIZE = 9;
+
 const fetchCoursesWithExtra = async (): Promise<SupabaseCourse[]> => {
-  // Grab courses with category and instructor info, and optionally fake rating/reviews for now
   const { data, error } = await supabase
     .from("courses")
     .select(
@@ -81,7 +82,6 @@ const fetchCoursesWithExtra = async (): Promise<SupabaseCourse[]> => {
       enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
       lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
       instructor: course.user_profiles,
-      category_name: course.course_categories?.name,
     })) || []
   );
 };
@@ -109,6 +109,11 @@ const Courses = () => {
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(courses.length / PAGE_SIZE));
+  const pagedCourses = courses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Fetch categories and courses on mount
   useEffect(() => {
@@ -161,12 +166,18 @@ const Courses = () => {
     }
 
     setCourses(filteredCourses);
+    setCurrentPage(1); // Reset to first page on filter/search change
   }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Filtering is already handled in useEffect
   };
+
+  // Pagination handlers
+  const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+  const handleGotoPage = (n: number) => setCurrentPage(n);
 
   return (
     <Layout>
@@ -228,16 +239,15 @@ const Courses = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Course Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Course Mode</label>
                 <Select value={selectedMode} onValueChange={setSelectedMode}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Course Type" />
+                    <SelectValue placeholder="Select Course Mode" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="self-paced">Self-paced</SelectItem>
-                    <SelectItem value="virtual">Virtual</SelectItem>
-                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="all">All Modes</SelectItem>
+                    <SelectItem value="virtual">Virtual Live Class</SelectItem>
+                    <SelectItem value="self-paced">Self-paced Course</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -293,9 +303,9 @@ const Courses = () => {
               Retry
             </Button>
           </div>
-        ) : courses.length > 0 ? (
+        ) : pagedCourses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
+            {pagedCourses.map((course) => (
               <CourseCard
                 key={course.id}
                 course={{
@@ -310,7 +320,8 @@ const Courses = () => {
                         name: "Unknown",
                         avatar: "/placeholder.svg",
                       },
-                  category: categories.find((cat) => cat.id === course.category)?.name || course.category_name || "General",
+                  // Find category name from related object or fallback to "General"
+                  category: categories.find((cat) => cat.id === course.category)?.name || "General",
                   rating: course.rating,
                   reviews: course.reviews,
                   enrolledStudents: course.enrolledStudents,
@@ -343,15 +354,34 @@ const Courses = () => {
           </div>
         )}
 
-        {/* Pagination - simplified for demo */}
+        {/* Pagination */}
         {!loading && courses.length > 0 && (
           <div className="mt-12 flex justify-center">
             <div className="flex items-center space-x-2">
-              <Button variant="outline" disabled>Previous</Button>
-              <Button variant="outline" className="bg-brand-100 text-brand-600">1</Button>
-              <Button variant="outline">2</Button>
-              <Button variant="outline">3</Button>
-              <Button variant="outline">Next</Button>
+              <Button
+                variant="outline"
+                disabled={currentPage <= 1}
+                onClick={handlePrevPage}
+              >
+                Previous
+              </Button>
+              {[...Array(totalPages)].map((_, idx) => (
+                <Button
+                  key={idx}
+                  variant={currentPage === idx + 1 ? "default" : "outline"}
+                  className={currentPage === idx + 1 ? "bg-brand-100 text-brand-600" : ""}
+                  onClick={() => handleGotoPage(idx + 1)}
+                >
+                  {idx + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                disabled={currentPage >= totalPages}
+                onClick={handleNextPage}
+              >
+                Next
+              </Button>
             </div>
           </div>
         )}
@@ -361,4 +391,3 @@ const Courses = () => {
 };
 
 export default Courses;
-
