@@ -29,14 +29,17 @@ export const useUserProfile = () => {
       
       console.log("Fetching profile for user:", user.id);
       
-      // Use a direct RPC call instead of relying on RLS to avoid recursion
+      // Use a direct query instead of RPC to avoid TypeScript issues
       const { data: profile, error } = await supabase
-        .rpc('get_user_profile', { user_id: user.id });
+        .from('user_profiles')
+        .select('id, first_name, last_name, role, avatar_url')
+        .eq('id', user.id)
+        .single();
       
       if (error) {
         console.error("Error fetching user profile:", error);
         
-        // Fallback to direct query with limited fields if RPC fails
+        // Fallback to another query with limited fields
         const { data: fallbackProfile, error: fallbackError } = await supabase
           .from('user_profiles')
           .select('first_name, last_name, role, avatar_url')
@@ -48,7 +51,7 @@ export const useUserProfile = () => {
           // Return basic user information as a last resort
           return {
             ...user,
-            role: 'student' // Default role if profile can't be fetched
+            role: 'instructor' // Default role if profile can't be fetched
           } as UserWithProfile;
         }
         
