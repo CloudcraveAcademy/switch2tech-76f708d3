@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfileData, ProfileData } from "@/hooks/useProfileData";
 import { Skeleton } from "@/components/ui/skeleton";
 import BankDetails from './profile/BankDetails';
+import { useQuery } from "@tanstack/react-query";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -77,7 +77,7 @@ const Profile = () => {
         country: profileData.country || "Nigeria",
         phone: profileData.phone || "",
         website: profileData.website || "",
-        jobTitle: profileData.job_title || "Software Developer",
+        job_title: profileData.job_title || "Software Developer",
         skills: profileData.skills || "JavaScript, React, TypeScript, Node.js",
         linkedIn: profileData.linkedin_url || "",
         github: profileData.github_url || "",
@@ -234,6 +234,49 @@ const Profile = () => {
     });
   };
 
+  const isInstructor = user?.role === "instructor";
+  const instructorId = user?.id;
+
+  const {
+    data: instructorCourses,
+    isLoading: coursesLoading,
+    error: coursesError,
+  } = useQuery({
+    queryKey: ["instructor-courses", instructorId],
+    queryFn: async () => {
+      if (!instructorId) return [];
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id, is_published")
+        .eq("instructor_id", instructorId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isInstructor && !!instructorId,
+  });
+
+  const publishedCourseIds = instructorCourses?.filter(
+    (c) => c.is_published
+  ).map((c) => c.id) || [];
+
+  const {
+    data: totalStudents,
+    isLoading: studentsLoading,
+    error: studentsError,
+  } = useQuery({
+    queryKey: ["instructor-total-students", publishedCourseIds.join(",")],
+    queryFn: async () => {
+      if (!publishedCourseIds.length) return 0;
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select("student_id", { count: "exact", head: true })
+        .in("course_id", publishedCourseIds);
+      if (error) throw error;
+      return typeof data?.length === "number" ? data.length : (data?.count || 0);
+    },
+    enabled: isInstructor && publishedCourseIds.length > 0,
+  });
+
   if (loading) {
     return (
       <div className="p-6">
@@ -292,7 +335,7 @@ const Profile = () => {
                     <p className="text-sm font-medium text-gray-500">Member Since</p>
                     <p>{profileData?.created_at ? formatDate(profileData.created_at) : "N/A"}</p>
                   </div>
-                  
+
                   {user?.role === 'student' && (
                     <>
                       <div className="border-t pt-4 pb-4">
@@ -307,16 +350,31 @@ const Profile = () => {
                     </>
                   )}
 
-                  {user?.role === 'instructor' && (
+                  {isInstructor && (
                     <>
                       <div className="border-t pt-4 pb-4">
                         <p className="text-sm font-medium text-gray-500">Created Courses</p>
-                        <p>6</p>
+                        <p>
+                          {coursesLoading
+                            ? <span>Loading...</span>
+                            : (coursesError 
+                              ? <span className="text-destructive">Error</span>
+                              : (instructorCourses?.filter((c) => c.is_published).length ?? 0)
+                            )
+                          }
+                        </p>
                       </div>
-                      
                       <div className="border-t pt-4 pb-4">
                         <p className="text-sm font-medium text-gray-500">Total Students</p>
-                        <p>156</p>
+                        <p>
+                          {studentsLoading
+                            ? <span>Loading...</span>
+                            : (studentsError
+                              ? <span className="text-destructive">Error</span>
+                              : (totalStudents ?? 0)
+                            )
+                          }
+                        </p>
                       </div>
                     </>
                   )}
