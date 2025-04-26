@@ -216,9 +216,9 @@ const CourseDetails = () => {
                 <div className="relative mb-6 rounded-lg overflow-hidden">
                   {course.preview_video
                     ? renderVideo(course.preview_video)
-                    : (course.image ? (
+                    : (course.image_url ? (
                       <img
-                        src={course.image}
+                        src={course.image_url}
                         alt={course.title}
                         className="w-full h-48 object-cover rounded-lg"
                       />
