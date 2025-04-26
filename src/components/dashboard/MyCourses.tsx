@@ -282,7 +282,7 @@ const CourseGrid = ({
           
           <CardFooter className="flex justify-between border-t pt-4">
             <Button variant="outline" asChild>
-              <Link to={`/dashboard/courses/${course.id}`}>
+              <Link to={`/courses/${course.id}`}>
                 <Eye className="mr-1 h-4 w-4" /> Preview
               </Link>
             </Button>
