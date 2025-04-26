@@ -16,8 +16,6 @@ export interface ProfileData {
   country?: string;
   phone?: string;
   website?: string;
-  job_title?: string;
-  skills?: string;
   linkedin_url?: string;
   github_url?: string;
   twitter_url?: string;
@@ -92,11 +90,16 @@ export const useProfileData = () => {
     try {
       console.log("Updating profile data with:", updates);
       
+      // Remove any fields that don't exist in the database schema
+      const { job_title, ...validUpdates } = updates;
+      
+      console.log("Cleaned updates to send to database:", validUpdates);
+      
       // Convert preferences to JSON if it's an object
       const updatesWithJsonPrefs = {
-        ...updates,
-        ...(updates.preferences && typeof updates.preferences === "object"
-          ? { preferences: JSON.stringify(updates.preferences) }
+        ...validUpdates,
+        ...(validUpdates.preferences && typeof validUpdates.preferences === "object"
+          ? { preferences: JSON.stringify(validUpdates.preferences) }
           : {})
       };
 

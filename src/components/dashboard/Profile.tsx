@@ -53,7 +53,7 @@ const Profile = () => {
     country: "Nigeria",
     phone: "",
     // --- PROFESSIONAL ---
-    job_title: "Software Developer", // fixed key, not jobTitle
+    professional_title: "", // Changed from job_title to store locally
     skills: "",
     linkedin_url: "",
     github_url: "",
@@ -89,7 +89,7 @@ const Profile = () => {
         country: profileData.country || "Nigeria",
         phone: profileData.phone || "",
         // --- PROFESSIONAL ---
-        job_title: profileData.job_title || "",
+        professional_title: profileData.career_level || "", // Use as display title
         skills: profileData.skills || "",
         website: profileData.website || "",
         linkedin_url: profileData.linkedin_url || "",
@@ -153,7 +153,7 @@ const Profile = () => {
         country: formData.country,
         phone: formData.phone,
         website: formData.website,
-        job_title: formData.job_title,
+        // No job_title field here since it doesn't exist in the database
         skills: formData.skills,
         linkedin_url: formData.linkedin_url,
         github_url: formData.github_url,
@@ -348,7 +348,7 @@ const Profile = () => {
                 />
                 
                 <h2 className="mt-4 text-xl font-bold">{fullName || user?.email}</h2>
-                <p className="text-gray-500 capitalize">{formData.job_title}</p>
+                <p className="text-gray-500 capitalize">{formData.professional_title}</p>
                 <div className="flex items-center mt-1">
                   {user?.role && (
                     <Badge className="bg-indigo-100 text-indigo-800 mr-2 capitalize">{user.role}</Badge>
@@ -720,14 +720,15 @@ const Profile = () => {
                 <TabsContent value="professional">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="job_title">Job Title</Label>
+                      <Label htmlFor="professional_title">Professional Title</Label>
                       <Input
-                        id="job_title"
-                        name="job_title"
-                        value={formData.job_title}
+                        id="professional_title"
+                        name="professional_title"
+                        value={formData.professional_title}
                         onChange={handleChange}
                         placeholder="e.g. Software Developer"
                       />
+                      <p className="text-xs text-gray-500 mt-1">This is your display title (stored as career_level)</p>
                     </div>
                     
                     <div>
