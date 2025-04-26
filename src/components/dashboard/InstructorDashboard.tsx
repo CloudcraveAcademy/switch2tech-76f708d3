@@ -23,56 +23,74 @@ interface CourseStats {
   is_published: boolean;
 }
 
-interface RecentActivity {
-  id: string;
-  student_name: string;
-  action: string;
-  course_name: string;
-  timestamp: string;
-  avatar_url?: string;
-}
-
 const InstructorDashboard = () => {
   const { user } = useAuth();
 
-  // Query courses with aggregated data instead of using the view directly
+  // Query courses with aggregated data
   const { data: courseStats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['instructorCourses', user?.id],
     queryFn: async () => {
+      console.log("Fetching instructor courses for:", user?.id);
       // Get basic course data first
       const { data: courses, error: coursesError } = await supabase
         .from('courses')
         .select('id, title, is_published')
         .eq('instructor_id', user?.id);
 
-      if (coursesError) throw coursesError;
+      if (coursesError) {
+        console.error("Error fetching courses:", coursesError);
+        throw coursesError;
+      }
+      
+      console.log(`Found ${courses?.length || 0} courses for instructor`);
+      
+      if (!courses?.length) return [];
       
       // For each course, get enrollment count
       const coursesWithStats = await Promise.all(courses.map(async (course) => {
-        // Count enrollments
-        const { count: studentCount, error: countError } = await supabase
-          .from('enrollments')
-          .select('*', { count: 'exact', head: true })
-          .eq('course_id', course.id);
+        try {
+          // Count enrollments
+          const { count: studentCount, error: countError } = await supabase
+            .from('enrollments')
+            .select('*', { count: 'exact', head: true })
+            .eq('course_id', course.id);
+            
+          if (countError) {
+            console.error("Error counting enrollments:", countError);
+            throw countError;
+          }
           
-        if (countError) throw countError;
-        
-        // Calculate revenue (could be from payment_transactions or other source)
-        // For now using a placeholder calculation
-        const revenue = (studentCount || 0) * 50; // Assuming $50 per enrollment
-        
-        // For ratings, this would typically come from a ratings table
-        // Using placeholder data for now
-        const averageRating = 4.5;
-        
-        return {
-          id: course.id,
-          title: course.title,
-          total_students: studentCount || 0,
-          revenue: revenue,
-          average_rating: averageRating,
-          is_published: course.is_published
-        };
+          // Calculate revenue (from payment_transactions)
+          const { data: payments, error: paymentsError } = await supabase
+            .from('payment_transactions')
+            .select('amount')
+            .eq('course_id', course.id)
+            .eq('status', 'success');
+            
+          const revenue = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
+          
+          // For ratings, placeholder data for now
+          const averageRating = 4.5;
+          
+          return {
+            id: course.id,
+            title: course.title,
+            total_students: studentCount || 0,
+            revenue: revenue,
+            average_rating: averageRating,
+            is_published: course.is_published
+          };
+        } catch (error) {
+          console.error(`Error processing stats for course ${course.id}:`, error);
+          return {
+            id: course.id,
+            title: course.title,
+            total_students: 0,
+            revenue: 0,
+            average_rating: 0,
+            is_published: course.is_published
+          };
+        }
       }));
 
       return coursesWithStats as CourseStats[];
@@ -86,23 +104,60 @@ const InstructorDashboard = () => {
       if (!courseStats?.length) return [];
       
       const courseIds = courseStats.map(course => course.id);
+      console.log("Fetching enrollments for courses:", courseIds);
       
-      const { data, error } = await supabase
-        .from('enrollments')
-        .select(`
-          id, 
-          enrollment_date,
-          student_id,
-          course_id,
-          student:user_profiles(first_name, last_name),
-          course:courses(title)
-        `)
-        .in('course_id', courseIds)
-        .order('enrollment_date', { ascending: false })
-        .limit(3);
+      try {
+        const { data, error } = await supabase
+          .from('enrollments')
+          .select(`
+            id, 
+            enrollment_date,
+            student_id,
+            course_id,
+            courses:course_id(title)
+          `)
+          .in('course_id', courseIds)
+          .order('enrollment_date', { ascending: false })
+          .limit(3);
 
-      if (error) throw error;
-      return data;
+        if (error) {
+          console.error("Error fetching enrollments:", error);
+          throw error;
+        }
+
+        // Get student profile data for each enrollment
+        const enrollmentsWithStudents = await Promise.all(data.map(async (enrollment) => {
+          try {
+            const { data: studentProfile, error: studentError } = await supabase
+              .from('user_profiles')
+              .select('first_name, last_name, avatar_url')
+              .eq('id', enrollment.student_id)
+              .maybeSingle();
+
+            if (studentError) {
+              console.error("Error fetching student profile:", studentError);
+              throw studentError;
+            }
+
+            return {
+              ...enrollment,
+              student: studentProfile || { 
+                first_name: "Unknown", 
+                last_name: "Student", 
+                avatar_url: null 
+              }
+            };
+          } catch (error) {
+            console.error("Error processing student data:", error);
+            return enrollment;
+          }
+        }));
+
+        return enrollmentsWithStudents;
+      } catch (error) {
+        console.error("Error in enrollments query:", error);
+        return [];
+      }
     },
     enabled: !!courseStats?.length
   });
@@ -126,7 +181,7 @@ const InstructorDashboard = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold">
-          Welcome, {user?.name?.split(" ")[0]}!
+          Welcome, {user?.name?.split(" ")[0] || 'Instructor'}!
         </h1>
         <p className="text-gray-600">
           Manage your courses and students
@@ -143,7 +198,7 @@ const InstructorDashboard = () => {
                   Active Courses
                 </p>
                 <p className="text-3xl font-bold">
-                  {courseStats?.length || 0}
+                  {courseStats?.filter(course => course.is_published).length || 0}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -211,39 +266,54 @@ const InstructorDashboard = () => {
           </Link>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {courseStats?.map((course) => (
-            <Card key={course.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex justify-between items-center">
-                  <span>{course.title}</span>
-                  <Link to={`/dashboard/courses/${course.id}/edit`}>
-                    <Button variant="ghost" size="sm" className="text-brand-600">
-                      Edit
-                    </Button>
-                  </Link>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Students</span>
-                    <span className="font-medium">{course.total_students}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Status</span>
-                    <span className="font-medium">
-                      {course.is_published ? "Published" : "Draft"}
-                    </span>
-                  </div>
-                  <Link to={`/dashboard/courses/${course.id}/edit`}>
-                    <Button variant="outline" className="w-full">
-                      View Details
-                    </Button>
-                  </Link>
-                </div>
+          {courseStats?.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="mb-4">You haven't created any courses yet.</p>
+                <Link to="/dashboard/create-course">
+                  <Button>Create Your First Course</Button>
+                </Link>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            courseStats?.map((course) => (
+              <Card key={course.id}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex justify-between items-center">
+                    <span>{course.title}</span>
+                    <Link to={`/dashboard/courses/${course.id}/edit`}>
+                      <Button variant="ghost" size="sm" className="text-brand-600">
+                        Edit
+                      </Button>
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Students</span>
+                      <span className="font-medium">{course.total_students}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Status</span>
+                      <span className={`font-medium ${course.is_published ? 'text-green-600' : 'text-amber-600'}`}>
+                        {course.is_published ? "Published" : "Draft"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Revenue</span>
+                      <span className="font-medium">₦{course.revenue.toLocaleString()}</span>
+                    </div>
+                    <Link to={`/dashboard/courses/${course.id}/edit`}>
+                      <Button variant="outline" className="w-full">
+                        View Details
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
 
@@ -252,30 +322,34 @@ const InstructorDashboard = () => {
       <Card>
         <CardContent className="p-6">
           <div className="space-y-4">
-            {enrollments?.map((enrollment) => (
-              <div key={enrollment.id} className="flex items-start space-x-4">
-                <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
-                  <img 
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${enrollment.student_id}`}
-                    alt="Student" 
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <p className="font-medium">
-                      {enrollment.student?.first_name} {enrollment.student?.last_name}
-                    </p>
-                    <span className="text-xs text-gray-500 ml-2">
-                      {new Date(enrollment.enrollment_date).toLocaleDateString()}
-                    </span>
+            {enrollments?.length === 0 ? (
+              <p className="text-center py-4 text-gray-500">No recent enrollments</p>
+            ) : (
+              enrollments?.map((enrollment) => (
+                <div key={enrollment.id} className="flex items-start space-x-4">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                    <img 
+                      src={enrollment.student?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${enrollment.student_id}`}
+                      alt="Student" 
+                      className="h-full w-full object-cover"
+                    />
                   </div>
-                  <p className="text-sm text-gray-700">
-                    Enrolled in "{enrollment.course?.title}"
-                  </p>
+                  <div>
+                    <div className="flex items-center">
+                      <p className="font-medium">
+                        {enrollment.student?.first_name} {enrollment.student?.last_name}
+                      </p>
+                      <span className="text-xs text-gray-500 ml-2">
+                        {new Date(enrollment.enrollment_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700">
+                      Enrolled in "{enrollment.courses?.title}"
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

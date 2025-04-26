@@ -36,53 +36,66 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
     if (!file || !user?.id) return;
 
     setUploading(true);
-    const bucket = "avatars";
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${user.id}.${fileExt}`;
+    
+    try {
+      // Check if avatars bucket exists, create it if not
+      const { data: buckets } = await supabase.storage.listBuckets();
+      
+      if (!buckets?.some(b => b.name === 'avatars')) {
+        console.log("Creating avatars bucket");
+        const { error: bucketError } = await supabase.storage.createBucket('avatars', {
+          public: true
+        });
+        
+        if (bucketError) {
+          throw bucketError;
+        }
+      }
 
-    // Upload to bucket, public
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file, {
-        upsert: true,
-        cacheControl: "3600",
+      const bucket = "avatars";
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}.${fileExt}`;
+
+      // Upload to bucket
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: "3600",
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public url
+      const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+      const publicUrl = data?.publicUrl;
+
+      if (!publicUrl) {
+        throw new Error("Could not get avatar URL");
+      }
+
+      onUpload(publicUrl);
+
+      toast({
+        title: "Profile image updated!",
       });
-
-    if (uploadError) {
+    } catch (error: any) {
       toast({
         title: "Upload failed",
-        description: uploadError.message || "We couldn't upload your image.",
+        description: error.message || "We couldn't upload your image.",
         variant: "destructive",
       });
+      console.error("Avatar upload error:", error);
+    } finally {
       setUploading(false);
-      return;
     }
-
-    // Get public url
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = data?.publicUrl;
-
-    if (!publicUrl) {
-      toast({
-        title: "Could not get avatar URL",
-        description: "Try re-uploading your image.",
-        variant: "destructive",
-      });
-      setUploading(false);
-      return;
-    }
-
-    onUpload(publicUrl);
-
-    toast({
-      title: "Profile image updated!",
-    });
-    setUploading(false);
   };
 
   return (
     <div className="flex items-center space-x-4 mt-2">
-      <Avatar className="h-12 w-12">
+      <Avatar className="h-24 w-24">
         <AvatarImage src={avatarSrc} />
         <AvatarFallback>
           {fullName
@@ -110,7 +123,7 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
         >
           {uploading ? (
             <>
-              <Loader className="animate-spin mr-1" />
+              <Loader className="animate-spin mr-1 h-4 w-4" />
               Uploading
             </>
           ) : (

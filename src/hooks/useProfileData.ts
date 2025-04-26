@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 export interface ProfileData {
   id: string;
@@ -45,20 +46,38 @@ export const useProfileData = () => {
     }
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      console.log("Fetching profile data for user:", user.id);
+      
+      const { data, error: fetchError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setProfileData({
+      if (fetchError) {
+        console.error("Error fetching profile data:", fetchError);
+        throw fetchError;
+      }
+
+      if (!data) {
+        console.warn("No profile data found for user:", user.id);
+        setProfileData(null);
+        return;
+      }
+
+      console.log("Profile data fetched:", data);
+      
+      // Parse preferences if it's a string
+      const parsedData = {
         ...data,
         preferences: typeof data.preferences === "string"
           ? JSON.parse(data.preferences)
           : data.preferences || {}
-      });
+      };
+      
+      setProfileData(parsedData);
     } catch (err: any) {
+      console.error("Error in fetchProfileData:", err);
       setError(err);
     } finally {
       setLoading(false);
@@ -68,6 +87,8 @@ export const useProfileData = () => {
   const updateProfileData = async (updates: Partial<ProfileData>) => {
     if (!user?.id) throw new Error("No authenticated user");
     try {
+      console.log("Updating profile data with:", updates);
+      
       // Convert preferences to JSON if it's an object
       const updatesWithJsonPrefs = {
         ...updates,
@@ -81,12 +102,36 @@ export const useProfileData = () => {
         .update(updatesWithJsonPrefs)
         .eq('id', user.id)
         .select()
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setProfileData(prev => ({ ...prev, ...data, preferences: typeof data.preferences === "string" ? JSON.parse(data.preferences) : data.preferences }));
+      if (error) {
+        console.error("Error updating profile data:", error);
+        throw error;
+      }
+
+      if (!data) {
+        console.warn("No data returned after update");
+        return null;
+      }
+
+      console.log("Profile updated successfully:", data);
+      
+      // Update local state with the new data
+      setProfileData(prev => {
+        if (!prev) return data;
+        
+        return {
+          ...prev,
+          ...data,
+          preferences: typeof data.preferences === "string" 
+            ? JSON.parse(data.preferences) 
+            : data.preferences || prev.preferences
+        };
+      });
+      
       return data;
     } catch (err) {
+      console.error("Error in updateProfileData:", err);
       throw err;
     }
   };
@@ -96,13 +141,27 @@ export const useProfileData = () => {
       throw new Error("Missing bank details");
     }
     try {
+      console.log("Verifying bank account");
+      
       const updatedProfile = await updateProfileData({
         bank_verification_status: 'verified',
         account_name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim(),
         paystack_recipient_code: `RC-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
       });
+      
+      toast({
+        title: "Bank account verified",
+        description: "Your bank account has been verified successfully."
+      });
+      
       return updatedProfile;
     } catch (err) {
+      console.error("Error in verifyBankAccount:", err);
+      toast({
+        variant: "destructive",
+        title: "Verification failed",
+        description: "There was an error verifying your bank account."
+      });
       throw err;
     }
   };
@@ -110,10 +169,14 @@ export const useProfileData = () => {
   const updatePreferences = async (preferences: Record<string, boolean>) => {
     if (!user?.id) throw new Error("No authenticated user");
     try {
+      console.log("Updating preferences:", preferences);
+      
       const currentPrefs = profileData?.preferences || {};
       const updatedPreferences = { ...currentPrefs, ...preferences };
+      
       return await updateProfileData({ preferences: updatedPreferences });
     } catch (err) {
+      console.error("Error in updatePreferences:", err);
       throw err;
     }
   };
@@ -131,4 +194,4 @@ export const useProfileData = () => {
     verifyBankAccount,
     updatePreferences,
   };
-}
+};

@@ -5,9 +5,8 @@ import { Link } from "react-router-dom";
 import CourseCard from "@/components/CourseCard";
 import { ArrowRight, Loader } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Course as MockCourse } from "@/utils/mockData";
 
-type Course = Omit<MockCourse, 'level'> & {
+type Course = {
   id: string;
   title: string;
   description: string | null;
@@ -42,26 +41,6 @@ interface SupabaseCategory {
   name: string;
 }
 
-interface SupabaseCourse {
-  id: string;
-  title: string;
-  description: string | null;
-  price: number | null;
-  level: "beginner" | "intermediate" | "advanced" | null;
-  rating?: number;
-  reviews?: number;
-  mode: "self-paced" | "virtual" | "live" | null;
-  enrolledStudents?: number;
-  lessons?: number;
-  image_url: string | null;
-  category: string | null;
-  instructor_id: string;
-  instructor?: SupabaseInstructor;
-  course_categories?: SupabaseCategory;
-  duration_hours?: number;
-  user_profiles?: SupabaseInstructor;
-}
-
 const FeaturedCoursesSection = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -75,86 +54,105 @@ const FeaturedCoursesSection = () => {
       try {
         console.log("Fetching featured courses...");
         
-        // First fetch the courses without instructor data to avoid RLS recursion
+        // Step 1: Fetch published courses first
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
-          .select(
-            `
-            *,
-            course_categories (
-              id,
-              name
-            )
-            `
-          )
+          .select(`
+            id,
+            title,
+            description,
+            price,
+            level,
+            mode,
+            image_url,
+            instructor_id,
+            category,
+            duration_hours,
+            is_published,
+            rating,
+            reviews
+          `)
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(6);
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          setError("Failed to load courses.");
-          setLoading(false);
+          throw coursesError;
+        }
+
+        console.log("Fetched courses:", coursesData?.length);
+        
+        if (!coursesData || coursesData.length === 0) {
+          setCourses([]);
           return;
         }
 
-        // Then fetch instructor data separately for each course
-        const coursesWithInstructors = await Promise.all(
-          coursesData.map(async (course: any) => {
-            // Fetch instructor details separately
-            let instructor = {
-              id: undefined,
-              name: "Unknown",
-              avatar: "/placeholder.svg",
-            };
+        // Step 2: Fetch categories in a separate query
+        const { data: categories } = await supabase
+          .from("course_categories")
+          .select("id, name");
+        
+        const categoryMap = categories ? 
+          categories.reduce((map, cat) => ({ ...map, [cat.id]: cat.name }), {} as Record<string, string>) : 
+          {};
 
-            if (course.instructor_id) {
-              const { data: instructorData, error: instructorError } = await supabase
-                .from("user_profiles")
-                .select("id, first_name, last_name, avatar_url")
-                .eq("id", course.instructor_id)
-                .single();
+        // Step 3: Process courses with categories
+        const coursePromises = coursesData.map(async (course) => {
+          // Step 4: Fetch instructor details separately for each course
+          const { data: instructorData } = await supabase
+            .from("user_profiles")
+            .select("id, first_name, last_name, avatar_url")
+            .eq("id", course.instructor_id)
+            .maybeSingle();
+          
+          const instructor = instructorData ? {
+            id: instructorData.id,
+            name: `${instructorData.first_name || ''} ${instructorData.last_name || ''}`.trim() || "Instructor",
+            avatar: instructorData.avatar_url || "/placeholder.svg"
+          } : {
+            name: "Instructor",
+            avatar: "/placeholder.svg"
+          };
 
-              if (!instructorError && instructorData) {
-                instructor = {
-                  id: instructorData.id,
-                  name: `${instructorData.first_name || ''} ${instructorData.last_name || ''}`.trim(),
-                  avatar: instructorData.avatar_url || "/placeholder.svg",
-                };
-              } else {
-                console.warn("Could not fetch instructor:", instructorError);
-              }
-            }
+          // Step 5: Fetch enrollment count for this course
+          const { count: enrollmentCount } = await supabase
+            .from("enrollments")
+            .select("id", { count: "exact", head: true })
+            .eq("course_id", course.id);
 
-            return {
-              id: course.id,
-              title: course.title,
-              description: course.description,
-              price: typeof course.price === "number" ? course.price : 0,
-              level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-              rating: course.rating || Math.round(4 + Math.random()),
-              reviews: course.reviews || Math.floor(20 + Math.random() * 500),
-              mode: course.mode || "self-paced",
-              enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
-              lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
-              instructor: instructor,
-              category: course.course_categories?.name || "General",
-              image: course.image_url || "/placeholder.svg",
-              featured: false,
-              tags: [],
-              duration:
-                course.duration_hours !== undefined && course.duration_hours !== null
-                  ? String(course.duration_hours)
-                  : "0",
-            };
-          })
-        );
+          // Step 6: Fetch lesson count for this course
+          const { count: lessonCount } = await supabase
+            .from("lessons")
+            .select("id", { count: "exact", head: true })
+            .eq("course_id", course.id);
 
-        console.log("Successfully fetched featured courses:", coursesWithInstructors.length);
-        setCourses(coursesWithInstructors);
-      } catch (error) {
+          return {
+            id: course.id,
+            title: course.title || "Untitled Course",
+            description: course.description || "",
+            price: course.price ? parseFloat(course.price.toString()) : 0,
+            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+            rating: course.rating || Math.round(3 + Math.random() * 2), // 3-5 stars if rating not available
+            reviews: course.reviews || Math.floor(10 + Math.random() * 100), // Random reviews if not available
+            mode: course.mode || "self-paced",
+            enrolledStudents: enrollmentCount || 0,
+            lessons: lessonCount || 0,
+            instructor: instructor,
+            category: categoryMap[course.category as string] || "General",
+            image: course.image_url || "/placeholder.svg",
+            featured: true,
+            tags: [],
+            duration: course.duration_hours ? `${course.duration_hours}` : "0",
+          };
+        });
+
+        const processedCourses = await Promise.all(coursePromises);
+        console.log("Processed featured courses:", processedCourses.length);
+        setCourses(processedCourses);
+      } catch (error: any) {
         console.error("Error in fetchCourses:", error);
-        setError("Failed to load courses.");
+        setError("Failed to load courses. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -194,8 +192,8 @@ const FeaturedCoursesSection = () => {
               </Button>
             </div>
           ) : courses.length === 0 ? (
-            <div className="col-span-full text-center text-muted-foreground">
-              No featured courses available.
+            <div className="col-span-full text-center text-muted-foreground py-12">
+              No featured courses available yet. Check back soon!
             </div>
           ) : (
             courses.map((course) => (
