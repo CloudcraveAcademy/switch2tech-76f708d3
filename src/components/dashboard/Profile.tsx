@@ -284,7 +284,6 @@ const Profile = () => {
     try {
       await updateProfileData({ avatar_url: avatarUrl });
       toast({ title: "Avatar updated!" });
-      // Refetch profile data to ensure display refresh
       fetchProfileData();
     } catch (error: any) {
       toast({
@@ -760,6 +759,17 @@ const Profile = () => {
                           placeholder="Your Github profile URL"
                         />
                       </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="twitter">Twitter Profile</Label>
+                      <Input
+                        id="twitter"
+                        name="twitter"
+                        value={formData.twitter}
+                        onChange={handleChange}
+                        placeholder="Your Twitter profile URL"
+                      />
                     </div>
                     
                     <div className="mt-6 flex justify-end">

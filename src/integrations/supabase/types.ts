@@ -953,13 +953,18 @@ export type Database = {
           bank_verification_status: string | null
           bio: string | null
           career_level: string | null
+          country: string | null
           created_at: string | null
           first_name: string | null
+          github_url: string | null
           id: string
           last_name: string | null
           payout_frequency: string | null
           paystack_recipient_code: string | null
+          phone: string | null
+          preferences: Json | null
           role: string
+          twitter_url: string | null
           updated_at: string | null
         }
         Insert: {
@@ -970,13 +975,18 @@ export type Database = {
           bank_verification_status?: string | null
           bio?: string | null
           career_level?: string | null
+          country?: string | null
           created_at?: string | null
           first_name?: string | null
+          github_url?: string | null
           id: string
           last_name?: string | null
           payout_frequency?: string | null
           paystack_recipient_code?: string | null
+          phone?: string | null
+          preferences?: Json | null
           role: string
+          twitter_url?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -987,13 +997,18 @@ export type Database = {
           bank_verification_status?: string | null
           bio?: string | null
           career_level?: string | null
+          country?: string | null
           created_at?: string | null
           first_name?: string | null
+          github_url?: string | null
           id?: string
           last_name?: string | null
           payout_frequency?: string | null
           paystack_recipient_code?: string | null
+          phone?: string | null
+          preferences?: Json | null
           role?: string
+          twitter_url?: string | null
           updated_at?: string | null
         }
         Relationships: []
