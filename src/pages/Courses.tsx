@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
@@ -43,7 +42,7 @@ interface SupabaseCourse {
   instructor_id: string;
   instructor?: SupabaseInstructor;
   course_categories?: SupabaseCategory;
-  // add more as needed
+  duration_hours?: number;
 }
 
 const PAGE_SIZE = 9;
@@ -73,7 +72,6 @@ const fetchCoursesWithExtra = async (): Promise<SupabaseCourse[]> => {
     throw error;
   }
 
-  // Add demo values for rating, reviews, lessons, enrolledStudents
   return (
     data?.map((course: any) => ({
       ...course,
@@ -110,12 +108,10 @@ const Courses = () => {
   const [selectedMode, setSelectedMode] = useState("all");
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(courses.length / PAGE_SIZE));
   const pagedCourses = courses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Fetch categories and courses on mount
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -131,11 +127,9 @@ const Courses = () => {
       });
   }, []);
 
-  // Apply filters and search
   useEffect(() => {
     let filteredCourses = [...allCourses];
 
-    // Apply search term filter
     if (searchTerm) {
       filteredCourses = filteredCourses.filter(
         (course) =>
@@ -144,21 +138,18 @@ const Courses = () => {
       );
     }
 
-    // Apply category filter
     if (selectedCategory !== "all") {
       filteredCourses = filteredCourses.filter(
         (course) => course.category === selectedCategory
       );
     }
 
-    // Apply level filter
     if (selectedLevel !== "all") {
       filteredCourses = filteredCourses.filter(
         (course) => course.level === selectedLevel
       );
     }
 
-    // Apply mode filter
     if (selectedMode !== "all") {
       filteredCourses = filteredCourses.filter(
         (course) => course.mode === selectedMode
@@ -166,15 +157,13 @@ const Courses = () => {
     }
 
     setCourses(filteredCourses);
-    setCurrentPage(1); // Reset to first page on filter/search change
+    setCurrentPage(1);
   }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Filtering is already handled in useEffect
   };
 
-  // Pagination handlers
   const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
   const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
   const handleGotoPage = (n: number) => setCurrentPage(n);
@@ -189,7 +178,6 @@ const Courses = () => {
           </p>
         </div>
 
-        {/* Search and Filters */}
         <div className="mb-12">
           <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
             <form onSubmit={handleSearch} className="mb-6">
@@ -276,7 +264,6 @@ const Courses = () => {
           </div>
         </div>
 
-        {/* Loading/Error State */}
         {loading ? (
           <div className="flex justify-center py-12">
             <LoaderCircle className="animate-spin h-10 w-10 text-brand-500" />
@@ -320,7 +307,6 @@ const Courses = () => {
                         name: "Unknown",
                         avatar: "/placeholder.svg",
                       },
-                  // Find category name from related object or fallback to "General"
                   category: categories.find((cat) => cat.id === course.category)?.name || "General",
                   rating: course.rating,
                   reviews: course.reviews,
@@ -332,6 +318,7 @@ const Courses = () => {
                   level: course.level || "beginner",
                   featured: false,
                   tags: [],
+                  duration: course.duration_hours ?? 0,
                 }}
               />
             ))}
@@ -354,7 +341,6 @@ const Courses = () => {
           </div>
         )}
 
-        {/* Pagination */}
         {!loading && courses.length > 0 && (
           <div className="mt-12 flex justify-center">
             <div className="flex items-center space-x-2">

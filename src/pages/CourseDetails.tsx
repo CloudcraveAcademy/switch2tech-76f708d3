@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +11,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircle, Clock, File, Play, Star, Users, Video } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const CourseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["public-course", id],
@@ -434,8 +437,73 @@ const CourseDetails = () => {
               <p className="text-gray-600 mb-4 md:mb-0">Enroll now to get access to all course materials and instructor support.</p>
             </div>
             <div className="flex gap-4">
-              <Button size="lg">Enroll Now</Button>
-              <Button variant="outline" size="lg">View Similar Courses</Button>
+              <Button
+                size="lg"
+                onClick={async () => {
+                  if (!user) {
+                    toast({
+                      title: "Please login to enroll",
+                      description: "You need to sign in before enrolling in a course.",
+                      variant: "destructive",
+                    });
+                    navigate("/login?redirect=" + window.location.pathname);
+                    return;
+                  }
+                  // Attempt enrollment
+                  try {
+                    // Check if already enrolled
+                    const { data: existing, error: existErr } = await supabase
+                      .from("enrollments")
+                      .select("id")
+                      .eq("course_id", course.id)
+                      .eq("student_id", user.id)
+                      .maybeSingle();
+
+                    if (existErr) throw existErr;
+                    if (existing) {
+                      toast({
+                        title: "Already enrolled",
+                        description: "You are already enrolled in this course.",
+                        variant: "default"
+                      });
+                      navigate("/dashboard/my-courses");
+                      return;
+                    }
+
+                    const { error } = await supabase
+                      .from("enrollments")
+                      .insert([{ course_id: course.id, student_id: user.id }]);
+                    if (error) throw error;
+                    toast({
+                      title: "Enrollment successful!",
+                      description: "You have been enrolled in this course.",
+                      variant: "success"
+                    });
+                    navigate("/dashboard/my-courses");
+                  } catch (err: any) {
+                    toast({
+                      title: "Could not enroll",
+                      description: err?.message || "Something went wrong.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+              >
+                Enroll Now
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  if (course.category) {
+                    navigate(`/courses?category=${course.category}`);
+                  } else {
+                    navigate("/courses");
+                  }
+                }}
+              >
+                View Similar Courses
+              </Button>
             </div>
           </div>
         </div>
