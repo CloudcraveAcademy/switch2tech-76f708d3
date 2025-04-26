@@ -966,8 +966,10 @@ export type Database = {
           preferences: Json | null
           role: string
           skills: string | null
+          student_status: string | null
           twitter_url: string | null
           updated_at: string | null
+          website: string | null
         }
         Insert: {
           account_name?: string | null
@@ -990,8 +992,10 @@ export type Database = {
           preferences?: Json | null
           role: string
           skills?: string | null
+          student_status?: string | null
           twitter_url?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Update: {
           account_name?: string | null
@@ -1014,8 +1018,10 @@ export type Database = {
           preferences?: Json | null
           role?: string
           skills?: string | null
+          student_status?: string | null
           twitter_url?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Relationships: []
       }
