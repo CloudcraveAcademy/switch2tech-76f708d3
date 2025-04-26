@@ -1,7 +1,7 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
-import type { UserWithProfile } from "@/types/auth";
+import { supabase } from '@/integrations/supabase/client';
+import type { User } from '@supabase/supabase-js';
+import type { UserWithProfile } from '@/types/auth';
 
 export const useUserProfile = () => {
   // Cache to prevent duplicate fetches for the same user ID
@@ -28,19 +28,42 @@ export const useUserProfile = () => {
       }
       
       console.log("Fetching profile for user:", user.id);
+      
+      // Use a direct RPC call instead of relying on RLS to avoid recursion
       const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('first_name, last_name, role, avatar_url')
-        .eq('id', user.id)
-        .single();
+        .rpc('get_user_profile', { user_id: user.id });
       
       if (error) {
         console.error("Error fetching user profile:", error);
-        // Return basic user information even if profile fetch fails
+        
+        // Fallback to direct query with limited fields if RPC fails
+        const { data: fallbackProfile, error: fallbackError } = await supabase
+          .from('user_profiles')
+          .select('first_name, last_name, role, avatar_url')
+          .eq('id', user.id)
+          .single();
+          
+        if (fallbackError) {
+          console.error("Fallback profile fetch failed:", fallbackError);
+          // Return basic user information as a last resort
+          return {
+            ...user,
+            role: 'student' // Default role if profile can't be fetched
+          } as UserWithProfile;
+        }
+        
+        // Cache fallback result
+        profileCache.set(user.id, {
+          data: fallbackProfile,
+          timestamp: now
+        });
+        
         return {
           ...user,
-          role: 'student' // Default role if profile can't be fetched
-        } as UserWithProfile;
+          name: `${fallbackProfile.first_name || ''} ${fallbackProfile.last_name || ''}`.trim() || undefined,
+          avatar: fallbackProfile.avatar_url,
+          role: fallbackProfile.role as UserWithProfile['role']
+        };
       }
       
       console.log("Profile data fetched:", profile);
@@ -62,7 +85,7 @@ export const useUserProfile = () => {
       // Return basic user information even if there's an exception
       return {
         ...user,
-        role: 'student' // Default role if profile can't be fetched
+        role: 'instructor' // Set to instructor as requested by the user
       } as UserWithProfile;
     }
   };

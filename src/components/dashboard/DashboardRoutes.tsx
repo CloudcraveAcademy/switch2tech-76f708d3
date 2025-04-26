@@ -30,6 +30,12 @@ const DashboardRoutes = () => {
     }
   }, [user?.role, currentRole]);
 
+  // Add debug logging to help troubleshoot role-related issues
+  useEffect(() => {
+    console.log("Current user:", user);
+    console.log("Current role in state:", currentRole);
+  }, [user, currentRole]);
+
   // Prepare all route fragments regardless of role
   const studentRoutesFragment = (
     <>
@@ -56,6 +62,9 @@ const DashboardRoutes = () => {
 
   // Get dashboard component based on role
   const dashboardComponent = (() => {
+    // Force log to debug
+    console.log("Selecting dashboard for role:", currentRole);
+    
     switch (currentRole) {
       case "instructor":
         return <InstructorDashboard />;
