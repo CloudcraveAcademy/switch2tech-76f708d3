@@ -40,7 +40,8 @@ const Profile = () => {
     loading, 
     updateProfileData,
     verifyBankAccount,
-    updatePreferences
+    updatePreferences,
+    fetchProfileData
   } = useProfileData();
 
   const [formData, setFormData] = useState({

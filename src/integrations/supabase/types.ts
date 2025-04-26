@@ -952,6 +952,7 @@ export type Database = {
           bank_name: string | null
           bank_verification_status: string | null
           bio: string | null
+          career_level: string | null
           created_at: string | null
           first_name: string | null
           id: string
@@ -968,6 +969,7 @@ export type Database = {
           bank_name?: string | null
           bank_verification_status?: string | null
           bio?: string | null
+          career_level?: string | null
           created_at?: string | null
           first_name?: string | null
           id: string
@@ -984,6 +986,7 @@ export type Database = {
           bank_name?: string | null
           bank_verification_status?: string | null
           bio?: string | null
+          career_level?: string | null
           created_at?: string | null
           first_name?: string | null
           id?: string
