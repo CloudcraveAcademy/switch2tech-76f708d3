@@ -23,6 +23,21 @@ interface CourseStats {
   is_published: boolean;
 }
 
+interface EnrollmentWithStudent {
+  id: string;
+  enrollment_date: string;
+  student_id: string;
+  course_id: string;
+  courses?: {
+    title: string;
+  };
+  student?: {
+    first_name: string;
+    last_name: string;
+    avatar_url: string | null;
+  };
+}
+
 const InstructorDashboard = () => {
   const { user } = useAuth();
 
@@ -126,7 +141,7 @@ const InstructorDashboard = () => {
         }
 
         // Get student profile data for each enrollment
-        const enrollmentsWithStudents = await Promise.all(data.map(async (enrollment) => {
+        const enrollmentsWithStudents = await Promise.all((data || []).map(async (enrollment) => {
           try {
             const { data: studentProfile, error: studentError } = await supabase
               .from('user_profiles')
@@ -149,11 +164,19 @@ const InstructorDashboard = () => {
             };
           } catch (error) {
             console.error("Error processing student data:", error);
-            return enrollment;
+            // Return the enrollment with a default student object to prevent type errors
+            return {
+              ...enrollment,
+              student: { 
+                first_name: "Unknown", 
+                last_name: "Student", 
+                avatar_url: null 
+              }
+            };
           }
         }));
 
-        return enrollmentsWithStudents;
+        return enrollmentsWithStudents as EnrollmentWithStudent[];
       } catch (error) {
         console.error("Error in enrollments query:", error);
         return [];
@@ -322,10 +345,10 @@ const InstructorDashboard = () => {
       <Card>
         <CardContent className="p-6">
           <div className="space-y-4">
-            {enrollments?.length === 0 ? (
+            {!enrollments || enrollments.length === 0 ? (
               <p className="text-center py-4 text-gray-500">No recent enrollments</p>
             ) : (
-              enrollments?.map((enrollment) => (
+              enrollments.map((enrollment) => (
                 <div key={enrollment.id} className="flex items-start space-x-4">
                   <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
                     <img 

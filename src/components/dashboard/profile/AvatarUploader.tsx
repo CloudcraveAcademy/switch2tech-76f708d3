@@ -38,38 +38,47 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
     setUploading(true);
     
     try {
-      // Check if avatars bucket exists, create it if not
-      const { data: buckets } = await supabase.storage.listBuckets();
+      // Check if storage buckets are available
+      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
       
-      if (!buckets?.some(b => b.name === 'avatars')) {
+      if (bucketListError) {
+        console.error("Error listing buckets:", bucketListError);
+        throw bucketListError;
+      }
+      
+      const bucketName = "avatars";
+      
+      // Check if avatars bucket exists, create it if not
+      if (!buckets?.some(b => b.name === bucketName)) {
         console.log("Creating avatars bucket");
-        const { error: bucketError } = await supabase.storage.createBucket('avatars', {
+        const { error: bucketError } = await supabase.storage.createBucket(bucketName, {
           public: true
         });
         
         if (bucketError) {
+          console.error("Error creating bucket:", bucketError);
           throw bucketError;
         }
       }
 
-      const bucket = "avatars";
       const fileExt = file.name.split(".").pop();
       const filePath = `${user.id}.${fileExt}`;
 
       // Upload to bucket
       const { error: uploadError } = await supabase.storage
-        .from(bucket)
+        .from(bucketName)
         .upload(filePath, file, {
           upsert: true,
           cacheControl: "3600",
         });
 
       if (uploadError) {
+        console.error("Upload error:", uploadError);
         throw uploadError;
       }
 
       // Get public url
-      const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+      const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
       const publicUrl = data?.publicUrl;
 
       if (!publicUrl) {

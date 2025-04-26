@@ -68,14 +68,17 @@ export const useProfileData = () => {
       console.log("Profile data fetched:", data);
       
       // Parse preferences if it's a string
-      const parsedData = {
+      const parsedPreferences = typeof data.preferences === "string"
+        ? JSON.parse(data.preferences)
+        : data.preferences || {};
+      
+      // Create a processed profile with correctly typed preferences
+      const processedProfile: ProfileData = {
         ...data,
-        preferences: typeof data.preferences === "string"
-          ? JSON.parse(data.preferences)
-          : data.preferences || {}
+        preferences: parsedPreferences
       };
       
-      setProfileData(parsedData);
+      setProfileData(processedProfile);
     } catch (err: any) {
       console.error("Error in fetchProfileData:", err);
       setError(err);
@@ -116,20 +119,21 @@ export const useProfileData = () => {
 
       console.log("Profile updated successfully:", data);
       
-      // Update local state with the new data
-      setProfileData(prev => {
-        if (!prev) return data;
-        
-        return {
-          ...prev,
-          ...data,
-          preferences: typeof data.preferences === "string" 
-            ? JSON.parse(data.preferences) 
-            : data.preferences || prev.preferences
-        };
-      });
+      // Parse preferences from the response
+      const parsedPreferences = typeof data.preferences === "string"
+        ? JSON.parse(data.preferences)
+        : data.preferences || {};
       
-      return data;
+      // Create an updated profile with the correct types
+      const updatedProfile: ProfileData = {
+        ...data,
+        preferences: parsedPreferences
+      };
+      
+      // Update local state with the new data
+      setProfileData(updatedProfile);
+      
+      return updatedProfile;
     } catch (err) {
       console.error("Error in updateProfileData:", err);
       throw err;

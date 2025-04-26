@@ -14,7 +14,7 @@ type Course = {
   level: "beginner" | "intermediate" | "advanced";
   rating: number;
   reviews: number;
-  mode: string;
+  mode: "self-paced" | "virtual" | "live"; 
   enrolledStudents: number;
   lessons: number;
   instructor: {
@@ -68,9 +68,7 @@ const FeaturedCoursesSection = () => {
             instructor_id,
             category,
             duration_hours,
-            is_published,
-            rating,
-            reviews
+            is_published
           `)
           .eq("is_published", true)
           .order("created_at", { ascending: false })
@@ -127,15 +125,25 @@ const FeaturedCoursesSection = () => {
             .select("id", { count: "exact", head: true })
             .eq("course_id", course.id);
 
+          // Generate dummy random rating and reviews if they don't exist in the database
+          const randomRating = Math.round(3 + Math.random() * 2); // 3-5 stars
+          const randomReviews = Math.floor(10 + Math.random() * 100); // 10-110 reviews
+
+          // Safely map mode to the correct type
+          let courseMode: "self-paced" | "virtual" | "live" = "self-paced";
+          if (course.mode === "virtual" || course.mode === "live") {
+            courseMode = course.mode;
+          }
+
           return {
             id: course.id,
             title: course.title || "Untitled Course",
             description: course.description || "",
             price: course.price ? parseFloat(course.price.toString()) : 0,
             level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-            rating: course.rating || Math.round(3 + Math.random() * 2), // 3-5 stars if rating not available
-            reviews: course.reviews || Math.floor(10 + Math.random() * 100), // Random reviews if not available
-            mode: course.mode || "self-paced",
+            rating: randomRating,
+            reviews: randomReviews,
+            mode: courseMode,
             enrolledStudents: enrollmentCount || 0,
             lessons: lessonCount || 0,
             instructor: instructor,
