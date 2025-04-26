@@ -53,12 +53,12 @@ const Profile = () => {
     country: "Nigeria",
     phone: "",
     // --- PROFESSIONAL ---
-    professional_title: "", // Changed from job_title to store locally
+    professional_title: "", // This maps to career_level in the database
     skills: "",
+    website: "",
     linkedin_url: "",
     github_url: "",
     twitter_url: "",
-    website: "",
     // --- STUDENT FIELDS ---
     student_status: "Current", 
     career_level: "Junior",
@@ -153,14 +153,12 @@ const Profile = () => {
         country: formData.country,
         phone: formData.phone,
         website: formData.website,
-        // No job_title field here since it doesn't exist in the database
+        career_level: formData.professional_title, // Map professional_title to career_level
         skills: formData.skills,
         linkedin_url: formData.linkedin_url,
         github_url: formData.github_url,
         twitter_url: formData.twitter_url,
         student_status: formData.student_status,
-        career_level: formData.career_level,
-        // The following are only for Banking tab but are harmless here
         bank_name: formData.bank_name,
         account_number: formData.account_number,
         payout_frequency: formData.payout_frequency,

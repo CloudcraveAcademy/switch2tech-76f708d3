@@ -959,11 +959,13 @@ export type Database = {
           github_url: string | null
           id: string
           last_name: string | null
+          linkedin_url: string | null
           payout_frequency: string | null
           paystack_recipient_code: string | null
           phone: string | null
           preferences: Json | null
           role: string
+          skills: string | null
           twitter_url: string | null
           updated_at: string | null
         }
@@ -981,11 +983,13 @@ export type Database = {
           github_url?: string | null
           id: string
           last_name?: string | null
+          linkedin_url?: string | null
           payout_frequency?: string | null
           paystack_recipient_code?: string | null
           phone?: string | null
           preferences?: Json | null
           role: string
+          skills?: string | null
           twitter_url?: string | null
           updated_at?: string | null
         }
@@ -1003,11 +1007,13 @@ export type Database = {
           github_url?: string | null
           id?: string
           last_name?: string | null
+          linkedin_url?: string | null
           payout_frequency?: string | null
           paystack_recipient_code?: string | null
           phone?: string | null
           preferences?: Json | null
           role?: string
+          skills?: string | null
           twitter_url?: string | null
           updated_at?: string | null
         }
@@ -1018,6 +1024,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_auth_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_role: {
         Args: { role: string }
         Returns: boolean

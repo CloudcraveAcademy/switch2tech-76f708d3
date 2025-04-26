@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +18,7 @@ export interface ProfileData {
   linkedin_url?: string;
   github_url?: string;
   twitter_url?: string;
-  student_status?: string;
+  skills?: string;
   career_level?: string;
   bank_name?: string;
   account_number?: string;
@@ -89,59 +88,54 @@ export const useProfileData = () => {
     if (!user?.id) throw new Error("No authenticated user");
     try {
       console.log("Updating profile data with:", updates);
-      
-      // Remove any fields that don't exist in the database schema
-      const { job_title, ...validUpdates } = updates;
-      
-      console.log("Cleaned updates to send to database:", validUpdates);
-      
-      // Convert preferences to JSON if it's an object
-      const updatesWithJsonPrefs = {
-        ...validUpdates,
-        ...(validUpdates.preferences && typeof validUpdates.preferences === "object"
-          ? { preferences: JSON.stringify(validUpdates.preferences) }
-          : {})
-      };
+    
+    // Convert preferences to JSON if it's an object
+    const updatesWithJsonPrefs = {
+      ...updates,
+      ...(updates.preferences && typeof updates.preferences === "object"
+        ? { preferences: JSON.stringify(updates.preferences) }
+        : {})
+    };
 
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .update(updatesWithJsonPrefs)
-        .eq('id', user.id)
-        .select()
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update(updatesWithJsonPrefs)
+      .eq('id', user.id)
+      .select()
+      .maybeSingle();
 
-      if (error) {
-        console.error("Error updating profile data:", error);
-        throw error;
-      }
-
-      if (!data) {
-        console.warn("No data returned after update");
-        return null;
-      }
-
-      console.log("Profile updated successfully:", data);
-      
-      // Parse preferences from the response
-      const parsedPreferences = typeof data.preferences === "string"
-        ? JSON.parse(data.preferences)
-        : data.preferences || {};
-      
-      // Create an updated profile with the correct types
-      const updatedProfile: ProfileData = {
-        ...data,
-        preferences: parsedPreferences
-      };
-      
-      // Update local state with the new data
-      setProfileData(updatedProfile);
-      
-      return updatedProfile;
-    } catch (err) {
-      console.error("Error in updateProfileData:", err);
-      throw err;
+    if (error) {
+      console.error("Error updating profile data:", error);
+      throw error;
     }
-  };
+
+    if (!data) {
+      console.warn("No data returned after update");
+      return null;
+    }
+
+    console.log("Profile updated successfully:", data);
+    
+    // Parse preferences from the response
+    const parsedPreferences = typeof data.preferences === "string"
+      ? JSON.parse(data.preferences)
+      : data.preferences || {};
+    
+    // Create an updated profile with the correct types
+    const updatedProfile: ProfileData = {
+      ...data,
+      preferences: parsedPreferences
+    };
+    
+    // Update local state with the new data
+    setProfileData(updatedProfile);
+    
+    return updatedProfile;
+  } catch (err) {
+    console.error("Error in updateProfileData:", err);
+    throw err;
+  }
+};
 
   const verifyBankAccount = async () => {
     if (!user?.id || !profileData?.bank_name || !profileData?.account_number) {
