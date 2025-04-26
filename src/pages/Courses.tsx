@@ -318,7 +318,9 @@ const Courses = () => {
                   level: course.level || "beginner",
                   featured: false,
                   tags: [],
-                  duration: course.duration_hours ?? 0,
+                  duration: (course.duration_hours !== undefined && course.duration_hours !== null)
+                    ? String(course.duration_hours)
+                    : "0",
                 }}
               />
             ))}

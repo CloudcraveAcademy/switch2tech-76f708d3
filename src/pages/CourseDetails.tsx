@@ -20,6 +20,12 @@ const CourseDetails = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Figure out user role
+  let userRole: string | undefined = undefined;
+  if (user && "role" in user) {
+    userRole = user.role;
+  }
+
   const { data: course, isLoading } = useQuery({
     queryKey: ["public-course", id],
     queryFn: async () => {
@@ -236,8 +242,72 @@ const CourseDetails = () => {
                   <p className="text-3xl font-bold text-brand-600 mb-4">
                     {formatPrice(course.price || 0)}
                   </p>
-                  <Button className="w-full mb-4">Enroll Now</Button>
-                  <Button variant="outline" className="w-full">Add to Wishlist</Button>
+                  {/* Enroll Now button: visible ONLY for students (role 'student') or unauthenticated users */}
+                  {(userRole === undefined || userRole === 'student') && (
+                    <Button className="w-full mb-4"
+                      onClick={async () => {
+                        if (!user) {
+                          toast({
+                            title: "Please login to enroll",
+                            description: "You need to sign in before enrolling in a course.",
+                            variant: "destructive",
+                          });
+                          navigate("/login?redirect=" + window.location.pathname);
+                          return;
+                        }
+                        // Attempt enrollment
+                        try {
+                          const { data: existing, error: existErr } = await supabase
+                            .from("enrollments")
+                            .select("id")
+                            .eq("course_id", course.id)
+                            .eq("student_id", user.id)
+                            .maybeSingle();
+
+                          if (existErr) throw existErr;
+                          if (existing) {
+                            toast({
+                              title: "Already enrolled",
+                              description: "You are already enrolled in this course.",
+                              variant: "default"
+                            });
+                            navigate("/dashboard/my-courses");
+                            return;
+                          }
+
+                          const { error } = await supabase
+                            .from("enrollments")
+                            .insert([{ course_id: course.id, student_id: user.id }]);
+                          if (error) throw error;
+                          toast({
+                            title: "Enrollment successful!",
+                            description: "You have been enrolled in this course.",
+                            variant: "default"
+                          });
+                          navigate("/dashboard/my-courses");
+                        } catch (err: any) {
+                          toast({
+                            title: "Could not enroll",
+                            description: err?.message || "Something went wrong.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      Enroll Now
+                    </Button>
+                  )}
+                  <Button variant="outline" className="w-full"
+                    onClick={() => {
+                      if (course.category) {
+                        navigate(`/courses?category=${course.category}`);
+                      } else {
+                        navigate("/courses");
+                      }
+                    }}
+                  >
+                    View Similar Courses
+                  </Button>
                 </div>
                 <div className="border-t border-gray-200 pt-4 space-y-3">
                   <div className="flex justify-between">
@@ -451,7 +521,6 @@ const CourseDetails = () => {
                   }
                   // Attempt enrollment
                   try {
-                    // Check if already enrolled
                     const { data: existing, error: existErr } = await supabase
                       .from("enrollments")
                       .select("id")
@@ -477,7 +546,7 @@ const CourseDetails = () => {
                     toast({
                       title: "Enrollment successful!",
                       description: "You have been enrolled in this course.",
-                      variant: "success"
+                      variant: "default"
                     });
                     navigate("/dashboard/my-courses");
                   } catch (err: any) {
