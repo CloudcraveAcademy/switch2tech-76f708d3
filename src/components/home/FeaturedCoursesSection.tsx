@@ -6,6 +6,31 @@ import CourseCard from "@/components/CourseCard";
 import { ArrowRight, Loader } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Try to import Course type from CourseCard for reuse if available
+// If CourseCard exports its prop type, prefer importing from there:
+type Course = {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  level: string;
+  rating: number;
+  reviews: number;
+  mode: string;
+  enrolledStudents: number;
+  lessons: number;
+  instructor: {
+    id?: string;
+    name: string;
+    avatar: string | null;
+  };
+  category: string;
+  image: string;
+  featured: boolean;
+  tags: string[];
+  duration: string;
+};
+
 interface SupabaseInstructor {
   id: string;
   first_name: string;
@@ -35,15 +60,15 @@ interface SupabaseCourse {
   instructor?: SupabaseInstructor;
   course_categories?: SupabaseCategory;
   duration_hours?: number;
+  user_profiles?: SupabaseInstructor;
 }
 
 const FeaturedCoursesSection = () => {
-  const [courses, setCourses] = useState<SupabaseCourse[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch the latest 6 published courses
     const fetchCourses = async () => {
       setLoading(true);
       setError(null);
@@ -73,20 +98,22 @@ const FeaturedCoursesSection = () => {
         setLoading(false);
         return;
       }
-      // Ensure fallback values for the CourseCard props
-      const formatted = (data || []).map((course: any) => ({
-        ...course,
+      // Map to expected CourseCard prop
+      const formatted: Course[] = (data || []).map((course: any) => ({
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        price: typeof course.price === "number" ? course.price : 0,
+        level: course.level || "beginner",
         rating: course.rating || Math.round(4 + Math.random()),
         reviews: course.reviews || Math.floor(20 + Math.random() * 500),
+        mode: course.mode || "self-paced",
         enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
         lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
         instructor: course.user_profiles
           ? {
-              ...course.user_profiles,
-              name:
-                course.user_profiles.first_name +
-                " " +
-                course.user_profiles.last_name,
+              id: course.user_profiles.id,
+              name: course.user_profiles.first_name + " " + course.user_profiles.last_name,
               avatar: course.user_profiles.avatar_url || "/placeholder.svg",
             }
           : {
@@ -95,14 +122,12 @@ const FeaturedCoursesSection = () => {
             },
         category: course.course_categories?.name || "General",
         image: course.image_url || "/placeholder.svg",
-        mode: course.mode || "self-paced",
-        price: typeof course.price === "number" ? course.price : 0,
-        level: course.level || "beginner",
-        featured: false, // set to true if you have a featured flag in db; adjust as needed
+        featured: false,
         tags: [],
-        duration: course.duration_hours !== undefined && course.duration_hours !== null
-          ? String(course.duration_hours)
-          : "0",
+        duration:
+          course.duration_hours !== undefined && course.duration_hours !== null
+            ? String(course.duration_hours)
+            : "0",
       }));
       setCourses(formatted);
       setLoading(false);
