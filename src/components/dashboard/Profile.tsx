@@ -30,6 +30,7 @@ import { useProfileData, ProfileData } from "@/hooks/useProfileData";
 import { Skeleton } from "@/components/ui/skeleton";
 import BankDetails from './profile/BankDetails';
 import { useQuery } from "@tanstack/react-query";
+import AvatarUploader from "./profile/AvatarUploader";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -73,11 +74,12 @@ const Profile = () => {
         ...prevData,
         first_name: profileData.first_name || "",
         last_name: profileData.last_name || "",
+        email: user?.email || "",
         bio: profileData.bio || "Tech enthusiast passionate about learning new skills.",
         country: profileData.country || "Nigeria",
         phone: profileData.phone || "",
         website: profileData.website || "",
-        job_title: profileData.job_title || "Software Developer",
+        jobTitle: profileData.job_title || "Software Developer",
         skills: profileData.skills || "JavaScript, React, TypeScript, Node.js",
         linkedIn: profileData.linkedin_url || "",
         github: profileData.github_url || "",
@@ -88,7 +90,7 @@ const Profile = () => {
         preference_newsletter: profileData.preferences?.newsletter !== false,
       }));
     }
-  }, [profileData]);
+  }, [profileData, user?.email]);
 
   const countries = [
     "Nigeria", "Ghana", "Kenya", "South Africa", "Egypt", 
@@ -267,15 +269,30 @@ const Profile = () => {
     queryKey: ["instructor-total-students", publishedCourseIds.join(",")],
     queryFn: async () => {
       if (!publishedCourseIds.length) return 0;
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from("enrollments")
         .select("student_id", { count: "exact", head: true })
         .in("course_id", publishedCourseIds);
       if (error) throw error;
-      return typeof data?.length === "number" ? data.length : (data?.count || 0);
+      return count ?? 0;
     },
     enabled: isInstructor && publishedCourseIds.length > 0,
   });
+
+  const handleAvatarUpload = async (avatarUrl: string) => {
+    try {
+      await updateProfileData({ avatar_url: avatarUrl });
+      toast({ title: "Avatar updated!" });
+      // Refetch profile data to ensure display refresh
+      fetchProfileData();
+    } catch (error: any) {
+      toast({
+        title: "Image update failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -303,12 +320,16 @@ const Profile = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col items-center">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback>
-                    {fullName ? fullName.split(" ").map((n) => n[0]).join("").toUpperCase() : user?.email?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarUploader
+                  profileData={{
+                    id: user?.id!,
+                    first_name: formData.first_name,
+                    last_name: formData.last_name,
+                    avatar_url: profileData?.avatar_url,
+                    email: user?.email,
+                  }}
+                  onUpload={handleAvatarUpload}
+                />
                 
                 <h2 className="mt-4 text-xl font-bold">{fullName || user?.email}</h2>
                 <p className="text-gray-500 capitalize">{formData.jobTitle}</p>
@@ -747,11 +768,13 @@ const Profile = () => {
                 </TabsContent>
 
                 <TabsContent value="banking">
-                  <BankDetails 
-                    profileData={profileData || {id: "", role: ""} as ProfileData}
-                    onBankDetailsChange={handleBankDetailsChange}
-                    onVerifyBankAccount={verifyBankAccount}
-                  />
+                  {user?.role === "instructor" && (
+                    <BankDetails
+                      profileData={profileData || { id: "", role: "" } as ProfileData}
+                      onBankDetailsChange={handleBankDetailsChange}
+                      onVerifyBankAccount={verifyBankAccount}
+                    />
+                  )}
                 </TabsContent>
 
                 <TabsContent value="preferences">

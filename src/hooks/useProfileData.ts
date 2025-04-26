@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,6 +35,8 @@ export interface ProfileData {
   };
   [key: string]: any; // Allow for additional properties
 }
+
+// Update profile data to allow avatar updates to work with public url
 
 export const useProfileData = () => {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export const useProfileData = () => {
     }
   };
 
-  // Update profile data
+  // Update profileData function: let avatar_url update propagate correctly
   const updateProfileData = async (updates: Partial<ProfileData>) => {
     if (!user?.id) {
       throw new Error("No authenticated user");
@@ -96,7 +97,6 @@ export const useProfileData = () => {
         throw error;
       }
 
-      console.log("Profile updated successfully:", data);
       setProfileData(prev => ({ ...prev, ...data } as ProfileData));
       return data;
     } catch (err) {
