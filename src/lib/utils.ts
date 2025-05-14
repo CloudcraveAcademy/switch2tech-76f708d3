@@ -1,64 +1,37 @@
+import { formatDistanceToNow } from "date-fns";
 
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+export function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+  const year = date.getFullYear();
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return `${day}/${month}/${year}`;
 }
 
-export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-  return date.toLocaleDateString(undefined, options);
-};
+export function formatDistanceToNow(date: Date): string {
+    return `${formatDistanceToNow(date, {
+        addSuffix: true,
+    })}`
+}
 
-// Add formatDistanceToNow function
-export const formatDistanceToNow = (date: Date): string => {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+/**
+ * Formats duration in minutes to a human-readable string
+ * @param minutes Duration in minutes
+ */
+export function calculateTimeToComplete(minutes: number): string {
+  if (!minutes) return 'N/A';
   
-  if (diffInSeconds < 60) {
-    return 'just now';
+  if (minutes < 60) {
+    return `${minutes} min${minutes === 1 ? '' : 's'}`;
   }
   
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'}`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  
+  if (remainingMinutes === 0) {
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
   }
   
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'}`;
-  }
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'}`;
-  }
-  
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'}`;
-  }
-  
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'}`;
-};
-
-// Add calculateTimeToComplete function
-export const calculateTimeToComplete = (minutes: number): string => {
-  if (minutes < 1) {
-    return "Less than a minute";
-  } else if (minutes < 60) {
-    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
-  } else {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    
-    if (remainingMinutes === 0) {
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
-    } else {
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${remainingMinutes} ${remainingMinutes === 1 ? 'minute' : 'minutes'}`;
-    }
-  }
-};
+  return `${hours} hour${hours === 1 ? '' : 's'} ${remainingMinutes} min${remainingMinutes === 1 ? '' : 's'}`;
+}

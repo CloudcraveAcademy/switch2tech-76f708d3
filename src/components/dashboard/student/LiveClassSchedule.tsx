@@ -32,48 +32,36 @@ const LiveClassSchedule = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Query enrolled courses with scheduled live sessions
-      const { data, error } = await supabase
-        .from("class_sessions")
-        .select(`
-          id,
-          start_time,
-          end_time,
-          topic,
-          meeting_link,
-          course:courses (
-            id,
-            title,
-            image_url,
-            instructor:user_profiles!instructor_id (
-              first_name,
-              last_name
-            )
-          )
-        `)
-        .eq("status", "scheduled")
-        .gte("start_time", new Date().toISOString())
-        .order("start_time", { ascending: true })
-        .limit(5);
+      try {
+        // Query enrolled courses with scheduled live sessions
+        const { data, error } = await supabase
+          .rpc('get_upcoming_class_sessions', { user_id: user.id })
+          .select('*');
 
-      if (error) {
-        console.error("Error fetching class sessions:", error);
+        if (error) {
+          console.error("Error fetching class sessions:", error);
+          return [];
+        }
+
+        if (!data || data.length === 0) {
+          return [];
+        }
+
+        return data.map((session: any) => ({
+          id: session.id,
+          course_id: session.course_id,
+          course_title: session.course_title || 'Untitled Course',
+          instructor_name: session.instructor_name || 'Instructor',
+          start_time: session.start_time,
+          end_time: session.end_time,
+          meeting_link: session.meeting_link || 'https://meet.google.com/',
+          topic: session.topic || 'Live Class Session',
+          image_url: session.image_url || '/placeholder.svg',
+        }));
+      } catch (error) {
+        console.error("Error in class sessions query:", error);
         return [];
       }
-
-      return data.map((session) => ({
-        id: session.id,
-        course_id: session.course.id,
-        course_title: session.course.title,
-        instructor_name: `${session.course.instructor.first_name || ""} ${
-          session.course.instructor.last_name || ""
-        }`.trim(),
-        start_time: session.start_time,
-        end_time: session.end_time,
-        meeting_link: session.meeting_link || "https://meet.google.com/",
-        topic: session.topic,
-        image_url: session.course.image_url,
-      }));
     },
     enabled: !!user?.id,
   });
@@ -129,7 +117,7 @@ const LiveClassSchedule = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {classSessions?.length === 0 ? (
+        {!classSessions || classSessions.length === 0 ? (
           <div className="text-center py-8">
             <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-medium text-gray-700">No upcoming classes</h3>
@@ -137,7 +125,7 @@ const LiveClassSchedule = () => {
           </div>
         ) : (
           <div className="divide-y">
-            {classSessions?.map((session) => (
+            {classSessions.map((session) => (
               <div key={session.id} className="p-4 flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex items-center flex-1 gap-3">
                   <img
