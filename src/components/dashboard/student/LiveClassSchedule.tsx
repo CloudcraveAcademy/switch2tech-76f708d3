@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ interface ClassSession {
   course_title: string;
 }
 
-export function LiveClassSchedule() {
+function LiveClassSchedule() {
   const { user } = useAuth();
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
   
@@ -161,5 +162,6 @@ export function LiveClassSchedule() {
   );
 }
 
+// Export both as default and named export
 export { LiveClassSchedule };
 export default LiveClassSchedule;
