@@ -303,6 +303,41 @@ export type Database = {
           },
         ]
       }
+      course_announcements: {
+        Row: {
+          content: string
+          course_id: string
+          created_at: string | null
+          id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          course_id: string
+          created_at?: string | null
+          id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          course_id?: string
+          created_at?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_course_announcements_course"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_categories: {
         Row: {
           created_at: string | null
@@ -1205,9 +1240,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_course_announcement: {
+        Args: {
+          course_id_param: string
+          title_param: string
+          content_param: string
+        }
+        Returns: string
+      }
+      delete_course_announcement: {
+        Args: { announcement_id_param: string }
+        Returns: boolean
+      }
       get_auth_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_course_announcements: {
+        Args: { course_id_param: string }
+        Returns: {
+          content: string
+          course_id: string
+          created_at: string | null
+          id: string
+          title: string
+          updated_at: string | null
+        }[]
       }
       get_user_role: {
         Args: Record<PropertyKey, never>
@@ -1227,6 +1285,14 @@ export type Database = {
       }
       is_user_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      update_course_announcement: {
+        Args: {
+          announcement_id_param: string
+          title_param: string
+          content_param: string
+        }
         Returns: boolean
       }
     }

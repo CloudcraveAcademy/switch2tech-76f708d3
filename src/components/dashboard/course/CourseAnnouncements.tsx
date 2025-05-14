@@ -37,27 +37,26 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use rpc instead of direct table access since the table might not be in the type definition yet
+  // Fetch announcements using rpc function
   const { data: announcements, isLoading } = useQuery<Announcement[]>({
     queryKey: ['course-announcements', courseId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_course_announcements', { 
-        course_id_param: courseId 
-      });
+      try {
+        // Call the RPC function we created
+        const { data, error } = await supabase.rpc('get_course_announcements', { 
+          course_id_param: courseId 
+        });
 
-      if (error) {
-        console.error("Error fetching announcements:", error);
-        // Try alternative approach using direct query
-        const { data: directData, error: directError } = await supabase
-          .from('course_announcements')
-          .select('*')
-          .eq('course_id', courseId)
-          .order('created_at', { ascending: false });
-
-        if (directError) throw directError;
-        return directData || [];
+        if (error) {
+          console.error("Error fetching announcements with RPC:", error);
+          throw error;
+        }
+        
+        return data as Announcement[] || [];
+      } catch (e) {
+        console.error("Error in query:", e);
+        throw e;
       }
-      return data || [];
     },
     enabled: !!courseId
   });
@@ -74,76 +73,42 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
 
     try {
       if (id) {
-        // Using rpc for update to avoid type errors
-        const { error } = await supabase.rpc('update_course_announcement', {
+        // Update existing announcement
+        const { data, error } = await supabase.rpc('update_course_announcement', {
           announcement_id_param: id,
           title_param: announcement.title,
           content_param: announcement.content
         });
 
-        if (error) {
-          // Fallback to direct update
-          console.warn("Falling back to direct update", error);
-          const { error: directError } = await supabase
-            .from('course_announcements')
-            .update({
-              title: announcement.title,
-              content: announcement.content,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', id);
-          
-          if (directError) throw directError;
-        }
+        if (error) throw error;
+        return data;
       } else {
-        // Using rpc for insert to avoid type errors
-        const { error } = await supabase.rpc('create_course_announcement', {
+        // Create new announcement
+        const { data, error } = await supabase.rpc('create_course_announcement', {
           course_id_param: courseId,
           title_param: announcement.title,
           content_param: announcement.content
         });
-
-        if (error) {
-          // Fallback to direct insert
-          console.warn("Falling back to direct insert", error);
-          const { error: directError } = await supabase
-            .from('course_announcements')
-            .insert({
-              course_id: courseId,
-              title: announcement.title,
-              content: announcement.content
-            });
-          
-          if (directError) throw directError;
-        }
+        
+        if (error) throw error;
+        return data;
       }
-
-      queryClient.invalidateQueries({ queryKey: ['course-announcements', courseId] });
     } catch (e) {
+      console.error("Error saving announcement:", e);
       throw e;
     }
   };
 
   const deleteAnnouncement = async (announcementId: string) => {
     try {
-      // Using rpc for delete to avoid type errors  
-      const { error } = await supabase.rpc('delete_course_announcement', {
+      const { data, error } = await supabase.rpc('delete_course_announcement', {
         announcement_id_param: announcementId
       });
-
-      if (error) {
-        // Fallback to direct delete
-        console.warn("Falling back to direct delete", error);
-        const { error: directError } = await supabase
-          .from('course_announcements')
-          .delete()
-          .eq('id', announcementId);
-        
-        if (directError) throw directError;
-      }
       
-      queryClient.invalidateQueries({ queryKey: ['course-announcements', courseId] });
+      if (error) throw error;
+      return data;
     } catch (e) {
+      console.error("Error deleting announcement:", e);
       throw e;
     }
   };
@@ -164,6 +129,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
       return Promise.reject("Invalid operation");
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['course-announcements', courseId] });
       toast({
         title: "Success",
         description: "Announcement updated successfully"
@@ -184,13 +150,20 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
     
     try {
       if (editingAnnouncement) {
-        await saveAnnouncement({ 
-          title: editingAnnouncement.title, 
-          content: editingAnnouncement.content 
-        }, editingAnnouncement.id);
+        await mutation.mutate({
+          type: "update", 
+          id: editingAnnouncement.id, 
+          data: { 
+            title: editingAnnouncement.title, 
+            content: editingAnnouncement.content 
+          }
+        });
         setEditingAnnouncement(null);
       } else {
-        await saveAnnouncement(newAnnouncement);
+        await mutation.mutate({
+          type: "add", 
+          data: newAnnouncement
+        });
         setNewAnnouncement({
           title: "",
           content: ""

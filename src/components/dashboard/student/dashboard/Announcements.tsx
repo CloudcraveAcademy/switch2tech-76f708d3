@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDistanceToNow } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export interface AnnouncementType {
@@ -44,26 +44,29 @@ export function Announcements() {
       if (!enrolledCourseIds.length) return [];
       
       try {
-        // Try with RPC first
-        const { data, error } = await supabase.rpc('get_announcements_for_courses', {
-          course_ids: enrolledCourseIds
-        });
-        
-        if (error) {
-          // Fall back to direct query
-          console.warn("Falling back to direct query for announcements", error);
-          const { data: directData, error: directError } = await supabase
-            .from('course_announcements')
-            .select('*')
-            .in('course_id', enrolledCourseIds)
-            .order('created_at', { ascending: false })
-            .limit(5);
+        // Fetch announcements for each course
+        const allAnnouncements = await Promise.all(
+          enrolledCourseIds.map(async (courseId) => {
+            const { data, error } = await supabase.rpc('get_course_announcements', {
+              course_id_param: courseId
+            });
             
-          if (directError) throw directError;
-          return directData || [];
-        }
+            if (error) {
+              console.warn("Error fetching announcements:", error);
+              return [];
+            }
+            
+            return data || [];
+          })
+        );
         
-        return data || [];
+        // Flatten the array of arrays and sort by created_at
+        return allAnnouncements
+          .flat()
+          .sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )
+          .slice(0, 5) as AnnouncementType[];
       } catch (error) {
         console.error("Error fetching announcements:", error);
         return [];
@@ -99,7 +102,9 @@ export function Announcements() {
               <li key={announcement.id} className="border-b pb-3 last:border-0">
                 <h3 className="font-medium">{announcement.title}</h3>
                 <p className="text-sm text-gray-600 mt-1">{announcement.content}</p>
-                <p className="text-xs text-gray-400 mt-2">{formatDate(announcement.created_at)}</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  {formatDistanceToNow(new Date(announcement.created_at))} ago
+                </p>
               </li>
             ))}
           </ul>

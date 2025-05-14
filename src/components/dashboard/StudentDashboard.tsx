@@ -8,12 +8,11 @@ import { Link } from "react-router-dom";
 import { Book, Calendar, Clock, Star, Bell, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDistanceToNow } from "@/lib/utils";
 import { useProfileData } from "@/hooks/useProfileData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { format } from "date-fns";
 
 interface EnrolledCourse {
   id: string;
