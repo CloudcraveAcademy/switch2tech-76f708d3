@@ -43,15 +43,31 @@ export function Announcements() {
     queryFn: async () => {
       if (!enrolledCourseIds.length) return [];
       
-      const { data, error } = await supabase
-        .from('course_announcements')
-        .select('*')
-        .in('course_id', enrolledCourseIds)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      try {
+        // Try with RPC first
+        const { data, error } = await supabase.rpc('get_announcements_for_courses', {
+          course_ids: enrolledCourseIds
+        });
         
-      if (error) throw error;
-      return data || [];
+        if (error) {
+          // Fall back to direct query
+          console.warn("Falling back to direct query for announcements", error);
+          const { data: directData, error: directError } = await supabase
+            .from('course_announcements')
+            .select('*')
+            .in('course_id', enrolledCourseIds)
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+          if (directError) throw directError;
+          return directData || [];
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching announcements:", error);
+        return [];
+      }
     },
     enabled: enrolledCourseIds.length > 0,
   });

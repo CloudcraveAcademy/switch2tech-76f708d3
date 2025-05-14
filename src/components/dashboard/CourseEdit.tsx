@@ -480,7 +480,6 @@ const CourseEdit = () => {
               {course?.id && (
                 <CourseAnnouncements 
                   courseId={course.id}
-                  onAnnouncementAdded={handleGoToCurriculumTab}
                 />
               )}
             </TabsContent>

@@ -1,6 +1,7 @@
+
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format, formatDistance, formatRelative, subDays } from "date-fns"
+import { format, formatDistance, formatRelative, subDays, formatDistanceToNow } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -28,3 +29,5 @@ export function calculateTimeToComplete(minutes: number): string {
     }
   }
 }
+
+export { formatDistanceToNow };
