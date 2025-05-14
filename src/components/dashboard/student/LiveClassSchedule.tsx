@@ -161,3 +161,5 @@ export function LiveClassSchedule() {
     </Card>
   );
 }
+
+export default LiveClassSchedule;

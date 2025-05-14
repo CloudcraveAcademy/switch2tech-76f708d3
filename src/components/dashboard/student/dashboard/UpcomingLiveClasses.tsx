@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Video } from "lucide-react";
 import { formatDate, formatDistanceToNow } from "@/lib/utils";
-import LiveClassSchedule from "../LiveClassSchedule";
+import { LiveClassSchedule } from "../LiveClassSchedule";
 
 const UpcomingLiveClasses = () => {
   const { user } = useAuth();
