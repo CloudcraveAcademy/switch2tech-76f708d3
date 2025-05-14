@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -126,11 +125,11 @@ const CourseView = () => {
           
         if (materialsError) {
           console.error("Error fetching materials: ", materialsError);
-          // Initialize as empty array instead of trying to assign to constant
+          // Initialize as empty array
           const emptyMaterials: any[] = [];
-          var materialsData = emptyMaterials;
+          materialsData = emptyMaterials;
         } else {
-          var materialsData = courseMaterials || [];
+          materialsData = courseMaterials || [];
         }
         
         // Fetch enrollment data if user is logged in
@@ -563,7 +562,7 @@ const CourseView = () => {
                     <div className="text-center py-8">
                       <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                       <h3 className="text-lg font-medium text-gray-700">No assignments yet</h3>
-                      <p className="text-gray-500">This course doesn't have any assignments yet</p>
+                      <p className="text-gray-500 mb-4">This course doesn't have any assignments yet</p>
                     </div>
                   )}
                 </CardContent>

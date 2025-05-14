@@ -24,6 +24,7 @@ import { CourseMediaUpload } from "./course/CourseMediaUpload";
 import { CourseMode } from "./course/CourseMode";
 import { CourseSettings } from "./course/CourseSettings";
 import { CurriculumManager } from "./course/CurriculumManager";
+import { CourseAnnouncements } from "./course/CourseAnnouncements";
 
 const courseFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -417,6 +418,7 @@ const CourseEdit = () => {
               <TabsTrigger value="media">Media</TabsTrigger>
               <TabsTrigger value="pricing">Pricing</TabsTrigger>
               <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
+              <TabsTrigger value="announcements">Announcements</TabsTrigger>
             </TabsList>
             
             <TabsContent value="basic">
@@ -470,6 +472,15 @@ const CourseEdit = () => {
                 <CurriculumManager 
                   courseId={course.id}
                   onLessonAdded={handleGoToCurriculumTab}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="announcements">
+              {course?.id && (
+                <CourseAnnouncements 
+                  courseId={course.id}
+                  onAnnouncementAdded={handleGoToCurriculumTab}
                 />
               )}
             </TabsContent>

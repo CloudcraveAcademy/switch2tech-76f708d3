@@ -1,94 +1,84 @@
 
-import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Clock, Monitor } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Video } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate, formatDistanceToNow } from "@/lib/utils";
-import { CourseEnrollmentService } from "@/services/CourseEnrollmentService";
+import { useState, useEffect } from "react";
 
 interface ClassSession {
   id: string;
   course_id: string;
-  course_title: string;
-  instructor_name: string;
   start_time: string;
   end_time: string;
-  meeting_link: string;
   topic: string;
-  image_url: string;
+  meeting_link: string;
+  status: string;
+  course_title: string;
 }
 
-const LiveClassSchedule = () => {
+export function LiveClassSchedule() {
   const { user } = useAuth();
-  const [attendingClass, setAttendingClass] = useState<string | null>(null);
-
-  const { data: classSessions, isLoading } = useQuery({
-    queryKey: ["liveClassSessions", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      try {
-        // Query enrolled courses with scheduled live sessions
-        const { data, error } = await supabase
-          .rpc('get_upcoming_class_sessions', { user_id: user.id })
-          .select('*');
-
-        if (error) {
-          console.error("Error fetching class sessions:", error);
-          return [];
-        }
-
-        if (!data || data.length === 0) {
-          return [];
-        }
-
-        return data.map((session: any) => ({
-          id: session.id,
-          course_id: session.course_id,
-          course_title: session.course_title || 'Untitled Course',
-          instructor_name: session.instructor_name || 'Instructor',
-          start_time: session.start_time,
-          end_time: session.end_time,
-          meeting_link: session.meeting_link || 'https://meet.google.com/',
-          topic: session.topic || 'Live Class Session',
-          image_url: session.image_url || '/placeholder.svg',
-        }));
-      } catch (error) {
-        console.error("Error in class sessions query:", error);
-        return [];
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('enrollments')
+        .select('course_id')
+        .eq('student_id', user.id);
+        
+      if (data) {
+        setEnrolledCourseIds(data.map(item => item.course_id));
       }
+    };
+    
+    fetchEnrolledCourses();
+  }, [user]);
+
+  const { data: upcomingClasses, isLoading } = useQuery<ClassSession[]>({
+    queryKey: ['upcoming-classes', enrolledCourseIds],
+    queryFn: async () => {
+      if (!enrolledCourseIds.length || !user) return [];
+      
+      // Fetch upcoming classes directly from the class_sessions table
+      const { data, error } = await supabase
+        .from('class_sessions')
+        .select(`
+          *,
+          courses:course_id (title)
+        `)
+        .in('course_id', enrolledCourseIds)
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true })
+        .limit(5);
+        
+      if (error) {
+        console.error("Error fetching upcoming classes:", error);
+        throw error;
+      }
+
+      // Process data to include the course title
+      return data.map(session => ({
+        ...session,
+        course_title: session.courses.title
+      })) || [];
     },
-    enabled: !!user?.id,
+    enabled: enrolledCourseIds.length > 0 && !!user,
   });
 
-  const handleJoinClass = async (session: ClassSession) => {
-    setAttendingClass(session.id);
-    try {
-      // Record attendance
-      await CourseEnrollmentService.recordClassAttendance(
-        user!.id,
-        session.course_id,
-        session.id
-      );
-      
-      // Open the meeting link in a new tab
-      window.open(session.meeting_link, "_blank");
-    } finally {
-      setAttendingClass(null);
-    }
-  };
-
-  // Check if a session is within 15 minutes of starting
   const isSessionActive = (startTime: string) => {
-    const sessionStart = new Date(startTime);
     const now = new Date();
-    const diffMinutes = (sessionStart.getTime() - now.getTime()) / (1000 * 60);
-    return diffMinutes <= 15 && diffMinutes >= -60; // Active 15 minutes before until 60 minutes after start
+    const sessionStart = new Date(startTime);
+    // Session is active 15 minutes before start time
+    const diffMs = sessionStart.getTime() - now.getTime();
+    const diffMinutes = Math.floor(diffMs / 1000 / 60);
+    return diffMinutes <= 15 && diffMinutes >= -120; // Active 15 minutes before until 2 hours after
   };
 
   if (isLoading) {
@@ -97,12 +87,9 @@ const LiveClassSchedule = () => {
         <CardHeader>
           <CardTitle>Upcoming Live Classes</CardTitle>
         </CardHeader>
-        <CardContent>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="mb-4 last:mb-0">
-              <Skeleton className="h-20 w-full" />
-            </div>
-          ))}
+        <CardContent className="space-y-4">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
         </CardContent>
       </Card>
     );
@@ -111,64 +98,66 @@ const LiveClassSchedule = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Video className="h-5 w-5" />
-          Upcoming Live Classes
-        </CardTitle>
+        <CardTitle>Upcoming Live Classes</CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        {!classSessions || classSessions.length === 0 ? (
-          <div className="text-center py-8">
-            <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-700">No upcoming classes</h3>
-            <p className="text-gray-500">You don't have any scheduled live classes</p>
-          </div>
-        ) : (
-          <div className="divide-y">
-            {classSessions.map((session) => (
-              <div key={session.id} className="p-4 flex flex-col md:flex-row md:items-center gap-4">
-                <div className="flex items-center flex-1 gap-3">
-                  <img
-                    src={session.image_url || "/placeholder.svg"}
-                    alt={session.course_title}
-                    className="w-12 h-12 object-cover rounded"
-                  />
-                  <div>
-                    <h4 className="font-medium line-clamp-1">{session.course_title}</h4>
-                    <p className="text-sm text-gray-700">{session.topic}</p>
-                    <p className="text-xs text-gray-500">{session.instructor_name}</p>
-                  </div>
+      <CardContent>
+        {upcomingClasses && upcomingClasses.length > 0 ? (
+          <div className="space-y-4">
+            {upcomingClasses.map((session) => (
+              <div key={session.id} className="border rounded-md p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium">{session.topic || "Class Session"}</h3>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    isSessionActive(session.start_time)
+                      ? "bg-green-100 text-green-800"
+                      : "bg-blue-100 text-blue-800"
+                  }`}>
+                    {isSessionActive(session.start_time) ? "Active" : "Upcoming"}
+                  </span>
                 </div>
-
-                <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-                  <div className="text-sm">
-                    <div className="flex items-center gap-1 text-gray-700">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{formatDate(session.start_time)}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-gray-500 mt-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{formatDistanceToNow(new Date(session.start_time))}</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    disabled={!isSessionActive(session.start_time) || attendingClass === session.id}
-                    onClick={() => handleJoinClass(session)}
-                    variant={isSessionActive(session.start_time) ? "default" : "outline"}
-                    className="md:w-auto whitespace-nowrap"
-                  >
-                    {attendingClass === session.id ? "Joining..." : "Join Class"}
-                  </Button>
+                
+                <p className="text-sm text-gray-600 mb-3">
+                  {session.course_title}
+                </p>
+                
+                <div className="flex items-center text-gray-500 text-xs mb-3">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  <span>{formatDate(session.start_time)}</span>
+                  <Clock className="w-4 h-4 ml-2 mr-1" />
+                  <span>
+                    {new Date(session.start_time).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    -{" "}
+                    {new Date(session.end_time).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
+                
+                <Button
+                  className="w-full"
+                  disabled={!isSessionActive(session.start_time)}
+                  onClick={() => {
+                    if (session.meeting_link) window.open(session.meeting_link, '_blank');
+                  }}
+                >
+                  <Monitor className="mr-2 h-4 w-4" />
+                  {isSessionActive(session.start_time) ? "Join Class" : "Class Not Active Yet"}
+                </Button>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Monitor className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-gray-700">No upcoming classes</h3>
+            <p className="text-gray-500">There are no scheduled live sessions at this time</p>
           </div>
         )}
       </CardContent>
     </Card>
   );
-};
-
-export default LiveClassSchedule;
+}
