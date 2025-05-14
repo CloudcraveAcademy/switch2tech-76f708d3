@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -162,4 +161,5 @@ export function LiveClassSchedule() {
   );
 }
 
+export { LiveClassSchedule };
 export default LiveClassSchedule;

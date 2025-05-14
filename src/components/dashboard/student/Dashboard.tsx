@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-import DashboardStats from "./dashboard/DashboardStats";
+import { DashboardStats } from "./dashboard/DashboardStats";
 import EnrolledCourses from "./dashboard/EnrolledCourses";
 import UpcomingLiveClasses from "./dashboard/UpcomingLiveClasses";
-import Announcements from "./dashboard/Announcements";
+import { Announcements } from "./dashboard/Announcements";
 
 const Dashboard = () => {
   const { user } = useAuth();
