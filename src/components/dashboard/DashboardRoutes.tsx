@@ -1,7 +1,7 @@
 
 import { Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
-import StudentDashboard from "./StudentDashboard";
+import StudentDashboard from "./student/Dashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
 import Profile from "./Profile";
@@ -40,6 +40,7 @@ const DashboardRoutes = () => {
   const studentRoutesFragment = (
     <>
       <Route path="/certificates" element={<Certificates />} />
+      <Route path="/courses/:courseId" element={<CourseView />} />
     </>
   );
 
@@ -87,7 +88,6 @@ const DashboardRoutes = () => {
       
       {/* Student and Instructor Routes */}
       <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
-      <Route path="/courses/:courseId" element={<CourseView />} />
       
       {/* Role-specific routes - conditionally rendered */}
       {currentRole === "student" && studentRoutesFragment}

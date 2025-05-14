@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDate, calculateTimeToComplete } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import { CourseEnrollmentService } from "@/services/CourseEnrollmentService";
 import {
   BookOpen,
   FileText,
@@ -64,126 +65,205 @@ interface CourseData {
 const CourseView = () => {
   const { courseId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
+  const [lessonProgress, setLessonProgress] = useState<Record<string, boolean>>({});
 
   // Fetch course data from Supabase
-  const { data: course, isLoading } = useQuery({
+  const { data: course, isLoading, refetch } = useQuery({
     queryKey: ['course-details', courseId],
     queryFn: async () => {
-      // This would be a real Supabase query in a production app
-      // For now, let's return mock data
+      if (!courseId) throw new Error("Course ID is required");
       
-      // Mock course data
-      const mockCourse: CourseData = {
-        id: courseId || "mock-id",
-        title: "Full Stack Web Development Bootcamp",
-        description: "Master the latest technologies in web development with our comprehensive bootcamp covering frontend, backend, and deployment.",
-        image_url: "/placeholder.svg",
-        level: "intermediate",
-        duration_hours: 42,
-        progress: 35,
-        instructor: {
-          id: "inst-1",
-          first_name: "Alex",
-          last_name: "Johnson",
-          avatar_url: ""
-        },
-        lessons: [
-          {
-            id: "lesson-1",
-            title: "Introduction to Web Development",
-            duration_minutes: 45,
-            order_number: 1,
-            video_url: "https://example.com/video1",
-            content: "In this lesson, we'll cover the basics of web development and set up our development environment.",
-            completed: true
-          },
-          {
-            id: "lesson-2",
-            title: "HTML & CSS Fundamentals",
-            duration_minutes: 60,
-            order_number: 2,
-            video_url: "https://example.com/video2",
-            content: "Learn the core building blocks of web pages and how to style them effectively.",
-            completed: true
-          },
-          {
-            id: "lesson-3",
-            title: "JavaScript Essentials",
-            duration_minutes: 75,
-            order_number: 3,
-            video_url: "https://example.com/video3",
-            content: "Master the fundamentals of JavaScript programming and DOM manipulation.",
-            completed: false
-          },
-          {
-            id: "lesson-4",
-            title: "React Fundamentals",
-            duration_minutes: 90,
-            order_number: 4,
-            video_url: "https://example.com/video4",
-            content: "Build interactive UIs with React's component-based architecture.",
-            completed: false
-          }
-        ],
-        assignments: [
-          {
-            id: "assignment-1",
-            title: "Portfolio Website",
-            description: "Create a personal portfolio website using HTML, CSS and JavaScript",
-            due_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(), // 7 days from now
-            completed: false
-          },
-          {
-            id: "assignment-2",
-            title: "React To-Do App",
-            description: "Build a todo application with React and state management",
-            due_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(), // 14 days from now
-            completed: false
-          }
-        ],
-        materials: [
-          {
-            id: "material-1",
-            title: "Web Development Roadmap 2025",
-            file_url: "/files/roadmap.pdf",
-            file_type: "pdf"
-          },
-          {
-            id: "material-2",
-            title: "JavaScript Cheatsheet",
-            file_url: "/files/javascript-cheatsheet.pdf",
-            file_type: "pdf"
-          },
-          {
-            id: "material-3",
-            title: "CSS Grid Examples",
-            file_url: "/files/css-grid-examples.zip",
-            file_type: "zip"
-          }
-        ]
-      };
+      try {
+        // Fetch course details
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select(`
+            id,
+            title,
+            description,
+            image_url,
+            level,
+            duration_hours,
+            instructor_id,
+            instructor:user_profiles!instructor_id (
+              id,
+              first_name,
+              last_name,
+              avatar_url
+            )
+          `)
+          .eq('id', courseId)
+          .single();
 
-      // Set the first lesson as active by default
-      if (mockCourse.lessons.length > 0 && !activeLesson) {
-        setActiveLesson(mockCourse.lessons[0].id);
+        if (courseError) throw courseError;
+        
+        // Fetch lessons
+        const { data: lessonsData, error: lessonsError } = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('course_id', courseId)
+          .order('order_number', { ascending: true });
+
+        if (lessonsError) throw lessonsError;
+        
+        // Fetch assignments
+        const { data: assignmentsData, error: assignmentsError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('course_id', courseId)
+          .order('due_date', { ascending: true });
+          
+        if (assignmentsError) throw assignmentsError;
+        
+        // Fetch materials
+        const { data: materialsData, error: materialsError } = await supabase
+          .from('course_materials')
+          .select('*')
+          .eq('course_id', courseId);
+          
+        if (materialsError) {
+          console.error("Error fetching materials: ", materialsError);
+          materialsData = [];
+        }
+        
+        // Fetch enrollment data if user is logged in
+        let progress = 0;
+        if (user) {
+          const { data: enrollmentData } = await supabase
+            .from('enrollments')
+            .select('progress')
+            .eq('course_id', courseId)
+            .eq('student_id', user.id)
+            .single();
+            
+          if (enrollmentData) {
+            progress = enrollmentData.progress;
+          }
+        }
+        
+        // Construct full course object with related data
+        const fullCourse = {
+          id: courseData.id,
+          title: courseData.title,
+          description: courseData.description || '',
+          image_url: courseData.image_url,
+          level: courseData.level || 'beginner',
+          duration_hours: courseData.duration_hours || 0,
+          progress: progress,
+          instructor: {
+            id: courseData.instructor.id,
+            first_name: courseData.instructor.first_name || '',
+            last_name: courseData.instructor.last_name || '',
+            avatar_url: courseData.instructor.avatar_url || '',
+          },
+          lessons: lessonsData.map(lesson => ({
+            id: lesson.id,
+            title: lesson.title,
+            duration_minutes: lesson.duration_minutes || 30,
+            order_number: lesson.order_number,
+            video_url: lesson.video_url || '',
+            content: lesson.content || '',
+            completed: false // Will be updated from state
+          })),
+          assignments: assignmentsData.map(assignment => ({
+            id: assignment.id,
+            title: assignment.title,
+            description: assignment.description || '',
+            due_date: assignment.due_date,
+            completed: false // Placeholder, will be updated if needed
+          })),
+          materials: (materialsData || []).map(material => ({
+            id: material.id,
+            title: material.title || 'Course Material',
+            file_url: material.file_url || '#',
+            file_type: material.file_type || 'pdf'
+          }))
+        };
+
+        return fullCourse;
+      } catch (error) {
+        console.error("Error fetching course:", error);
+        toast({
+          title: "Error loading course",
+          description: "There was a problem loading the course content",
+          variant: "destructive",
+        });
+        throw error;
       }
-      
-      return mockCourse;
     },
     enabled: !!courseId,
   });
 
+  // Fetch lesson progress for logged-in user
+  useEffect(() => {
+    const fetchLessonProgress = async () => {
+      if (user && courseId) {
+        const progress = await CourseEnrollmentService.getStudentCourseLessonProgress(user.id, courseId);
+        setLessonProgress(progress);
+      }
+    };
+
+    fetchLessonProgress();
+  }, [user, courseId]);
+
+  // Set first lesson as active by default
+  useEffect(() => {
+    if (course?.lessons.length > 0 && !activeLesson) {
+      setActiveLesson(course.lessons[0].id);
+    }
+  }, [course, activeLesson]);
+
+  // Mark lesson as completed
+  const markLessonComplete = async (lessonId: string) => {
+    if (!user || !courseId) return;
+    
+    try {
+      const success = await CourseEnrollmentService.trackLessonProgress(user.id, courseId, lessonId);
+      
+      if (success) {
+        // Update local state
+        setLessonProgress(prev => ({
+          ...prev,
+          [lessonId]: true
+        }));
+        
+        // Refetch course data to update progress
+        refetch();
+        
+        toast({
+          title: "Progress Saved",
+          description: "Your lesson progress has been recorded",
+        });
+      }
+    } catch (error) {
+      console.error("Error marking lesson complete:", error);
+    }
+  };
+
   // Calculate next lesson
-  const nextLesson = course?.lessons.find(lesson => !lesson.completed);
+  const nextLesson = course?.lessons.find(lesson => !lessonProgress[lesson.id]);
 
   // Determine if the course is complete
-  const isCompleted = course?.lessons.every(lesson => lesson.completed);
+  const isCompleted = course?.lessons.every(lesson => lessonProgress[lesson.id]);
 
   if (isLoading || !course) {
     return (
       <div className="container max-w-6xl mx-auto p-6">
-        <p>Loading course content...</p>
+        <div className="space-y-4">
+          <div className="flex items-center mb-2">
+            <div className="w-32 h-4 bg-gray-200 rounded"></div>
+            <div className="mx-2">/</div>
+            <div className="w-48 h-4 bg-gray-200 rounded"></div>
+          </div>
+          <div className="w-full h-8 bg-gray-200 rounded"></div>
+          <div className="w-3/4 h-4 bg-gray-200 rounded"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="order-2 lg:order-1 w-full h-64 bg-gray-200 rounded"></div>
+            <div className="order-1 lg:order-2 lg:col-span-2 w-full h-96 bg-gray-200 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -253,7 +333,7 @@ const CourseView = () => {
                 Course Content
               </CardTitle>
               <CardDescription>
-                {course.lessons.filter(l => l.completed).length} of {course.lessons.length} lessons completed
+                {course.lessons.filter(l => lessonProgress[l.id]).length} of {course.lessons.length} lessons completed
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -267,9 +347,9 @@ const CourseView = () => {
                   >
                     <div className="flex items-start">
                       <div className={`flex-shrink-0 mr-3 mt-1 h-5 w-5 rounded-full flex items-center justify-center ${
-                        lesson.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
+                        lessonProgress[lesson.id] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
                       }`}>
-                        {lesson.completed ? (
+                        {lessonProgress[lesson.id] ? (
                           <CheckSquare className="h-3 w-3" />
                         ) : (
                           <span className="text-xs">{lesson.order_number}</span>
@@ -299,21 +379,27 @@ const CourseView = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-3">
-                {course.materials.map((material) => (
-                  <li key={material.id}>
-                    <Button variant="outline" className="w-full justify-start" asChild>
-                      <a href={material.file_url} download target="_blank" rel="noreferrer">
-                        <FileText className="h-4 w-4 mr-2" />
-                        {material.title}
-                        <Badge variant="outline" className="ml-2">
-                          {material.file_type}
-                        </Badge>
-                      </a>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+              {course.materials && course.materials.length > 0 ? (
+                <ul className="space-y-3">
+                  {course.materials.map((material) => (
+                    <li key={material.id}>
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <a href={material.file_url} download target="_blank" rel="noreferrer">
+                          <FileText className="h-4 w-4 mr-2" />
+                          {material.title}
+                          <Badge variant="outline" className="ml-2">
+                            {material.file_type}
+                          </Badge>
+                        </a>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">No materials available for this course</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -343,11 +429,22 @@ const CourseView = () => {
                   {course.lessons.filter(l => l.id === activeLesson).map(lesson => (
                     <div key={lesson.id} className="space-y-4">
                       <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                        {/* This would be a real video player in production */}
-                        <div className="text-center">
-                          <PlayCircle className="h-16 w-16 text-gray-400 mx-auto" />
-                          <p className="mt-2 text-gray-500">Video Player: {lesson.title}</p>
-                        </div>
+                        {lesson.video_url ? (
+                          <div className="w-full h-full">
+                            <iframe 
+                              src={lesson.video_url} 
+                              className="w-full h-full" 
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                              allowFullScreen
+                              title={lesson.title}
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <PlayCircle className="h-16 w-16 text-gray-400 mx-auto" />
+                            <p className="mt-2 text-gray-500">Video Player: {lesson.title}</p>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
@@ -365,12 +462,11 @@ const CourseView = () => {
                       </div>
                       
                       <div className="prose max-w-none">
-                        <p>{lesson.content}</p>
-                        {/* This would contain the full lesson content in production */}
-                        <p className="mt-4">
-                          This is a placeholder for the full lesson content. In a real application, 
-                          this would contain rich text content with formatting, code examples, images, etc.
-                        </p>
+                        {lesson.content ? (
+                          <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
+                        ) : (
+                          <p>This is a placeholder for the lesson content.</p>
+                        )}
                       </div>
                       
                       <div className="pt-4 flex justify-between">
@@ -389,16 +485,38 @@ const CourseView = () => {
                         )}
                         
                         {lesson.order_number < course.lessons.length ? (
+                          <div className="flex gap-2">
+                            {!lessonProgress[lesson.id] && (
+                              <Button
+                                variant="outline"
+                                onClick={() => markLessonComplete(lesson.id)}
+                              >
+                                Mark as Complete
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => {
+                                const nextLesson = course.lessons.find(l => l.order_number === lesson.order_number + 1);
+                                if (nextLesson) {
+                                  setActiveLesson(nextLesson.id);
+                                  if (!lessonProgress[lesson.id]) {
+                                    markLessonComplete(lesson.id);
+                                  }
+                                }
+                              }}
+                            >
+                              Next Lesson
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
                             onClick={() => {
-                              const nextLesson = course.lessons.find(l => l.order_number === lesson.order_number + 1);
-                              if (nextLesson) setActiveLesson(nextLesson.id);
+                              markLessonComplete(lesson.id);
+                              navigate('/dashboard/my-courses');
                             }}
                           >
-                            Next Lesson
+                            Complete Course
                           </Button>
-                        ) : (
-                          <Button>Complete Course</Button>
                         )}
                       </div>
                     </div>
