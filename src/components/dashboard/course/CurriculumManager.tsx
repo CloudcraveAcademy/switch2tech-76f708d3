@@ -142,6 +142,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         
         console.log("Next order number:", nextOrder);
         
+        // Check auth session before insert
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log("Current auth session:", sessionData?.session ? "Authenticated" : "Not authenticated");
+        
         // Insert new lesson - explicitly naming all columns
         const { data, error: insertError } = await supabase
           .from("lessons")
@@ -203,6 +207,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       if (isNaN(duration) || duration <= 0) {
         throw new Error("Duration must be a positive number");
       }
+      
+      // Check auth session before update
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log("Current auth session for update:", sessionData?.session ? "Authenticated" : "Not authenticated");
       
       const { error } = await supabase
         .from("lessons")
@@ -327,6 +335,31 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
 
   const testDirectInsert = async () => {
     try {
+      // Get current user session
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log("Auth session for test insert:", sessionData?.session ? "Authenticated" : "Not authenticated");
+      
+      // Check instructor permissions
+      if (currentUserId !== currentCourseInstructor) {
+        toast({
+          title: "Permission Denied",
+          description: "Only the course instructor can add lessons",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Get next order number
+      const { data: currentLessons } = await supabase
+        .from("lessons")
+        .select("order_number")
+        .eq("course_id", courseId)
+        .order("order_number", { ascending: false });
+        
+      const nextOrder = (currentLessons && currentLessons.length > 0) 
+        ? (currentLessons[0]?.order_number || 0) + 1 
+        : 999;
+      
       // Direct insert test
       const { data, error } = await supabase
         .from("lessons")
@@ -335,7 +368,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           title: "Test Lesson (Direct)",
           content: "This is a test lesson",
           duration_minutes: 30,
-          order_number: 999,
+          order_number: nextOrder,
         })
         .select();
         

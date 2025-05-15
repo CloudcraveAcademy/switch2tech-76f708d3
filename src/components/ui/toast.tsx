@@ -1,4 +1,6 @@
 
+"use client"
+
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -120,7 +122,7 @@ export interface ToastPropsCustom {
   title?: string;
   description?: string;
   variant?: "default" | "destructive";
-  duration?: number;
+  action?: ToastActionElement;
 }
 
 export {
