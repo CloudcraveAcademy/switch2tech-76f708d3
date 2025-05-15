@@ -1,21 +1,16 @@
 
-import React from "react";
-import Navbar from "./Navbar";
-import Footer from "./Footer";
+import React from 'react';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { Toaster } from "sonner";
 
-interface LayoutProps {
-  children: React.ReactNode;
-  withPadding?: boolean;
-}
-
-const Layout: React.FC<LayoutProps> = ({ children, withPadding = true }) => {
+const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className={`flex-grow ${withPadding ? 'pt-16 px-4 md:px-6 lg:px-8' : ''}`}>
-        {children}
-      </main>
+      <div className="flex-grow">{children}</div>
       <Footer />
+      <Toaster position="top-right" closeButton />
     </div>
   );
 };

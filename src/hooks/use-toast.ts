@@ -1,15 +1,28 @@
 
-// Explicitly import types from toast component
+// Import types from toast component
 import { type ToastActionElement, ToastProps } from "@/components/ui/toast";
+import { toast as toastSonner } from "sonner";
 
-// Import the toast functionality from the Toaster component
-import { useToast as useToastOriginal } from "@/components/ui/toaster";
-
-// Create toast function
-const toast = ({ ...props }: ToastProps & { action?: ToastActionElement }) => {
-  const { toast } = useToastOriginal();
-  return toast(props);
+type ToastPropsCustom = {
+  title?: string;
+  description?: string;
+  variant?: "default" | "destructive";
+  action?: ToastActionElement;
 };
 
-// Export with proper types
-export { toast, useToastOriginal as useToast };
+// Create toast function with our custom interface
+const toast = ({ ...props }: ToastPropsCustom) => {
+  if (props.variant === "destructive") {
+    return toastSonner.error(props.title, {
+      description: props.description,
+      action: props.action
+    });
+  }
+  
+  return toastSonner(props.title, {
+    description: props.description,
+    action: props.action
+  });
+};
+
+export { toast, toast as useToast };
