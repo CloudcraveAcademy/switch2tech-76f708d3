@@ -1,13 +1,15 @@
 
-// Import the toast-related functions from the correct components
-import { useToast as useToastPrimitive } from "@/components/ui/toaster";
+// Explicitly import types from toast component
 import { type ToastActionElement, ToastProps } from "@/components/ui/toast";
+
+// Import the toast functionality from the Toaster component
+import { useToast as useToastOriginal } from "@/components/ui/toaster";
 
 // Create toast function
 const toast = ({ ...props }: ToastProps & { action?: ToastActionElement }) => {
-  const { toast } = useToastPrimitive();
+  const { toast } = useToastOriginal();
   return toast(props);
 };
 
 // Export with proper types
-export { toast, useToastPrimitive as useToast };
+export { toast, useToastOriginal as useToast };

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, BookOpen, Plus, Edit, Trash2, Move } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface Lesson {
   id: string;
@@ -67,6 +67,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
   const { data: lessons, isLoading } = useQuery<Lesson[]>({
     queryKey: ["lessons", courseId],
     queryFn: async () => {
+      console.log("Fetching lessons for courseId:", courseId);
       const { data, error } = await supabase
         .from("lessons")
         .select("*")
@@ -75,7 +76,11 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
 
       if (error) {
         console.error("Error fetching lessons:", error);
-        toast.error(error.message || "Could not load lessons");
+        toast({
+          title: "Error",
+          variant: "destructive",
+          description: error.message || "Could not load lessons"
+        });
         throw error;
       }
 
@@ -91,21 +96,27 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
   ) => {
     const duration = Number(lesson.duration_minutes);
     if (!id) {
-      toast.info(
-        `Attempting to insert lesson. Your user id: ${currentUserId}, Course instructor_id: ${currentCourseInstructor}`
-      );
+      toast({
+        title: "Adding lesson",
+        description: `Attempting to insert lesson. Your user id: ${currentUserId}, Course instructor_id: ${currentCourseInstructor}`
+      });
       if (currentUserId !== currentCourseInstructor) {
-        toast.error(
-          `You are not the instructor for this course. Only the instructor can add lessons.
-          Your id: ${currentUserId}, Instructor id: ${currentCourseInstructor}`
-        );
+        toast({
+          title: "Permission Error",
+          variant: "destructive",
+          description: `You are not the instructor for this course. Only the instructor can add lessons. Your id: ${currentUserId}, Instructor id: ${currentCourseInstructor}`
+        });
         throw new Error(
           `You are not the instructor for this course. Only the instructor can add lessons.`
         );
       }
     }
     if (!lesson.title.trim() || !lesson.duration_minutes || isNaN(duration)) {
-      toast.error("Title and a valid duration are required");
+      toast({
+        title: "Validation Error",
+        variant: "destructive",
+        description: "Title and a valid duration are required"
+      });
       throw new Error("Title and valid duration are required");
     }
     if (id) {
@@ -120,11 +131,18 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         .eq("id", id);
       if (error) {
         console.error("Error updating lesson:", error);
-        toast.error(error.message || "Could not update lesson");
+        toast({
+          title: "Update Failed",
+          variant: "destructive",
+          description: error.message || "Could not update lesson"
+        });
         throw error;
       }
       console.log("Lesson updated: ", id);
-      toast.success("Lesson updated!");
+      toast({
+        title: "Success",
+        description: "Lesson updated!"
+      });
     } else {
       const { data: currentLessons, error: orderErr } = await supabase
         .from("lessons")
@@ -133,7 +151,11 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         .order("order_number", { ascending: true });
       if (orderErr) {
         console.error("Error fetching lessons for order:", orderErr);
-        toast.error(orderErr.message || "Could not determine lesson order");
+        toast({
+          title: "Error",
+          variant: "destructive",
+          description: orderErr.message || "Could not determine lesson order"
+        });
         throw orderErr;
       }
       const nextOrder = currentLessons ? currentLessons.length + 1 : 1;
@@ -147,9 +169,11 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       }).select();
 
       if (error) {
-        toast.error(
-          `Insert failed: ${error.message || "Could not add lesson"} (User: ${currentUserId}, Instructor: ${currentCourseInstructor})`
-        );
+        toast({
+          title: "Insert Failed",
+          variant: "destructive",
+          description: `Insert failed: ${error.message || "Could not add lesson"} (User: ${currentUserId}, Instructor: ${currentCourseInstructor})`
+        });
         console.error("Error adding lesson:", error, {
           currentUserId,
           currentCourseInstructor,
@@ -159,11 +183,18 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         throw error;
       }
       if (!data) {
-        toast.error("Failed to add lesson: No data returned");
+        toast({
+          title: "Error",
+          variant: "destructive",
+          description: "Failed to add lesson: No data returned"
+        });
         console.warn("Insert did not return data; check RLS or required fields");
       } else {
         console.log("Lesson added:", data);
-        toast.success("Lesson added!");
+        toast({
+          title: "Success",
+          description: "Lesson added!"
+        });
       }
     }
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
@@ -174,7 +205,18 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       .from("lessons")
       .delete()
       .eq("id", lessonId);
-    if (error) throw error;
+    if (error) {
+      toast({
+        title: "Delete Failed",
+        variant: "destructive",
+        description: error.message || "Could not delete lesson"
+      });
+      throw error;
+    }
+    toast({
+      title: "Success",
+      description: "Lesson deleted!"
+    });
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
 
@@ -192,7 +234,18 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       .from("lessons")
       .update({ order_number: l1.order_number })
       .eq("id", l2.id);
-    if (err1 || err2) throw err1 || err2;
+    if (err1 || err2) {
+      toast({
+        title: "Move Failed",
+        variant: "destructive",
+        description: (err1 || err2)?.message || "Could not reorder lessons"
+      });
+      throw err1 || err2;
+    }
+    toast({
+      title: "Success",
+      description: "Lesson order updated!"
+    });
     queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
   };
 
@@ -219,7 +272,11 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     },
     onSuccess: () => {},
     onError: (error: any) => {
-      toast.error(error.message || String(error));
+      toast({
+        title: "Error",
+        variant: "destructive",
+        description: error.message || String(error)
+      });
     },
   });
 
@@ -231,7 +288,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         const { id, course_id, order_number, ...lessonData } = editingLesson;
         await saveLesson(lessonData, editingLesson.id);
         setEditingLesson(null);
-        toast.success("Lesson updated!");
+        toast({
+          title: "Success",
+          description: "Lesson updated!"
+        });
       } else {
         await saveLesson(newLesson);
         setNewLesson({
@@ -240,18 +300,23 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           content: "",
           video_url: "",
         });
-        toast.success("Lesson added!");
+        toast({
+          title: "Success",
+          description: "Lesson added!"
+        });
         if (onLessonAdded) onLessonAdded();
       }
       queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
     } catch (e: any) {
       console.error("Save lesson error:", e);
-      toast.error(
-        e?.message ||
+      toast({
+        title: "Error",
+        variant: "destructive",
+        description: e?.message ||
           (editingLesson
             ? "Could not update lesson."
             : "Could not add lesson.")
-      );
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -270,7 +335,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           size="sm"
           onClick={() => {
             console.log("=== DEBUG (lessons):", lessons);
-            toast("Debug: lessons printed to console");
+            toast({
+              title: "Debug",
+              description: "Lessons printed to console"
+            });
           }}
           className="mt-1"
         >
