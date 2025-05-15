@@ -107,9 +107,9 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
   });
 
   const createLessonMutation = useMutation({
-    mutationFn: async (lesson: LessonFormState) => {
+    mutationFn: async (lessonData: LessonFormState) => {
       try {
-        console.log("Starting lesson creation with data:", lesson);
+        console.log("Starting lesson creation with data:", lessonData);
         
         // Verify permissions
         if (currentUserId !== currentCourseInstructor) {
@@ -117,7 +117,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           throw new Error("Only the course instructor can add lessons");
         }
 
-        const duration = Number(lesson.duration_minutes);
+        const duration = Number(lessonData.duration_minutes);
         
         if (isNaN(duration) || duration <= 0) {
           throw new Error("Duration must be a positive number");
@@ -151,10 +151,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           .from("lessons")
           .insert({
             course_id: courseId,
-            title: lesson.title,
+            title: lessonData.title,
             duration_minutes: duration,
-            content: lesson.content || "",
-            video_url: lesson.video_url || null,
+            content: lessonData.content || "",
+            video_url: lessonData.video_url || null,
             order_number: nextOrder,
           })
           .select();
@@ -165,10 +165,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
             error: insertError,
             payload: {
               course_id: courseId,
-              title: lesson.title,
+              title: lessonData.title,
               duration_minutes: duration,
-              content: lesson.content || "",
-              video_url: lesson.video_url || null,
+              content: lessonData.content || "",
+              video_url: lessonData.video_url || null,
               order_number: nextOrder,
             }
           });
@@ -190,6 +190,14 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       });
       queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
       if (onLessonAdded) onLessonAdded();
+      
+      // Reset form
+      setNewLesson({
+        title: "",
+        duration_minutes: "",
+        content: "",
+        video_url: "",
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -317,12 +325,11 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         setEditingLesson(null);
       } else {
         console.log("Submitting new lesson:", newLesson);
-        await createLessonMutation.mutateAsync(newLesson);
-        setNewLesson({
-          title: "",
-          duration_minutes: "",
-          content: "",
-          video_url: "",
+        await createLessonMutation.mutateAsync({
+          title: newLesson.title,
+          duration_minutes: newLesson.duration_minutes,
+          content: newLesson.content,
+          video_url: newLesson.video_url
         });
       }
     } catch (error) {
