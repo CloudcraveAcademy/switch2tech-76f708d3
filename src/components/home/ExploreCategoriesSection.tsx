@@ -1,4 +1,3 @@
-
 import { Code, Shield, Database, Cloud, Smartphone, ArrowRight, Settings, PenTool, BookOpen, Folder } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCategories, Category } from "@/hooks/useCategories";

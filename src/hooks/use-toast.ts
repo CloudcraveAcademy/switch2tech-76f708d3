@@ -25,4 +25,9 @@ const toast = ({ ...props }: ToastPropsCustom) => {
   });
 };
 
-export { toast, toast as useToast };
+// Export both the toast function and a useToast hook that returns an object with toast
+const useToast = () => {
+  return { toast };
+};
+
+export { toast, useToast };
