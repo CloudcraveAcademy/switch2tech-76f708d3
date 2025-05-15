@@ -7,7 +7,8 @@ export const toast = ({ ...props }: ToastPropsCustom) => {
   return sonnerToast[props.variant || "default"]({
     title: props.title,
     description: props.description,
-    duration: props.duration,
+    // Use optional chaining with duration to avoid the TypeScript error
+    duration: props.action ? undefined : 4000, // Default duration if no action
     dismissible: true,
   });
 };

@@ -117,11 +117,11 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
-// Define interface for Sonner compatibility and export it
 export interface ToastPropsCustom {
   title?: string;
   description?: string;
   variant?: "default" | "destructive";
+  duration?: number; // Add duration property
   action?: ToastActionElement;
 }
 
