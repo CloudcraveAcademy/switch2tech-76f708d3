@@ -33,7 +33,7 @@ interface CurriculumManagerProps {
 
 export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManagerProps) {
   const queryClient = useQueryClient();
-  const [editingLesson, setEditingLesson] = useState<(LessonFormState & { id: string; course_id: string; order_number: number }) | null>(null);
+  const [editingLesson, setEditingLesson] = useState<(Lesson & { duration_minutes: string }) | null>(null);
   const [newLesson, setNewLesson] = useState<LessonFormState>({
     title: "",
     duration_minutes: "",
@@ -43,43 +43,49 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentCourseInstructor, setCurrentCourseInstructor] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [insertResponse, setInsertResponse] = useState<any>(null);
 
   useEffect(() => {
-    // Fetch current user id
-    supabase.auth.getUser().then(({ data }) => {
+    // Get current user id
+    const getUserId = async () => {
+      const { data } = await supabase.auth.getUser();
       if (data?.user?.id) {
         setCurrentUserId(data.user.id);
         console.log("Current user ID:", data.user.id);
       }
-    });
-
-    // Fetch course instructor id
-    if (courseId) {
-      supabase
+    };
+    
+    // Get course instructor id
+    const getCourseInstructor = async () => {
+      if (!courseId) return;
+      
+      const { data, error } = await supabase
         .from("courses")
         .select("instructor_id, title")
         .eq("id", courseId)
-        .maybeSingle()
-        .then(({ data, error }) => {
-          if (data?.instructor_id) {
-            setCurrentCourseInstructor(data.instructor_id);
-            console.log("Course instructor ID:", data.instructor_id, "Course title:", data.title);
-          }
-          if (error) {
-            console.error("Error fetching course:", error);
-            toast({
-              title: "Error",
-              description: "Could not fetch course details",
-              variant: "destructive"
-            });
-          }
+        .maybeSingle();
+        
+      if (error) {
+        console.error("Error fetching course:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch course details",
+          variant: "destructive"
         });
-    }
+        return;
+      }
+      
+      if (data?.instructor_id) {
+        setCurrentCourseInstructor(data.instructor_id);
+        console.log("Course instructor ID:", data.instructor_id, "Course title:", data.title);
+      }
+    };
+    
+    getUserId();
+    getCourseInstructor();
   }, [courseId]);
 
-  const { data: lessons, isLoading, error, refetch } = useQuery({
+  // Fetch lessons for the course
+  const { data: lessons, isLoading, refetch } = useQuery({
     queryKey: ["lessons", courseId],
     queryFn: async () => {
       console.log("Fetching lessons for courseId:", courseId);
@@ -91,7 +97,6 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
 
       if (error) {
         console.error("Error fetching lessons:", error);
-        setErrorMessage(`Fetch error: ${error.message}`);
         toast({
           title: "Error",
           description: `Could not load lessons: ${error.message}`,
@@ -106,82 +111,53 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     enabled: !!courseId,
   });
 
+  // Create lesson mutation
   const createLessonMutation = useMutation({
     mutationFn: async (lessonData: LessonFormState) => {
-      try {
-        console.log("Starting lesson creation with data:", lessonData);
-        
-        // Verify permissions
-        if (currentUserId !== currentCourseInstructor) {
-          console.error("Permission denied:", { currentUserId, currentCourseInstructor });
-          throw new Error("Only the course instructor can add lessons");
-        }
-
-        const duration = Number(lessonData.duration_minutes);
-        
-        if (isNaN(duration) || duration <= 0) {
-          throw new Error("Duration must be a positive number");
-        }
-
-        // Get current highest order number
-        const { data: currentLessons, error: queryError } = await supabase
-          .from("lessons")
-          .select("order_number")
-          .eq("course_id", courseId)
-          .order("order_number", { ascending: false });
-          
-        if (queryError) {
-          console.error("Error fetching current lessons:", queryError);
-          throw new Error(`Failed to get lesson order: ${queryError.message}`);
-        }
-        
-        console.log("Current lessons for ordering:", currentLessons);
-        const nextOrder = (currentLessons && currentLessons.length > 0) 
-          ? (currentLessons[0]?.order_number || 0) + 1 
-          : 1;
-        
-        console.log("Next order number:", nextOrder);
-        
-        // Check auth session before insert
-        const { data: sessionData } = await supabase.auth.getSession();
-        console.log("Current auth session:", sessionData?.session ? "Authenticated" : "Not authenticated");
-        
-        // Insert new lesson - explicitly naming all columns
-        const { data, error: insertError } = await supabase
-          .from("lessons")
-          .insert({
-            course_id: courseId,
-            title: lessonData.title,
-            duration_minutes: duration,
-            content: lessonData.content || "",
-            video_url: lessonData.video_url || null,
-            order_number: nextOrder,
-          })
-          .select();
-          
-        if (insertError) {
-          console.error("Insert error:", insertError);
-          setInsertResponse({
-            error: insertError,
-            payload: {
-              course_id: courseId,
-              title: lessonData.title,
-              duration_minutes: duration,
-              content: lessonData.content || "",
-              video_url: lessonData.video_url || null,
-              order_number: nextOrder,
-            }
-          });
-          throw new Error(`Failed to add lesson: ${insertError.message}`);
-        }
-        
-        console.log("Lesson created successfully:", data);
-        setInsertResponse({ success: true, data });
-        return data;
-      } catch (error: any) {
-        console.error("Error saving lesson:", error);
-        throw error;
+      // Check if user is instructor
+      if (currentUserId !== currentCourseInstructor) {
+        throw new Error("Only the course instructor can add lessons");
       }
+
+      // Convert duration to number and validate
+      const duration = Number(lessonData.duration_minutes);
+      if (isNaN(duration) || duration <= 0) {
+        throw new Error("Duration must be a positive number");
+      }
+
+      // Get next order number
+      const { data: currentLessons } = await supabase
+        .from("lessons")
+        .select("order_number")
+        .eq("course_id", courseId)
+        .order("order_number", { ascending: false });
+        
+      const nextOrder = (currentLessons && currentLessons.length > 0) 
+        ? (currentLessons[0]?.order_number || 0) + 1 
+        : 1;
+        
+      console.log("Next order number:", nextOrder);
+      
+      // Insert new lesson
+      const { data, error } = await supabase
+        .from("lessons")
+        .insert({
+          course_id: courseId,
+          title: lessonData.title,
+          duration_minutes: duration,
+          content: lessonData.content || "",
+          video_url: lessonData.video_url || null,
+          order_number: nextOrder,
+        })
+        .select();
+        
+      if (error) {
+        console.error("Insert error:", error);
+        throw new Error(`Failed to add lesson: ${error.message}`);
+      }
+      
+      console.log("Lesson created successfully:", data);
+      return data;
     },
     onSuccess: () => {
       toast({
@@ -208,18 +184,21 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     }
   });
 
+  // Update lesson mutation
   const updateLessonMutation = useMutation({
-    mutationFn: async (lesson: LessonFormState & { id: string }) => {
+    mutationFn: async (lesson: Lesson & { duration_minutes: string }) => {
+      // Check if user is instructor
+      if (currentUserId !== currentCourseInstructor) {
+        throw new Error("Only the course instructor can update lessons");
+      }
+
+      // Convert duration to number and validate
       const duration = Number(lesson.duration_minutes);
-      
       if (isNaN(duration) || duration <= 0) {
         throw new Error("Duration must be a positive number");
       }
       
-      // Check auth session before update
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log("Current auth session for update:", sessionData?.session ? "Authenticated" : "Not authenticated");
-      
+      // Update lesson
       const { error } = await supabase
         .from("lessons")
         .update({
@@ -241,6 +220,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         description: "Lesson updated successfully"
       });
       queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
+      setEditingLesson(null);
     },
     onError: (error: Error) => {
       toast({
@@ -251,6 +231,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     }
   });
 
+  // Move lesson up or down
   const moveLesson = async (direction: "up" | "down", idx: number) => {
     if (!lessons || !lessons.length) return;
     
@@ -280,7 +261,18 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     }
   };
 
+  // Delete lesson
   const deleteLesson = async (lessonId: string) => {
+    // Check if user is instructor
+    if (currentUserId !== currentCourseInstructor) {
+      toast({
+        title: "Permission Denied",
+        description: "Only the course instructor can delete lessons",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const { error } = await supabase.from("lessons").delete().eq("id", lessonId);
       
@@ -309,93 +301,22 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     }
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     try {
       if (editingLesson) {
-        await updateLessonMutation.mutateAsync({
-          id: editingLesson.id,
-          title: editingLesson.title,
-          duration_minutes: editingLesson.duration_minutes,
-          content: editingLesson.content,
-          video_url: editingLesson.video_url
-        });
-        setEditingLesson(null);
+        await updateLessonMutation.mutateAsync(editingLesson);
       } else {
-        console.log("Submitting new lesson:", newLesson);
-        await createLessonMutation.mutateAsync({
-          title: newLesson.title,
-          duration_minutes: newLesson.duration_minutes,
-          content: newLesson.content,
-          video_url: newLesson.video_url
-        });
+        await createLessonMutation.mutateAsync(newLesson);
       }
     } catch (error) {
-      console.error("Form submit error:", error);
+      console.error("Form submission error:", error);
       // Error handling is done in mutation callbacks
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const testDirectInsert = async () => {
-    try {
-      // Get current user session
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log("Auth session for test insert:", sessionData?.session ? "Authenticated" : "Not authenticated");
-      
-      // Check instructor permissions
-      if (currentUserId !== currentCourseInstructor) {
-        toast({
-          title: "Permission Denied",
-          description: "Only the course instructor can add lessons",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Get next order number
-      const { data: currentLessons } = await supabase
-        .from("lessons")
-        .select("order_number")
-        .eq("course_id", courseId)
-        .order("order_number", { ascending: false });
-        
-      const nextOrder = (currentLessons && currentLessons.length > 0) 
-        ? (currentLessons[0]?.order_number || 0) + 1 
-        : 999;
-      
-      // Direct insert test
-      const { data, error } = await supabase
-        .from("lessons")
-        .insert({
-          course_id: courseId,
-          title: "Test Lesson (Direct)",
-          content: "This is a test lesson",
-          duration_minutes: 30,
-          order_number: nextOrder,
-        })
-        .select();
-        
-      if (error) {
-        toast({
-          title: "Test Insert Failed",
-          description: error.message,
-          variant: "destructive"
-        });
-        console.error("Test insert failed:", error);
-      } else {
-        toast({
-          title: "Test Insert Succeeded",
-          description: "A test lesson was created successfully"
-        });
-        console.log("Test insert succeeded:", data);
-        refetch();
-      }
-    } catch (e) {
-      console.error("Exception in test insert:", e);
     }
   };
 
@@ -407,29 +328,6 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           Add, update, or reorder course lessons. These represent the curriculum students follow.
         </div>
         <div className="flex gap-2 mt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              console.log("Debug - Course ID:", courseId);
-              console.log("Debug - Current user:", currentUserId);
-              console.log("Debug - Course instructor:", currentCourseInstructor);
-              console.log("Debug - Lessons:", lessons);
-              console.log("Debug - Error state:", error);
-              console.log("Debug - Error message:", errorMessage);
-              console.log("Debug - Last insert response:", insertResponse);
-              toast({
-                title: "Debug Info",
-                description: "Debug information printed to console"
-              });
-              
-              // Force a refetch to try again
-              refetch();
-            }}
-          >
-            Debug Info
-          </Button>
           <Button 
             type="button" 
             variant="outline" 
@@ -438,14 +336,6 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
             Refresh
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={testDirectInsert}
-          >
-            Test Insert
           </Button>
         </div>
       </CardHeader>
@@ -463,10 +353,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                     ...editingLesson,
                     title: e.target.value,
                   })
-                : setNewLesson((prev) => ({
-                    ...prev,
+                : setNewLesson({
+                    ...newLesson,
                     title: e.target.value,
-                  }))
+                  })
             }
             required
           />
@@ -481,10 +371,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                     ...editingLesson,
                     duration_minutes: e.target.value,
                   })
-                : setNewLesson((prev) => ({
-                    ...prev,
+                : setNewLesson({
+                    ...newLesson,
                     duration_minutes: e.target.value,
-                  }))
+                  })
             }
             required
           />
@@ -498,10 +388,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                     ...editingLesson,
                     content: e.target.value,
                   })
-                : setNewLesson((prev) => ({
-                    ...prev,
+                : setNewLesson({
+                    ...newLesson,
                     content: e.target.value,
-                  }))
+                  })
             }
             required
             rows={3}
@@ -516,10 +406,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                     ...editingLesson,
                     video_url: e.target.value,
                   })
-                : setNewLesson((prev) => ({
-                    ...prev,
+                : setNewLesson({
+                    ...newLesson,
                     video_url: e.target.value,
-                  }))
+                  })
             }
           />
           <div className="col-span-2 flex gap-2">
@@ -573,15 +463,6 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                   : "You are not the instructor"
                 }
               </div>
-              {errorMessage && (
-                <div className="text-xs text-red-500 mt-1">{errorMessage}</div>
-              )}
-              {insertResponse && (
-                <div className="text-xs text-orange-500 mt-1">
-                  Last insert attempt: {insertResponse.success ? "Success" : "Failed"} 
-                  {insertResponse.error && ` - ${insertResponse.error.message}`}
-                </div>
-              )}
             </div>
           </div>
         ) : (
@@ -595,7 +476,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                   <div className="font-semibold">
                     {lesson.order_number}. {lesson.title}{" "}
                     <span className="text-xs text-gray-400 ml-2">
-                      {lesson.duration_minutes ?? 0} min
+                      {lesson.duration_minutes} min
                     </span>
                   </div>
                   <div className="text-gray-600 text-sm line-clamp-2">
@@ -633,7 +514,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                   onClick={() =>
                     setEditingLesson({
                       ...lesson,
-                      duration_minutes: String(lesson.duration_minutes ?? ""),
+                      duration_minutes: String(lesson.duration_minutes || ""),
                     })
                   }
                 >
