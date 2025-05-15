@@ -44,6 +44,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentCourseInstructor, setCurrentCourseInstructor] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [insertResponse, setInsertResponse] = useState<any>(null);
 
   useEffect(() => {
     // Fetch current user id
@@ -108,8 +109,11 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
   const createLessonMutation = useMutation({
     mutationFn: async (lesson: LessonFormState) => {
       try {
+        console.log("Starting lesson creation with data:", lesson);
+        
         // Verify permissions
         if (currentUserId !== currentCourseInstructor) {
+          console.error("Permission denied:", { currentUserId, currentCourseInstructor });
           throw new Error("Only the course instructor can add lessons");
         }
 
@@ -120,16 +124,26 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         }
 
         // Get current highest order number
-        const { data: currentLessons } = await supabase
+        const { data: currentLessons, error: queryError } = await supabase
           .from("lessons")
           .select("order_number")
           .eq("course_id", courseId)
           .order("order_number", { ascending: false });
           
-        const nextOrder = currentLessons?.length ? (currentLessons[0]?.order_number || 0) + 1 : 1;
+        if (queryError) {
+          console.error("Error fetching current lessons:", queryError);
+          throw new Error(`Failed to get lesson order: ${queryError.message}`);
+        }
         
-        // Insert new lesson
-        const { data, error } = await supabase
+        console.log("Current lessons for ordering:", currentLessons);
+        const nextOrder = (currentLessons && currentLessons.length > 0) 
+          ? (currentLessons[0]?.order_number || 0) + 1 
+          : 1;
+        
+        console.log("Next order number:", nextOrder);
+        
+        // Insert new lesson - explicitly naming all columns
+        const { data, error: insertError } = await supabase
           .from("lessons")
           .insert({
             course_id: courseId,
@@ -141,11 +155,24 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           })
           .select();
           
-        if (error) {
-          console.error("Insert error:", error);
-          throw new Error(`Failed to add lesson: ${error.message}`);
+        if (insertError) {
+          console.error("Insert error:", insertError);
+          setInsertResponse({
+            error: insertError,
+            payload: {
+              course_id: courseId,
+              title: lesson.title,
+              duration_minutes: duration,
+              content: lesson.content || "",
+              video_url: lesson.video_url || null,
+              order_number: nextOrder,
+            }
+          });
+          throw new Error(`Failed to add lesson: ${insertError.message}`);
         }
         
+        console.log("Lesson created successfully:", data);
+        setInsertResponse({ success: true, data });
         return data;
       } catch (error: any) {
         console.error("Error saving lesson:", error);
@@ -281,6 +308,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
         });
         setEditingLesson(null);
       } else {
+        console.log("Submitting new lesson:", newLesson);
         await createLessonMutation.mutateAsync(newLesson);
         setNewLesson({
           title: "",
@@ -294,6 +322,137 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       // Error handling is done in mutation callbacks
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const updateLessonMutation = useMutation({
+    mutationFn: async (lesson: LessonFormState & { id: string }) => {
+      const duration = Number(lesson.duration_minutes);
+      
+      if (isNaN(duration) || duration <= 0) {
+        throw new Error("Duration must be a positive number");
+      }
+      
+      const { error } = await supabase
+        .from("lessons")
+        .update({
+          title: lesson.title,
+          duration_minutes: duration,
+          content: lesson.content || "",
+          video_url: lesson.video_url || null,
+        })
+        .eq("id", lesson.id);
+        
+      if (error) {
+        console.error("Update error:", error);
+        throw new Error(`Failed to update lesson: ${error.message}`);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Lesson updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update lesson",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const moveLesson = async (direction: "up" | "down", idx: number) => {
+    if (!lessons || !lessons.length) return;
+    
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= lessons.length) return;
+    
+    try {
+      const lesson1 = lessons[idx];
+      const lesson2 = lessons[targetIdx];
+      
+      // Swap order numbers
+      await supabase.from("lessons").update({ order_number: lesson2.order_number }).eq("id", lesson1.id);
+      await supabase.from("lessons").update({ order_number: lesson1.order_number }).eq("id", lesson2.id);
+      
+      toast({
+        title: "Success",
+        description: "Lesson order updated"
+      });
+      queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
+    } catch (error: any) {
+      console.error("Error moving lesson:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder lessons",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteLesson = async (lessonId: string) => {
+    try {
+      const { error } = await supabase.from("lessons").delete().eq("id", lessonId);
+      
+      if (error) {
+        console.error("Delete error:", error);
+        toast({
+          title: "Error",
+          description: `Failed to delete lesson: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Lesson deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
+    } catch (error: any) {
+      console.error("Error deleting lesson:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete lesson",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const testDirectInsert = async () => {
+    try {
+      // Direct insert test
+      const { data, error } = await supabase
+        .from("lessons")
+        .insert({
+          course_id: courseId,
+          title: "Test Lesson (Direct)",
+          content: "This is a test lesson",
+          duration_minutes: 30,
+          order_number: 999,
+        })
+        .select();
+        
+      if (error) {
+        toast({
+          title: "Test Insert Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        console.error("Test insert failed:", error);
+      } else {
+        toast({
+          title: "Test Insert Succeeded",
+          description: "A test lesson was created successfully"
+        });
+        console.log("Test insert succeeded:", data);
+        refetch();
+      }
+    } catch (e) {
+      console.error("Exception in test insert:", e);
     }
   };
 
@@ -316,6 +475,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
               console.log("Debug - Lessons:", lessons);
               console.log("Debug - Error state:", error);
               console.log("Debug - Error message:", errorMessage);
+              console.log("Debug - Last insert response:", insertResponse);
               toast({
                 title: "Debug Info",
                 description: "Debug information printed to console"
@@ -335,6 +495,14 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
             Refresh
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={testDirectInsert}
+          >
+            Test Insert
           </Button>
         </div>
       </CardHeader>
@@ -464,6 +632,12 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
               </div>
               {errorMessage && (
                 <div className="text-xs text-red-500 mt-1">{errorMessage}</div>
+              )}
+              {insertResponse && (
+                <div className="text-xs text-orange-500 mt-1">
+                  Last insert attempt: {insertResponse.success ? "Success" : "Failed"} 
+                  {insertResponse.error && ` - ${insertResponse.error.message}`}
+                </div>
               )}
             </div>
           </div>
