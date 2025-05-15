@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, BookOpen, Plus, Edit, Trash2, Move } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface Lesson {
   id: string;
@@ -43,6 +43,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentCourseInstructor, setCurrentCourseInstructor] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch current user id
@@ -67,13 +68,17 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           }
           if (error) {
             console.error("Error fetching course:", error);
-            toast.error("Could not fetch course details");
+            toast({
+              title: "Error",
+              description: "Could not fetch course details",
+              variant: "destructive"
+            });
           }
         });
     }
   }, [courseId]);
 
-  const { data: lessons, isLoading, error } = useQuery({
+  const { data: lessons, isLoading, error, refetch } = useQuery({
     queryKey: ["lessons", courseId],
     queryFn: async () => {
       console.log("Fetching lessons for courseId:", courseId);
@@ -85,7 +90,12 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
 
       if (error) {
         console.error("Error fetching lessons:", error);
-        toast.error("Could not load lessons");
+        setErrorMessage(`Fetch error: ${error.message}`);
+        toast({
+          title: "Error",
+          description: `Could not load lessons: ${error.message}`,
+          variant: "destructive"
+        });
         throw error;
       }
 
@@ -95,40 +105,20 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     enabled: !!courseId,
   });
 
-  useEffect(() => {
-    if (error) {
-      console.error("Query error:", error);
-      toast.error("Failed to fetch lessons");
-    }
-  }, [error]);
-
-  const saveLesson = async (
-    lesson: LessonFormState,
-    id?: string
-  ) => {
-    try {
-      const duration = Number(lesson.duration_minutes);
-      
-      // Validate inputs
-      if (!lesson.title.trim()) {
-        toast.error("Lesson title is required");
-        return;
-      }
-      
-      if (isNaN(duration) || duration <= 0) {
-        toast.error("Duration must be a positive number");
-        return;
-      }
-      
-      if (!id) {
-        // Verify permissions for adding a new lesson
-        console.log("Checking permission - Current user:", currentUserId, "Course instructor:", currentCourseInstructor);
-        
+  const createLessonMutation = useMutation({
+    mutationFn: async (lesson: LessonFormState) => {
+      try {
+        // Verify permissions
         if (currentUserId !== currentCourseInstructor) {
-          toast.error("Only the course instructor can add lessons");
-          return;
+          throw new Error("Only the course instructor can add lessons");
         }
+
+        const duration = Number(lesson.duration_minutes);
         
+        if (isNaN(duration) || duration <= 0) {
+          throw new Error("Duration must be a positive number");
+        }
+
         // Get current highest order number
         const { data: currentLessons } = await supabase
           .from("lessons")
@@ -153,37 +143,70 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
           
         if (error) {
           console.error("Insert error:", error);
-          toast.error(`Failed to add lesson: ${error.message}`);
-          return;
+          throw new Error(`Failed to add lesson: ${error.message}`);
         }
         
-        toast.success("Lesson added successfully");
         return data;
-      } else {
-        // Update existing lesson
-        const { error } = await supabase
-          .from("lessons")
-          .update({
-            title: lesson.title,
-            duration_minutes: duration,
-            content: lesson.content || "",
-            video_url: lesson.video_url || null,
-          })
-          .eq("id", id);
-          
-        if (error) {
-          console.error("Update error:", error);
-          toast.error(`Failed to update lesson: ${error.message}`);
-          return;
-        }
-        
-        toast.success("Lesson updated successfully");
+      } catch (error: any) {
+        console.error("Error saving lesson:", error);
+        throw error;
       }
-    } catch (error: any) {
-      console.error("Error saving lesson:", error);
-      toast.error(error.message || "An unexpected error occurred");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Lesson added successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
+      if (onLessonAdded) onLessonAdded();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
     }
-  };
+  });
+
+  const updateLessonMutation = useMutation({
+    mutationFn: async (lesson: LessonFormState & { id: string }) => {
+      const duration = Number(lesson.duration_minutes);
+      
+      if (isNaN(duration) || duration <= 0) {
+        throw new Error("Duration must be a positive number");
+      }
+      
+      const { error } = await supabase
+        .from("lessons")
+        .update({
+          title: lesson.title,
+          duration_minutes: duration,
+          content: lesson.content || "",
+          video_url: lesson.video_url || null,
+        })
+        .eq("id", lesson.id);
+        
+      if (error) {
+        console.error("Update error:", error);
+        throw new Error(`Failed to update lesson: ${error.message}`);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Lesson updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update lesson",
+        variant: "destructive"
+      });
+    }
+  });
 
   const moveLesson = async (direction: "up" | "down", idx: number) => {
     if (!lessons || !lessons.length) return;
@@ -199,11 +222,18 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       await supabase.from("lessons").update({ order_number: lesson2.order_number }).eq("id", lesson1.id);
       await supabase.from("lessons").update({ order_number: lesson1.order_number }).eq("id", lesson2.id);
       
-      toast.success("Lesson order updated");
+      toast({
+        title: "Success",
+        description: "Lesson order updated"
+      });
       queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
     } catch (error: any) {
       console.error("Error moving lesson:", error);
-      toast.error("Failed to reorder lessons");
+      toast({
+        title: "Error",
+        description: "Failed to reorder lessons",
+        variant: "destructive"
+      });
     }
   };
 
@@ -213,15 +243,26 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
       
       if (error) {
         console.error("Delete error:", error);
-        toast.error(`Failed to delete lesson: ${error.message}`);
+        toast({
+          title: "Error",
+          description: `Failed to delete lesson: ${error.message}`,
+          variant: "destructive"
+        });
         return;
       }
       
-      toast.success("Lesson deleted successfully");
+      toast({
+        title: "Success",
+        description: "Lesson deleted successfully"
+      });
       queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
     } catch (error: any) {
       console.error("Error deleting lesson:", error);
-      toast.error(error.message || "Failed to delete lesson");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete lesson",
+        variant: "destructive"
+      });
     }
   };
 
@@ -231,24 +272,26 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
     
     try {
       if (editingLesson) {
-        await saveLesson(editingLesson, editingLesson.id);
+        await updateLessonMutation.mutateAsync({
+          id: editingLesson.id,
+          title: editingLesson.title,
+          duration_minutes: editingLesson.duration_minutes,
+          content: editingLesson.content,
+          video_url: editingLesson.video_url
+        });
         setEditingLesson(null);
       } else {
-        await saveLesson(newLesson);
+        await createLessonMutation.mutateAsync(newLesson);
         setNewLesson({
           title: "",
           duration_minutes: "",
           content: "",
           video_url: "",
         });
-        
-        if (onLessonAdded) onLessonAdded();
       }
-      
-      queryClient.invalidateQueries({ queryKey: ["lessons", courseId] });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Form submit error:", error);
-      toast.error(error.message || "Failed to save lesson");
+      // Error handling is done in mutation callbacks
     } finally {
       setIsSubmitting(false);
     }
@@ -271,10 +314,27 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
               console.log("Debug - Current user:", currentUserId);
               console.log("Debug - Course instructor:", currentCourseInstructor);
               console.log("Debug - Lessons:", lessons);
-              toast.success("Debug info printed to console");
+              console.log("Debug - Error state:", error);
+              console.log("Debug - Error message:", errorMessage);
+              toast({
+                title: "Debug Info",
+                description: "Debug information printed to console"
+              });
+              
+              // Force a refetch to try again
+              refetch();
             }}
           >
             Debug Info
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={() => refetch()}
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            Refresh
           </Button>
         </div>
       </CardHeader>
@@ -352,7 +412,10 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
             }
           />
           <div className="col-span-2 flex gap-2">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || (currentUserId !== currentCourseInstructor)}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -399,6 +462,9 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                   : "You are not the instructor"
                 }
               </div>
+              {errorMessage && (
+                <div className="text-xs text-red-500 mt-1">{errorMessage}</div>
+              )}
             </div>
           </div>
         ) : (
@@ -446,6 +512,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                   size="icon"
                   variant="outline"
                   title="Edit"
+                  disabled={currentUserId !== currentCourseInstructor}
                   onClick={() =>
                     setEditingLesson({
                       ...lesson,
@@ -459,6 +526,7 @@ export function CurriculumManager({ courseId, onLessonAdded }: CurriculumManager
                   size="icon"
                   variant="destructive"
                   title="Delete"
+                  disabled={currentUserId !== currentCourseInstructor}
                   onClick={() => deleteLesson(lesson.id)}
                 >
                   <Trash2 className="h-4 w-4" />

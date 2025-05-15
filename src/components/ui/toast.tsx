@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -114,9 +115,18 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
+// Add the custom toast props type for Sonner compatibility
+export interface ToastPropsCustom {
+  title?: string;
+  description?: string;
+  variant?: "default" | "destructive";
+  duration?: number;
+}
+
 export {
   type ToastProps,
   type ToastActionElement,
+  type ToastPropsCustom,
   ToastProvider,
   ToastViewport,
   Toast,
