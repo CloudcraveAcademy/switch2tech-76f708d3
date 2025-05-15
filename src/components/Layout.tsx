@@ -3,6 +3,7 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Toaster } from "sonner";
+import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -11,6 +12,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <div className="flex-grow">{children}</div>
       <Footer />
       <Toaster position="top-right" closeButton />
+      <ShadcnToaster />
     </div>
   );
 };

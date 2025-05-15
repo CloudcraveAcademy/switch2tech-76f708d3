@@ -1,33 +1,21 @@
 
-// Import types from toast component
-import { type ToastActionElement, ToastProps } from "@/components/ui/toast";
-import { toast as toastSonner } from "sonner";
+import { toast as sonnerToast } from "sonner";
+import type { ToastPropsCustom } from "@/components/ui/toast";
 
-type ToastPropsCustom = {
-  title?: string;
-  description?: string;
-  variant?: "default" | "destructive";
-  action?: ToastActionElement;
-};
-
-// Create toast function with our custom interface
-const toast = ({ ...props }: ToastPropsCustom) => {
-  if (props.variant === "destructive") {
-    return toastSonner.error(props.title, {
-      description: props.description,
-      action: props.action
-    });
-  }
-  
-  return toastSonner(props.title, {
+// This is a wrapper around sonner's toast function
+export const toast = ({ ...props }: ToastPropsCustom) => {
+  return sonnerToast[props.variant || "default"]({
+    title: props.title,
     description: props.description,
-    action: props.action
+    duration: props.duration,
+    dismissible: true,
   });
 };
 
-// Export both the toast function and a useToast hook that returns an object with toast
-const useToast = () => {
-  return { toast };
+// For compatibility with shadcn toast pattern
+export const useToast = () => {
+  return {
+    toast,
+    toasts: [] // Add empty toasts array for compatibility
+  };
 };
-
-export { toast, useToast };
