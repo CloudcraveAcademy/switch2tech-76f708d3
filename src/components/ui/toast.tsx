@@ -115,9 +115,8 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
-// Define the interface for Sonner compatibility but don't export it
-// since it's already exported from use-toast.ts
-interface ToastPropsCustom {
+// Define interface for Sonner compatibility and export it
+export interface ToastPropsCustom {
   title?: string;
   description?: string;
   variant?: "default" | "destructive";
