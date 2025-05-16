@@ -113,6 +113,52 @@ export const LoginForm = ({
         >
           {loginInProgress ? "Logging in..." : "Log in"}
         </Button>
+        
+        {/* Demo credentials */}
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-500">Demo credentials</p>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                setEmail("admin@example.com");
+                setPassword("Admin123!");
+              }}
+              disabled={loginInProgress}
+            >
+              Admin
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                setEmail("instructor@example.com");
+                setPassword("Instructor123!");
+              }}
+              disabled={loginInProgress}
+            >
+              Instructor
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                setEmail("student@example.com");
+                setPassword("Student123!");
+              }}
+              disabled={loginInProgress}
+            >
+              Student
+            </Button>
+          </div>
+        </div>
       </div>
     </form>
   );

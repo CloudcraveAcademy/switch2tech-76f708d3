@@ -28,6 +28,7 @@ export const useAuthOperations = () => {
       return data;
       
     } catch (error: any) {
+      console.error("Login error details:", error);
       setLoading(false);
       throw error;
     }

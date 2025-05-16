@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { setupDemoAccounts } from "@/utils/demoAccounts";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -52,6 +53,11 @@ const Login = () => {
     
     checkAuthAndRedirect();
   }, [user, navigate, validateSession]);
+
+  // Set up demo accounts when page loads
+  useEffect(() => {
+    setupDemoAccounts();
+  }, []);
 
   // Extract the redirect path from location state
   const from = location.state?.from || "/dashboard";

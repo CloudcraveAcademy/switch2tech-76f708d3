@@ -104,16 +104,22 @@ export const useLoginForm = () => {
     } catch (error: any) {
       console.error("Login error in handleSubmit:", error);
       
+      let errorMessage = "Invalid email or password. Please try again.";
+      
       // Handle specific error codes
       if (error.code === "email_not_confirmed") {
-        setAuthError("Please check your email to confirm your account before logging in.");
-      } else {
-        setAuthError(error.message || "Please check your email and password");
+        errorMessage = "Please check your email to confirm your account before logging in.";
+      } else if (error.code === "invalid_credentials") {
+        errorMessage = "Invalid email or password. Please try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      setAuthError(errorMessage);
       
       toast({
         title: "Login failed",
-        description: error.message || "Please check your email and password",
+        description: errorMessage,
         variant: "destructive",
       });
       resetLoginState();
