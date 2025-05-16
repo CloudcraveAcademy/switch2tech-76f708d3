@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { User, BookOpen } from "lucide-react";
+import { User, BookOpen, CircleDollarSign, Users, FileText, Bell, Shield, MessageSquare } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface AdminNavigationProps {
@@ -12,7 +11,7 @@ const AdminNavigation = ({ isActive }: AdminNavigationProps) => {
     <>
       <SidebarMenuItem
         to="/dashboard/users"
-        icon={User}
+        icon={Users}
         label="Users"
         isActive={isActive("/dashboard/users")}
       />
@@ -21,6 +20,36 @@ const AdminNavigation = ({ isActive }: AdminNavigationProps) => {
         icon={BookOpen}
         label="Courses"
         isActive={isActive("/dashboard/courses")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/finance"
+        icon={CircleDollarSign}
+        label="Finance"
+        isActive={isActive("/dashboard/finance")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/reports"
+        icon={FileText}
+        label="Reports"
+        isActive={isActive("/dashboard/reports")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/support-tickets"
+        icon={MessageSquare}
+        label="Support Tickets"
+        isActive={isActive("/dashboard/support-tickets")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/announcements"
+        icon={Bell}
+        label="Announcements"
+        isActive={isActive("/dashboard/announcements")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/system"
+        icon={Shield}
+        label="System"
+        isActive={isActive("/dashboard/system")}
       />
     </>
   );
