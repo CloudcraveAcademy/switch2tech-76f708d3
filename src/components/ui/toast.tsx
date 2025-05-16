@@ -43,7 +43,8 @@ export interface ToastProps
   extends React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>,
     VariantProps<typeof toastVariants> {}
 
-export interface ToastPropsCustom {
+// Fix: Changed interface name to avoid conflict
+export interface ToastCustomProps {
   title?: string;
   description?: string;
   variant?: "default" | "destructive";
@@ -133,5 +134,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
-  type ToastPropsCustom,
+  type ToastCustomProps as ToastPropsCustom,
 }

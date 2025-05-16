@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -120,16 +119,17 @@ const CourseView = () => {
           
         if (assignmentsError) throw assignmentsError;
         
-        // Fetch materials
-        const { data: materialsData, error: materialsError } = await supabase
+        // Fetch materials - Fix: Use a new variable instead of reassigning
+        let materialsData = [];
+        const { data: fetchedMaterialsData, error: materialsError } = await supabase
           .from('course_materials')
           .select('*')
           .eq('course_id', courseId);
           
         if (materialsError) {
           console.error("Error fetching materials: ", materialsError);
-          // Initialize as empty array
-          materialsData = [];
+        } else {
+          materialsData = fetchedMaterialsData || [];
         }
         
         // Fetch enrollment data if user is logged in
@@ -178,7 +178,7 @@ const CourseView = () => {
             due_date: assignment.due_date,
             completed: false // Placeholder, will be updated if needed
           })),
-          materials: (materialsData || []).map((material: any) => ({
+          materials: materialsData.map((material: any) => ({
             id: material.id,
             title: material.title || 'Course Material',
             file_url: material.file_url || '#',
