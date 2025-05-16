@@ -17,6 +17,15 @@ import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
 import InstructorMyCourses from "./MyCourses";
 
+// Import admin pages
+import UsersPage from "@/pages/admin/UsersPage";
+import CoursesPage from "@/pages/admin/CoursesPage";
+import FinancePage from "@/pages/admin/FinancePage";
+import ReportsPage from "@/pages/admin/ReportsPage"; 
+import SupportTicketsPage from "@/pages/admin/SupportTicketsPage";
+import AnnouncementsPage from "@/pages/admin/AnnouncementsPage";
+import SystemPage from "@/pages/admin/SystemPage";
+
 const DashboardRoutes = () => {
   // Always call hooks at the top level
   const { user } = useAuth();
@@ -56,8 +65,13 @@ const DashboardRoutes = () => {
 
   const adminRoutesFragment = (
     <>
-      <Route path="/users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1></div>} />
-      <Route path="/courses" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Management</h1></div>} />
+      <Route path="/users" element={<UsersPage />} />
+      <Route path="/courses" element={<CoursesPage />} />
+      <Route path="/finance" element={<FinancePage />} />
+      <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/support-tickets" element={<SupportTicketsPage />} />
+      <Route path="/announcements" element={<AnnouncementsPage />} />
+      <Route path="/system" element={<SystemPage />} />
     </>
   );
 

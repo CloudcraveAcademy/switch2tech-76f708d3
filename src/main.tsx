@@ -1,11 +1,15 @@
 
 import React from 'react';
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+import setupInitialData from './utils/setupInitialData.ts';
 
-createRoot(document.getElementById("root")!).render(
+// Setup initial data for demo purposes
+setupInitialData();
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

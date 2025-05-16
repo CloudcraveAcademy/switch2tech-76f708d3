@@ -1,9 +1,11 @@
 
-import { User, BookOpen, CircleDollarSign, Users, FileText, Bell, Shield, MessageSquare } from "lucide-react";
+import { BookOpen, CircleDollarSign, Users, FileText, Bell, Shield, MessageSquare } from "lucide-react";
 import SidebarMenuItem from '../sidebar/SidebarMenuItem';
 
 interface CurriculumManagerProps {
   isActive: (path: string) => boolean;
+  courseId?: string;
+  onLessonAdded?: () => void;
 }
 
 const CurriculumManager = ({ isActive }: CurriculumManagerProps) => {
