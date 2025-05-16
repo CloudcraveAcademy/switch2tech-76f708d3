@@ -133,5 +133,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
-  ToastPropsCustom,
+  type ToastPropsCustom,
 }

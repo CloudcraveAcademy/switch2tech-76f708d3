@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -68,6 +69,8 @@ const CourseView = () => {
   const navigate = useNavigate();
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [lessonProgress, setLessonProgress] = useState<Record<string, boolean>>({});
+  const [discussionInput, setDiscussionInput] = useState("");
+  const [discussions, setDiscussions] = useState<any[]>([]);
 
   // Fetch course data from Supabase
   const { data: course, isLoading, refetch } = useQuery({
@@ -126,8 +129,7 @@ const CourseView = () => {
         if (materialsError) {
           console.error("Error fetching materials: ", materialsError);
           // Initialize as empty array
-          const emptyMaterials: any[] = [];
-          const materialsData = emptyMaterials;
+          materialsData = [];
         }
         
         // Fetch enrollment data if user is logged in
@@ -138,7 +140,7 @@ const CourseView = () => {
             .select('progress')
             .eq('course_id', courseId)
             .eq('student_id', user.id)
-            .single();
+            .maybeSingle();
             
           if (enrollmentData) {
             progress = enrollmentData.progress;
@@ -198,6 +200,38 @@ const CourseView = () => {
     enabled: !!courseId,
   });
 
+  // Fetch discussion posts
+  useEffect(() => {
+    if (courseId) {
+      const fetchDiscussions = async () => {
+        try {
+          // This would normally fetch from a discussions table
+          // For now we'll use mock data
+          const mockDiscussions = [
+            {
+              id: "1",
+              user: "Jane Smith",
+              avatar: "https://i.pravatar.cc/150?img=1",
+              date: new Date(Date.now() - 86400000).toISOString(),
+              content: "I found the course content very helpful, especially the section on responsive design."
+            },
+            {
+              id: "2",
+              user: "John Doe",
+              avatar: "https://i.pravatar.cc/150?img=2",
+              date: new Date(Date.now() - 172800000).toISOString(),
+              content: "Could someone explain the concept of CSS Grid in more detail? I'm still confused about how it differs from Flexbox."
+            }
+          ];
+          setDiscussions(mockDiscussions);
+        } catch (error) {
+          console.error("Error fetching discussions:", error);
+        }
+      };
+      fetchDiscussions();
+    }
+  }, [courseId]);
+
   // Fetch lesson progress for logged-in user
   useEffect(() => {
     const fetchLessonProgress = async () => {
@@ -249,6 +283,27 @@ const CourseView = () => {
 
   // Determine if the course is complete
   const isCompleted = course?.lessons.every(lesson => lessonProgress[lesson.id]);
+
+  // Submit a new discussion post
+  const handleSubmitDiscussion = () => {
+    if (!discussionInput.trim()) return;
+    
+    const newDiscussion = {
+      id: `new-${Date.now()}`,
+      user: user?.name || "Current User",
+      avatar: "https://i.pravatar.cc/150?img=3",
+      date: new Date().toISOString(),
+      content: discussionInput
+    };
+    
+    setDiscussions([newDiscussion, ...discussions]);
+    setDiscussionInput("");
+    
+    toast({
+      title: "Comment Posted",
+      description: "Your comment has been added to the discussion",
+    });
+  };
 
   if (isLoading || !course) {
     return (
@@ -386,7 +441,27 @@ const CourseView = () => {
                   {course.materials.map((material) => (
                     <li key={material.id}>
                       <Button variant="outline" className="w-full justify-start" asChild>
-                        <a href={material.file_url} download target="_blank" rel="noreferrer">
+                        <a 
+                          href={material.file_url} 
+                          download 
+                          target="_blank" 
+                          rel="noreferrer"
+                          onClick={(e) => {
+                            if (!material.file_url || material.file_url === '#') {
+                              e.preventDefault();
+                              toast({
+                                title: "Download Failed",
+                                description: "The material file is not available",
+                                variant: "destructive",
+                              });
+                            } else {
+                              toast({
+                                title: "Download Started",
+                                description: `${material.title} is being downloaded`,
+                              });
+                            }
+                          }}
+                        >
                           <FileText className="h-4 w-4 mr-2" />
                           {material.title}
                           <Badge variant="outline" className="ml-2">
@@ -432,15 +507,14 @@ const CourseView = () => {
                     <div key={lesson.id} className="space-y-4">
                       <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                         {lesson.video_url ? (
-                          <div className="w-full h-full">
-                            <iframe 
-                              src={lesson.video_url} 
-                              className="w-full h-full" 
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                              allowFullScreen
-                              title={lesson.title}
-                            />
-                          </div>
+                          <iframe 
+                            src={lesson.video_url.includes('youtube.com') || lesson.video_url.includes('youtu.be') ? 
+                              lesson.video_url.replace('watch?v=', 'embed/') : lesson.video_url}
+                            className="w-full h-full rounded-lg" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                            title={lesson.title}
+                          />
                         ) : (
                           <div className="text-center">
                             <PlayCircle className="h-16 w-16 text-gray-400 mx-auto" />
@@ -549,7 +623,21 @@ const CourseView = () => {
                             </Badge>
                           </div>
                           <div className="mt-3">
-                            <Button size="sm" variant={assignment.completed ? "outline" : "default"}>
+                            <Button size="sm" variant={assignment.completed ? "outline" : "default"}
+                              onClick={() => {
+                                if (assignment.completed) {
+                                  toast({
+                                    title: "Assignment Completed",
+                                    description: "You've already completed this assignment.",
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Assignment Submission",
+                                    description: "Submit your work to complete this assignment.",
+                                  });
+                                }
+                              }}
+                            >
                               {assignment.completed ? "View Submission" : "Submit Assignment"}
                             </Button>
                           </div>
@@ -571,11 +659,55 @@ const CourseView = () => {
             <TabsContent value="discussion">
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium text-gray-700">Discussion Board</h3>
-                    <p className="text-gray-500 mb-4">Connect with other students and instructors in this course</p>
-                    <Button>Start a Discussion</Button>
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium mb-3">Join the Discussion</h3>
+                    <div className="space-y-3">
+                      <textarea 
+                        className="w-full border rounded-md p-3 h-24 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder="Share your thoughts or ask a question about this course..."
+                        value={discussionInput}
+                        onChange={(e) => setDiscussionInput(e.target.value)}
+                      ></textarea>
+                      <div className="flex justify-end">
+                        <Button onClick={handleSubmitDiscussion}>Post Comment</Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {discussions.length > 0 ? (
+                      discussions.map((discussion) => (
+                        <div key={discussion.id} className="border-t pt-4">
+                          <div className="flex items-start">
+                            <div className="mr-3 flex-shrink-0">
+                              <img 
+                                src={discussion.avatar} 
+                                alt={discussion.user} 
+                                className="h-8 w-8 rounded-full"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex items-center">
+                                <h4 className="font-medium">{discussion.user}</h4>
+                                <span className="mx-2 text-gray-400">•</span>
+                                <span className="text-xs text-gray-500">{formatDate(discussion.date)}</span>
+                              </div>
+                              <p className="mt-1 text-gray-700">{discussion.content}</p>
+                              <div className="mt-2 flex gap-4">
+                                <button className="text-xs text-gray-500 hover:text-blue-600">Reply</button>
+                                <button className="text-xs text-gray-500 hover:text-blue-600">Like</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <h3 className="text-lg font-medium text-gray-700">No discussions yet</h3>
+                        <p className="text-gray-500 mb-4">Be the first to start a conversation!</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
