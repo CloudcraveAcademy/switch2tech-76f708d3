@@ -23,7 +23,7 @@ import { CoursePricing } from "./course/CoursePricing";
 import { CourseMediaUpload } from "./course/CourseMediaUpload";
 import { CourseMode } from "./course/CourseMode";
 import { CourseSettings } from "./course/CourseSettings";
-import { CurriculumManager } from "./course/CurriculumManager";
+import CurriculumManager from "./course/CurriculumManager";
 import { CourseAnnouncements } from "./course/CourseAnnouncements";
 
 const courseFormSchema = z.object({

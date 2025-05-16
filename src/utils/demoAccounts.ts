@@ -1,25 +1,27 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+export type DemoAccountType = "admin" | "instructor" | "student";
+
 export const demoAccounts = {
   admin: {
     email: "admin@example.com",
     password: "Admin123!",
-    role: "admin"
+    role: "admin" as const
   },
   instructor: {
     email: "instructor@example.com",
     password: "Instructor123!",
-    role: "instructor"
+    role: "instructor" as const
   },
   student: {
     email: "student@example.com",
     password: "Student123!",
-    role: "student"
+    role: "student" as const
   }
 };
 
-export const createDemoAccountIfNotExists = async (accountType: keyof typeof demoAccounts) => {
+export const createDemoAccountIfNotExists = async (accountType: DemoAccountType) => {
   try {
     const account = demoAccounts[accountType];
     

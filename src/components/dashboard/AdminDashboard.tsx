@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import AdminRevenueChart from "./admin/AdminRevenueChart";
 import AdminActivityFeed from "./admin/AdminActivityFeed";
 import AdminQuickActions from "./admin/AdminQuickActions";
 import AdminSystemStatus from "./admin/AdminSystemStatus";
+import { Badge } from "@/components/ui/badge";
 
 const AdminDashboard = () => {
   const { user } = useAuth();

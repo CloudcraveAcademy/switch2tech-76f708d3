@@ -1,11 +1,12 @@
-import { User, BookOpen, CircleDollarSign, Users, FileText, Bell, Shield, MessageSquare } from "lucide-react";
-import SidebarMenuItem from './SidebarMenuItem';
 
-interface AdminNavigationProps {
+import { User, BookOpen, CircleDollarSign, Users, FileText, Bell, Shield, MessageSquare } from "lucide-react";
+import SidebarMenuItem from '../sidebar/SidebarMenuItem';
+
+interface CurriculumManagerProps {
   isActive: (path: string) => boolean;
 }
 
-const AdminNavigation = ({ isActive }: AdminNavigationProps) => {
+const CurriculumManager = ({ isActive }: CurriculumManagerProps) => {
   return (
     <>
       <SidebarMenuItem
@@ -54,4 +55,4 @@ const AdminNavigation = ({ isActive }: AdminNavigationProps) => {
   );
 };
 
-export default AdminNavigation;
+export default CurriculumManager;
