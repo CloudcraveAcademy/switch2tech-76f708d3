@@ -12,13 +12,13 @@ const userExists = async (email: string) => {
   return !!data;
 };
 
-type UserData = {
+interface UserData {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
   role: string;
-};
+}
 
 // Setup demo accounts
 export const setupDemoAccounts = async () => {

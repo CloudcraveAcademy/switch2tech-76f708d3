@@ -7,7 +7,7 @@ export interface Category {
   name: string;
   description: string;
   icon: string;
-  count?: number;  // Adding count field to hold number of courses
+  count?: number;
 }
 
 // Define fallback categories for use when database fetch fails
@@ -17,7 +17,7 @@ const fallbackCategories: Category[] = [
     name: "Web Development",
     description: "Learn to build modern, responsive websites and web applications",
     icon: "code",
-    count: 45  // Sample count data for fallback categories
+    count: 45
   },
   {
     id: "2",
@@ -86,7 +86,6 @@ export function useCategories() {
         }
         
         console.log('Raw categories data:', categoriesData);
-        console.log('Course counts:', countMap);
         
         // Map data to ensure it conforms to our Category interface
         const formattedCategories: Category[] = categoriesData.map(cat => ({
@@ -107,8 +106,6 @@ export function useCategories() {
         return fallbackCategories;
       }
     },
-    initialData: fallbackCategories, // Provide initial data to prevent undefined state
-    retry: 1,
     staleTime: 60000, // Cache data for 1 minute
   });
 }

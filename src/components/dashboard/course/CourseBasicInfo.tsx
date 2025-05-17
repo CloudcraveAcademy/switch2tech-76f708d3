@@ -107,11 +107,17 @@ export function CourseBasicInfo({ form, categories = [], categoriesLoading = fal
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
+                    {categories && categories.length > 0 ? (
+                      categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="loading" disabled>
+                        No categories available
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               )}

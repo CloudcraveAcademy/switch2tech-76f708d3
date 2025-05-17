@@ -30,6 +30,8 @@ export const CourseMediaUpload = ({
   materialUploads = [],
   imageError = false
 }: CourseMediaUploadProps) => {
+  console.log("Rendering CourseMediaUpload with imageUrl:", imageUrl);
+  
   return (
     <div className="space-y-6">
       {/* Course Preview Video */}
@@ -70,6 +72,7 @@ export const CourseMediaUpload = ({
                 alt="Course preview"
                 className="h-full w-full object-cover"
                 onError={(e) => {
+                  console.error("Error loading image:", e);
                   // If image fails to load, we'll show a placeholder
                   e.currentTarget.src = "/placeholder.svg";
                 }}
@@ -89,6 +92,7 @@ export const CourseMediaUpload = ({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
+                console.log("Image file selected:", file.name);
                 onImageChange(file);
               }
             }}
@@ -126,6 +130,7 @@ export const CourseMediaUpload = ({
               accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
               onChange={(e) => {
                 if (e.target.files?.length) {
+                  console.log("Materials selected:", e.target.files.length);
                   onMaterialsChange(e.target.files);
                 }
               }}

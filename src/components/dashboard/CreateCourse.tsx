@@ -90,6 +90,13 @@ const CreateCourse = () => {
     },
   });
 
+  // Log categories when they load to help debug
+  useEffect(() => {
+    if (categories) {
+      console.log("Categories loaded:", categories);
+    }
+  }, [categories]);
+
   const handleImageChange = (file: File) => {
     setImage(file);
     const objectUrl = URL.createObjectURL(file);
@@ -176,6 +183,8 @@ const CreateCourse = () => {
   const onSubmit = async (data: CourseFormValues) => {
     setFormError(null);
     
+    console.log("Form data submitted:", data);
+    
     // Validate required image
     if (!image) {
       setImageError(true);
@@ -209,6 +218,8 @@ const CreateCourse = () => {
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `course-images/${fileName}`;
         
+        console.log("Uploading image to path:", filePath);
+        
         const { error: uploadError } = await supabase.storage
           .from('course-materials')
           .upload(filePath, image);
@@ -219,6 +230,7 @@ const CreateCourse = () => {
         
         const { data: imageData } = supabase.storage.from('course-materials').getPublicUrl(filePath);
         finalImageUrl = imageData.publicUrl;
+        console.log("Image uploaded successfully:", finalImageUrl);
       }
       
       // Upload course materials
@@ -231,6 +243,7 @@ const CreateCourse = () => {
       let classDays = data.classDays || [];
       let classSchedule = data.classSchedule || "{}";
       
+      console.log("Preparing course data for submission");
       const courseData = {
         instructor_id: user.id,
         title: data.title,
@@ -258,13 +271,20 @@ const CreateCourse = () => {
         discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
       };
       
+      console.log("Submitting course data to Supabase:", courseData);
+      
       const { data: course, error } = await supabase
         .from('courses')
         .insert(courseData)
         .select('id')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating course:", error);
+        throw error;
+      }
+      
+      console.log("Course created successfully:", course);
       
       toast({
         title: "Course created successfully",
@@ -273,9 +293,10 @@ const CreateCourse = () => {
       
       navigate(`/dashboard/courses/${course.id}/edit`);
     } catch (error: any) {
+      console.error("Error in course creation:", error);
       toast({
         title: "Failed to create course",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       setLoading(false);
@@ -291,7 +312,7 @@ const CreateCourse = () => {
         <p className="text-gray-600">Fill out the form below to create a new course</p>
       </div>
 
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Course Details</CardTitle>
           <CardDescription>
