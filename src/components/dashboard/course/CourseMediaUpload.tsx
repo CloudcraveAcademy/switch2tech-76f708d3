@@ -69,6 +69,10 @@ export const CourseMediaUpload = ({
                 src={imageUrl}
                 alt="Course preview"
                 className="h-full w-full object-cover"
+                onError={(e) => {
+                  // If image fails to load, we'll show a placeholder
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
               />
             </div>
           )}
@@ -132,7 +136,7 @@ export const CourseMediaUpload = ({
             {materialUploads && materialUploads.length > 0 && (
               <div className="w-full mt-4 space-y-2">
                 {materialUploads.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
+                  <div key={idx} className="flex items-center gap-3 bg-gray-50 p-2 rounded">
                     <span className="truncate flex-1 text-xs">{item.name}</span>
                     {item.status === "uploading" && (
                       <Loader className="h-4 w-4 animate-spin text-brand-600" />

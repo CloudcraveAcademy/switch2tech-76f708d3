@@ -45,7 +45,8 @@ interface CourseModeProps {
 
 interface ClassSession {
   day: string;
-  time: string;
+  startTime: string;
+  endTime: string;
 }
 
 export const CourseMode = ({ form }: CourseModeProps) => {
@@ -63,9 +64,12 @@ export const CourseMode = ({ form }: CourseModeProps) => {
     
     // Create a sessions object that contains both days and times
     const sessionsMap = sessions.reduce((acc, session) => {
-      acc[session.day] = session.time;
+      acc[session.day] = {
+        startTime: session.startTime,
+        endTime: session.endTime
+      };
       return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<string, { startTime: string; endTime: string }>);
     
     // Set the class times in the form (as a JSON string)
     form.setValue("classSchedule", JSON.stringify(sessionsMap));
@@ -77,7 +81,7 @@ export const CourseMode = ({ form }: CourseModeProps) => {
     if (checked) {
       // Add day if it doesn't exist
       if (!newSessions.some(session => session.day === day)) {
-        newSessions.push({ day, time: "" });
+        newSessions.push({ day, startTime: "", endTime: "" });
       }
     } else {
       // Remove day if it exists
@@ -88,9 +92,18 @@ export const CourseMode = ({ form }: CourseModeProps) => {
     updateClassSessionsInForm(newSessions);
   };
 
-  const handleTimeChange = (day: string, time: string) => {
+  const handleStartTimeChange = (day: string, time: string) => {
     const newSessions = classSessions.map(session => 
-      session.day === day ? { ...session, time } : session
+      session.day === day ? { ...session, startTime: time } : session
+    );
+    
+    setClassSessions(newSessions);
+    updateClassSessionsInForm(newSessions);
+  };
+  
+  const handleEndTimeChange = (day: string, time: string) => {
+    const newSessions = classSessions.map(session => 
+      session.day === day ? { ...session, endTime: time } : session
     );
     
     setClassSessions(newSessions);
@@ -292,12 +305,14 @@ export const CourseMode = ({ form }: CourseModeProps) => {
               <FormItem>
                 <FormLabel>Class Schedule</FormLabel>
                 <FormDescription>
-                  Select the days when classes will take place and set the time for each day
+                  Select the days when classes will take place and set the start and end times for each day
                 </FormDescription>
                 <div className="space-y-4 mt-2">
                   {WEEKDAYS.map((day) => {
                     const isSelected = classSessions.some(session => session.day === day);
-                    const sessionTime = classSessions.find(session => session.day === day)?.time || "";
+                    const session = classSessions.find(session => session.day === day);
+                    const startTime = session?.startTime || "";
+                    const endTime = session?.endTime || "";
                     
                     return (
                       <Card key={day} className={cn(
@@ -305,7 +320,7 @@ export const CourseMode = ({ form }: CourseModeProps) => {
                         isSelected ? "border-primary" : "border-gray-200"
                       )}>
                         <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex items-center space-x-2">
                               <Checkbox
                                 id={`day-${day}`}
@@ -320,14 +335,26 @@ export const CourseMode = ({ form }: CourseModeProps) => {
                             </div>
                             
                             {isSelected && (
-                              <div className="w-32">
-                                <Input 
-                                  type="time"
-                                  value={sessionTime}
-                                  onChange={(e) => handleTimeChange(day, e.target.value)}
-                                  placeholder="Class time"
-                                  className="h-8"
-                                />
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <div className="flex flex-col">
+                                  <span className="text-xs text-gray-500">Start</span>
+                                  <Input 
+                                    type="time"
+                                    value={startTime}
+                                    onChange={(e) => handleStartTimeChange(day, e.target.value)}
+                                    className="h-8 w-full"
+                                  />
+                                </div>
+                                <span className="text-xs self-end">to</span>
+                                <div className="flex flex-col">
+                                  <span className="text-xs text-gray-500">End</span>
+                                  <Input 
+                                    type="time"
+                                    value={endTime}
+                                    onChange={(e) => handleEndTimeChange(day, e.target.value)}
+                                    className="h-8 w-full"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>

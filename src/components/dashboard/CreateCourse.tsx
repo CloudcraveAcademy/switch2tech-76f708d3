@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useCategories } from "@/hooks/useCategories";
 
 import { CourseBasicInfo } from "./course/CourseBasicInfo";
 import { CoursePricing } from "./course/CoursePricing";
@@ -67,6 +68,7 @@ const CreateCourse = () => {
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
   const [materialUploads, setMaterialUploads] = useState<UploadStatus[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
@@ -90,7 +92,9 @@ const CreateCourse = () => {
 
   const handleImageChange = (file: File) => {
     setImage(file);
-    setImageUrl(URL.createObjectURL(file));
+    const objectUrl = URL.createObjectURL(file);
+    console.log("Image object URL:", objectUrl);
+    setImageUrl(objectUrl);
     setImageError(false); // Clear error when image is uploaded
   };
 
@@ -225,20 +229,7 @@ const CreateCourse = () => {
       
       // Parse the class schedule if it exists
       let classDays = data.classDays || [];
-      let classTime = ""; 
-      
-      if (data.classSchedule) {
-        try {
-          const schedule = JSON.parse(data.classSchedule);
-          // Store the first time as the primary class time (for backwards compatibility)
-          const firstDay = Object.keys(schedule)[0];
-          if (firstDay) {
-            classTime = schedule[firstDay];
-          }
-        } catch (e) {
-          console.error("Error parsing class schedule:", e);
-        }
-      }
+      let classSchedule = data.classSchedule || "{}";
       
       const courseData = {
         instructor_id: user.id,
@@ -261,8 +252,7 @@ const CreateCourse = () => {
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
         course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
         class_days: classDays,
-        class_time: classTime,
-        class_schedule: data.classSchedule, // Store the full schedule 
+        class_schedule: classSchedule,
         timezone: data.timezone,
         replay_access: data.replayAccess,
         discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
@@ -319,7 +309,7 @@ const CreateCourse = () => {
 
               <div className="space-y-6">
                 <h3 className="text-lg font-medium">Basic Information</h3>
-                <CourseBasicInfo form={form} />
+                <CourseBasicInfo form={form} categories={categories} categoriesLoading={categoriesLoading} />
               </div>
 
               <div className="space-y-6 border-t pt-6">

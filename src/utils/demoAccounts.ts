@@ -12,6 +12,14 @@ const userExists = async (email: string) => {
   return !!data;
 };
 
+type UserData = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+};
+
 // Setup demo accounts
 export const setupDemoAccounts = async () => {
   try {
@@ -19,9 +27,15 @@ export const setupDemoAccounts = async () => {
     
     // Create admin account
     const adminEmail = "admin@example.com";
-    // Check if admin already exists using supabase auth API directly
-    const { data: existingUsers, error: checkError } = await supabase.auth.admin.listUsers();
-    const adminExists = checkError ? false : existingUsers?.users.some(user => user.email === adminEmail);
+    
+    // Check if admin exists using auth API
+    const { data: adminData } = await supabase.auth
+      .signInWithPassword({
+        email: adminEmail,
+        password: "admin123"
+      });
+    
+    const adminExists = !!adminData?.user;
     
     if (!adminExists) {
       await createDemoUser({
@@ -35,7 +49,15 @@ export const setupDemoAccounts = async () => {
     
     // Create instructor account
     const instructorEmail = "instructor@example.com";
-    const instructorExists = existingUsers?.users.some(user => user.email === instructorEmail) || false;
+    
+    // Check if instructor exists
+    const { data: instructorData } = await supabase.auth
+      .signInWithPassword({
+        email: instructorEmail,
+        password: "instructor123"
+      });
+    
+    const instructorExists = !!instructorData?.user;
     
     if (!instructorExists) {
       await createDemoUser({
@@ -49,7 +71,15 @@ export const setupDemoAccounts = async () => {
     
     // Create student account
     const studentEmail = "student@example.com";
-    const studentExists = existingUsers?.users.some(user => user.email === studentEmail) || false;
+    
+    // Check if student exists
+    const { data: studentData } = await supabase.auth
+      .signInWithPassword({
+        email: studentEmail,
+        password: "student123"
+      });
+    
+    const studentExists = !!studentData?.user;
     
     if (!studentExists) {
       await createDemoUser({
@@ -74,13 +104,7 @@ const createDemoUser = async ({
   firstName, 
   lastName, 
   role 
-}: { 
-  email: string; 
-  password: string; 
-  firstName: string; 
-  lastName: string; 
-  role: string;
-}) => {
+}: UserData) => {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
