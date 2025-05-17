@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Category } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 
 const COURSE_LEVELS = [
   "Beginner",
@@ -20,6 +21,13 @@ interface CourseBasicInfoProps {
 }
 
 export function CourseBasicInfo({ form, categories = [], categoriesLoading = false }: CourseBasicInfoProps) {
+  // Log categories for debugging
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      console.log("CourseBasicInfo received categories:", categories);
+    }
+  }, [categories]);
+
   return (
     <div className="space-y-6">
       {/* Course Title */}

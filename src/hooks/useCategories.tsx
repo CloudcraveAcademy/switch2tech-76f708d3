@@ -107,5 +107,7 @@ export function useCategories() {
       }
     },
     staleTime: 60000, // Cache data for 1 minute
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnReconnect: true, // Refetch when reconnecting after being offline
   });
 }

@@ -70,6 +70,7 @@ const CreateCourse = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
+  // Form setup with default values
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -86,7 +87,7 @@ const CreateCourse = () => {
       additionalLanguages: [],
       discountEnabled: false,
       replayAccess: false,
-      classSchedule: "",
+      classSchedule: "{}",
     },
   });
 
@@ -193,9 +194,27 @@ const CreateCourse = () => {
     }
     
     // Validate class schedule if mode is virtual-live
-    if (data.mode === "virtual-live" && (!data.classDays || data.classDays.length === 0)) {
-      setFormError("Please select at least one class day");
-      return;
+    if (data.mode === "virtual-live") {
+      if (!data.classDays || data.classDays.length === 0) {
+        setFormError("Please select at least one class day");
+        return;
+      }
+      
+      try {
+        // Validate that the class schedule is valid JSON
+        const scheduleObj = JSON.parse(data.classSchedule || "{}");
+        const selectedDays = data.classDays || [];
+        
+        // Check if all selected days have a time slot
+        const missingTimeSlots = selectedDays.filter(day => !scheduleObj[day]);
+        if (missingTimeSlots.length > 0) {
+          setFormError(`Please set time slots for all selected days: ${missingTimeSlots.join(', ')}`);
+          return;
+        }
+      } catch (e) {
+        setFormError("Invalid class schedule format");
+        return;
+      }
     }
     
     if (!user?.id) {
@@ -299,6 +318,7 @@ const CreateCourse = () => {
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
+      setFormError(error.message || "Failed to create course. Please try again.");
       setLoading(false);
     }
   };
@@ -312,7 +332,7 @@ const CreateCourse = () => {
         <p className="text-gray-600">Fill out the form below to create a new course</p>
       </div>
 
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
           <CardTitle>Course Details</CardTitle>
           <CardDescription>

@@ -1,113 +1,87 @@
 
-import { useState } from "react";
-import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CalendarIcon, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const ACCESS_DURATION_OPTIONS = [
-  { value: "30", label: "30 days" },
-  { value: "60", label: "60 days" },
-  { value: "90", label: "90 days" },
-  { value: "180", label: "180 days (6 months)" },
-  { value: "365", label: "365 days (1 year)" },
-  { value: "lifetime", label: "Lifetime" },
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const TIME_ZONES = [
+  "UTC",
+  "GMT",
+  "EST (UTC-5)",
+  "CST (UTC-6)",
+  "MST (UTC-7)",
+  "PST (UTC-8)",
+  "WAT (UTC+1)",
+  "IST (UTC+5:30)",
+  "JST (UTC+9)",
+  "AEST (UTC+10)"
 ];
 
-const TIMEZONE_OPTIONS = [
-  "WAT - West Africa Time",
-  "GMT - Greenwich Mean Time",
-  "EST - Eastern Standard Time",
-  "PST - Pacific Standard Time",
-  "CET - Central European Time",
-];
-
-const WEEKDAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
-interface CourseModeProps {
-  form: any;
-}
-
-interface ClassSession {
+interface ClassTimeSlot {
   day: string;
   startTime: string;
   endTime: string;
 }
 
-export const CourseMode = ({ form }: CourseModeProps) => {
-  const mode = form.watch("mode");
-  const isVirtualLive = mode === "virtual-live";
-  const [classSessions, setClassSessions] = useState<ClassSession[]>([]);
+export function CourseMode({ form }: { form: any }) {
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [timeSlots, setTimeSlots] = useState<Record<string, { startTime: string, endTime: string }>>({});
 
-  // Update form value when classSessions change
-  const updateClassSessionsInForm = (sessions: ClassSession[]) => {
-    // Extract just the days for the form field that expects days only
-    const days = sessions.map(session => session.day);
-    
-    // Set the days in the form
-    form.setValue("classDays", days);
-    
-    // Create a sessions object that contains both days and times
-    const sessionsMap = sessions.reduce((acc, session) => {
-      acc[session.day] = {
-        startTime: session.startTime,
-        endTime: session.endTime
-      };
-      return acc;
-    }, {} as Record<string, { startTime: string; endTime: string }>);
-    
-    // Set the class times in the form (as a JSON string)
-    form.setValue("classSchedule", JSON.stringify(sessionsMap));
-  };
-
-  const handleDayToggle = (day: string, checked: boolean) => {
-    let newSessions = [...classSessions];
-    
-    if (checked) {
-      // Add day if it doesn't exist
-      if (!newSessions.some(session => session.day === day)) {
-        newSessions.push({ day, startTime: "", endTime: "" });
+  // Monitor changes to the form's classDays field
+  useEffect(() => {
+    const subscription = form.watch((value: any, { name }: { name?: string }) => {
+      if (name === 'classDays') {
+        const daysValue = value.classDays || [];
+        setSelectedDays(daysValue);
+        
+        // Create default time slots for newly selected days
+        const updatedTimeSlots = { ...timeSlots };
+        daysValue.forEach((day: string) => {
+          if (!updatedTimeSlots[day]) {
+            updatedTimeSlots[day] = { startTime: "09:00", endTime: "10:00" };
+          }
+        });
+        
+        // Remove time slots for unselected days
+        Object.keys(updatedTimeSlots).forEach(day => {
+          if (!daysValue.includes(day)) {
+            delete updatedTimeSlots[day];
+          }
+        });
+        
+        setTimeSlots(updatedTimeSlots);
+        updateClassSchedule(updatedTimeSlots);
       }
-    } else {
-      // Remove day if it exists
-      newSessions = newSessions.filter(session => session.day !== day);
-    }
+    });
     
-    setClassSessions(newSessions);
-    updateClassSessionsInForm(newSessions);
+    return () => subscription.unsubscribe();
+  }, [form, timeSlots]);
+
+  // Update the class schedule JSON in the form when time slots change
+  const updateClassSchedule = (slots: Record<string, { startTime: string, endTime: string }>) => {
+    form.setValue('classSchedule', JSON.stringify(slots));
   };
 
-  const handleStartTimeChange = (day: string, time: string) => {
-    const newSessions = classSessions.map(session => 
-      session.day === day ? { ...session, startTime: time } : session
-    );
-    
-    setClassSessions(newSessions);
-    updateClassSessionsInForm(newSessions);
-  };
-  
-  const handleEndTimeChange = (day: string, time: string) => {
-    const newSessions = classSessions.map(session => 
-      session.day === day ? { ...session, endTime: time } : session
-    );
-    
-    setClassSessions(newSessions);
-    updateClassSessionsInForm(newSessions);
+  const handleTimeChange = (day: string, field: 'startTime' | 'endTime', value: string) => {
+    const updatedTimeSlots = { 
+      ...timeSlots,
+      [day]: { 
+        ...timeSlots[day],
+        [field]: value 
+      }
+    };
+    setTimeSlots(updatedTimeSlots);
+    updateClassSchedule(updatedTimeSlots);
   };
 
   return (
@@ -117,161 +91,119 @@ export const CourseMode = ({ form }: CourseModeProps) => {
         control={form.control}
         name="mode"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel>Course Mode</FormLabel>
-            <Select 
-              onValueChange={(value) => {
-                field.onChange(value);
-                // Reset class sessions when switching away from virtual-live
-                if (value !== "virtual-live") {
-                  setClassSessions([]);
-                  updateClassSessionsInForm([]);
-                }
-              }} 
-              defaultValue={field.value}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select course mode" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="self-paced">Self-paced Course</SelectItem>
-                <SelectItem value="virtual-live">Virtual Live Class</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              Choose how students will take this course
-            </FormDescription>
+          <FormItem className="space-y-3">
+            <FormLabel>Course Mode <span className="text-red-500">*</span></FormLabel>
+            <FormControl>
+              <RadioGroup
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                className="flex flex-col space-y-1"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="self-paced" id="self-paced" />
+                  <Label htmlFor="self-paced">Self-paced</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="virtual-live" id="virtual-live" />
+                  <Label htmlFor="virtual-live">Virtual Live Classes</Label>
+                </div>
+              </RadioGroup>
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
 
-      {/* Mode-specific fields */}
-      {mode === "self-paced" ? (
-        <FormField
-          control={form.control}
-          name="accessDuration"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Access Duration</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="How long will students have access?" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {ACCESS_DURATION_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Period of time students will have access to course materials
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ) : null}
+      {/* Conditional Fields for Virtual Live Classes */}
+      {form.watch('mode') === 'virtual-live' && (
+        <div className="space-y-6 pl-6 border-l-2 border-gray-200">
+          {/* Course Start Date */}
+          <FormField
+            control={form.control}
+            name="courseStartDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Course Start Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      {/* Virtual Live Class Settings */}
-      {isVirtualLive && (
-        <div className="space-y-6 border p-4 rounded-lg bg-muted/30">
-          <h4 className="font-medium">Virtual Live Class Settings</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Registration Deadline */}
-            <FormField
-              control={form.control}
-              name="registrationDeadline"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Registration Deadline</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Select a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date()
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* Registration Deadline */}
+          <FormField
+            control={form.control}
+            name="registrationDeadline"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Registration Deadline</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            {/* Course Start Date */}
-            <FormField
-              control={form.control}
-              name="courseStartDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Course Start Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Select a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date()
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* Timezone */}
+          {/* Timezone Selection */}
           <FormField
             control={form.control}
             name="timezone"
@@ -285,7 +217,7 @@ export const CourseMode = ({ form }: CourseModeProps) => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {TIMEZONE_OPTIONS.map((timezone) => (
+                    {TIME_ZONES.map((timezone) => (
                       <SelectItem key={timezone} value={timezone}>
                         {timezone}
                       </SelectItem>
@@ -297,84 +229,133 @@ export const CourseMode = ({ form }: CourseModeProps) => {
             )}
           />
 
-          {/* Class Days with Times */}
+          {/* Class Days Selection */}
           <FormField
             control={form.control}
             name="classDays"
             render={() => (
               <FormItem>
-                <FormLabel>Class Schedule</FormLabel>
-                <FormDescription>
-                  Select the days when classes will take place and set the start and end times for each day
-                </FormDescription>
-                <div className="space-y-4 mt-2">
-                  {WEEKDAYS.map((day) => {
-                    const isSelected = classSessions.some(session => session.day === day);
-                    const session = classSessions.find(session => session.day === day);
-                    const startTime = session?.startTime || "";
-                    const endTime = session?.endTime || "";
-                    
-                    return (
-                      <Card key={day} className={cn(
-                        "border", 
-                        isSelected ? "border-primary" : "border-gray-200"
-                      )}>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="flex items-center space-x-2">
+                <div className="mb-4">
+                  <FormLabel>Class Days</FormLabel>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {DAYS_OF_WEEK.map((day) => (
+                    <FormField
+                      key={day}
+                      control={form.control}
+                      name="classDays"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={day}
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
                               <Checkbox
-                                id={`day-${day}`}
-                                checked={isSelected}
-                                onCheckedChange={(checked) => 
-                                  handleDayToggle(day, checked as boolean)
-                                }
+                                checked={field.value?.includes(day)}
+                                onCheckedChange={(checked) => {
+                                  const currentValue = [...(field.value || [])];
+                                  if (checked) {
+                                    field.onChange([...currentValue, day]);
+                                  } else {
+                                    field.onChange(
+                                      currentValue.filter((value) => value !== day)
+                                    );
+                                  }
+                                }}
                               />
-                              <label htmlFor={`day-${day}`} className="text-sm font-medium">
-                                {day}
-                              </label>
-                            </div>
-                            
-                            {isSelected && (
-                              <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <div className="flex flex-col">
-                                  <span className="text-xs text-gray-500">Start</span>
-                                  <Input 
-                                    type="time"
-                                    value={startTime}
-                                    onChange={(e) => handleStartTimeChange(day, e.target.value)}
-                                    className="h-8 w-full"
-                                  />
-                                </div>
-                                <span className="text-xs self-end">to</span>
-                                <div className="flex flex-col">
-                                  <span className="text-xs text-gray-500">End</span>
-                                  <Input 
-                                    type="time"
-                                    value={endTime}
-                                    onChange={(e) => handleEndTimeChange(day, e.target.value)}
-                                    className="h-8 w-full"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {day}
+                            </FormLabel>
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  ))}
                 </div>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
-          {/* Hidden field to store the class schedule */}
-          <input 
-            type="hidden" 
-            {...form.register("classSchedule")} 
+
+          {/* Class Times for Selected Days */}
+          {selectedDays.length > 0 && (
+            <div className="space-y-4 mt-4">
+              <FormLabel>Class Times</FormLabel>
+              {selectedDays.map((day) => (
+                <div key={day} className="flex items-center space-x-2">
+                  <div className="w-24 font-medium">{day}</div>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      type="time"
+                      value={timeSlots[day]?.startTime || "09:00"}
+                      onChange={(e) => handleTimeChange(day, 'startTime', e.target.value)}
+                      className="w-32"
+                    />
+                    <span>to</span>
+                    <Input
+                      type="time"
+                      value={timeSlots[day]?.endTime || "10:00"}
+                      onChange={(e) => handleTimeChange(day, 'endTime', e.target.value)}
+                      className="w-32"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Replay Access */}
+          <FormField
+            control={form.control}
+            name="replayAccess"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Enable Class Replay
+                  </FormLabel>
+                </div>
+              </FormItem>
+            )}
           />
         </div>
       )}
+
+      {/* Access Duration for Self-Paced Courses */}
+      {form.watch('mode') === 'self-paced' && (
+        <FormField
+          control={form.control}
+          name="accessDuration"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Access Duration</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select access duration" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="1 month">1 Month</SelectItem>
+                  <SelectItem value="3 months">3 Months</SelectItem>
+                  <SelectItem value="6 months">6 Months</SelectItem>
+                  <SelectItem value="1 year">1 Year</SelectItem>
+                  <SelectItem value="lifetime">Lifetime</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </div>
   );
-};
+}
