@@ -1,8 +1,10 @@
 
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { FileText, Video, Loader, Check, X } from "lucide-react";
+import { FileText, Video, Loader, Check, X, AlertCircle } from "lucide-react";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UploadStatus {
   file: File;
@@ -16,7 +18,8 @@ interface CourseMediaUploadProps {
   onImageChange: (file: File) => void;
   onMaterialsChange: (files: FileList) => void;
   imageUrl?: string;
-  materialUploads?: UploadStatus[]; // ADDED
+  materialUploads?: UploadStatus[];
+  imageError?: boolean;
 }
 
 export const CourseMediaUpload = ({ 
@@ -25,6 +28,7 @@ export const CourseMediaUpload = ({
   onMaterialsChange, 
   imageUrl,
   materialUploads = [],
+  imageError = false
 }: CourseMediaUploadProps) => {
   return (
     <div className="space-y-6">
@@ -53,9 +57,11 @@ export const CourseMediaUpload = ({
         )}
       />
 
-      {/* Course Image */}
+      {/* Course Image - Required */}
       <div>
-        <Label htmlFor="image">Course Image (optional)</Label>
+        <Label htmlFor="image" className="flex items-center">
+          Course Image <span className="text-red-500 ml-1">*</span>
+        </Label>
         <div className="mt-1 flex items-center space-x-4">
           {imageUrl && (
             <div className="shrink-0 h-20 w-32 overflow-hidden rounded-md border">
@@ -85,6 +91,14 @@ export const CourseMediaUpload = ({
             className="sr-only"
           />
         </div>
+        {imageError && !imageUrl && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Course image is required
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Course Materials Upload */}
@@ -143,7 +157,6 @@ export const CourseMediaUpload = ({
                 ))}
               </div>
             )}
-
           </div>
         </div>
       </div>

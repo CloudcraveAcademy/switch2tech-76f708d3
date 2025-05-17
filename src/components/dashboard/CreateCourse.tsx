@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +11,7 @@ import { Form } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { CourseBasicInfo } from "./course/CourseBasicInfo";
 import { CoursePricing } from "./course/CoursePricing";
@@ -38,7 +40,7 @@ const courseFormSchema = z.object({
   registrationDeadline: z.date().optional(),
   courseStartDate: z.date().optional(),
   classDays: z.array(z.string()).optional(),
-  classTime: z.string().optional(),
+  classSchedule: z.string().optional(), // JSON string with day -> time mapping
   timezone: z.string().optional(),
   replayAccess: z.boolean().default(false),
   discountEnabled: z.boolean().default(false),
@@ -47,6 +49,13 @@ const courseFormSchema = z.object({
 
 type CourseFormValues = z.infer<typeof courseFormSchema>;
 
+interface UploadStatus {
+  file: File;
+  name: string;
+  status: 'idle' | 'uploading' | 'success' | 'error';
+  url?: string;
+}
+
 const CreateCourse = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -54,7 +63,10 @@ const CreateCourse = () => {
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [imageError, setImageError] = useState(false);
   const [courseMaterials, setCourseMaterials] = useState<File[]>([]);
+  const [materialUploads, setMaterialUploads] = useState<UploadStatus[]>([]);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
@@ -72,19 +84,107 @@ const CreateCourse = () => {
       additionalLanguages: [],
       discountEnabled: false,
       replayAccess: false,
+      classSchedule: "",
     },
   });
 
   const handleImageChange = (file: File) => {
     setImage(file);
     setImageUrl(URL.createObjectURL(file));
+    setImageError(false); // Clear error when image is uploaded
   };
 
   const handleMaterialsChange = (files: FileList) => {
-    setCourseMaterials(Array.from(files));
+    const newMaterials = Array.from(files);
+    setCourseMaterials([...courseMaterials, ...newMaterials]);
+    
+    const newUploads = newMaterials.map(file => ({
+      file,
+      name: file.name,
+      status: 'idle' as const,
+    }));
+    
+    setMaterialUploads([...materialUploads, ...newUploads]);
+  };
+
+  const uploadCourseMaterials = async () => {
+    const materialUrls: string[] = [];
+    
+    // Update status for all materials to uploading
+    setMaterialUploads(prev => 
+      prev.map(item => ({ ...item, status: 'uploading' }))
+    );
+    
+    try {
+      for (let i = 0; i < courseMaterials.length; i++) {
+        const material = courseMaterials[i];
+        const fileExt = material.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `course-materials/${fileName}`;
+        
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from('course-materials')
+            .upload(filePath, material);
+            
+          if (uploadError) {
+            // Update status for this material to error
+            setMaterialUploads(prev => 
+              prev.map((item, idx) => 
+                idx === i ? { ...item, status: 'error' } : item
+              )
+            );
+            console.error(`Error uploading material: ${uploadError.message}`);
+            continue; // Skip to next file
+          }
+          
+          const { data: materialData } = supabase.storage
+            .from('course-materials')
+            .getPublicUrl(filePath);
+          
+          materialUrls.push(materialData.publicUrl);
+          
+          // Update status for this material to success
+          setMaterialUploads(prev => 
+            prev.map((item, idx) => 
+              idx === i ? { ...item, status: 'success', url: materialData.publicUrl } : item
+            )
+          );
+        } catch (error) {
+          console.error(`Error processing material ${material.name}:`, error);
+          
+          // Update status for this material to error
+          setMaterialUploads(prev => 
+            prev.map((item, idx) => 
+              idx === i ? { ...item, status: 'error' } : item
+            )
+          );
+        }
+      }
+      
+      return materialUrls;
+    } catch (error) {
+      console.error('Error uploading course materials:', error);
+      return [];
+    }
   };
 
   const onSubmit = async (data: CourseFormValues) => {
+    setFormError(null);
+    
+    // Validate required image
+    if (!image) {
+      setImageError(true);
+      setFormError("Course image is required");
+      return;
+    }
+    
+    // Validate class schedule if mode is virtual-live
+    if (data.mode === "virtual-live" && (!data.classDays || data.classDays.length === 0)) {
+      setFormError("Please select at least one class day");
+      return;
+    }
+    
     if (!user?.id) {
       toast({
         title: "Authentication error",
@@ -98,8 +198,8 @@ const CreateCourse = () => {
     
     try {
       let finalImageUrl = "";
-      let materialUrls: string[] = [];
       
+      // Upload course image
       if (image) {
         const fileExt = image.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -117,22 +217,26 @@ const CreateCourse = () => {
         finalImageUrl = imageData.publicUrl;
       }
       
+      // Upload course materials
+      let materialUrls: string[] = [];
       if (courseMaterials.length > 0) {
-        for (const material of courseMaterials) {
-          const fileExt = material.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-          const filePath = `course-materials/${fileName}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('course-materials')
-            .upload(filePath, material);
-            
-          if (uploadError) {
-            throw new Error(`Error uploading material: ${uploadError.message}`);
+        materialUrls = await uploadCourseMaterials();
+      }
+      
+      // Parse the class schedule if it exists
+      let classDays = data.classDays || [];
+      let classTime = ""; 
+      
+      if (data.classSchedule) {
+        try {
+          const schedule = JSON.parse(data.classSchedule);
+          // Store the first time as the primary class time (for backwards compatibility)
+          const firstDay = Object.keys(schedule)[0];
+          if (firstDay) {
+            classTime = schedule[firstDay];
           }
-          
-          const { data: materialData } = supabase.storage.from('course-materials').getPublicUrl(filePath);
-          materialUrls.push(materialData.publicUrl);
+        } catch (e) {
+          console.error("Error parsing class schedule:", e);
         }
       }
       
@@ -156,8 +260,9 @@ const CreateCourse = () => {
         access_duration: data.accessDuration,
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
         course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
-        class_days: data.classDays,
-        class_time: data.classTime,
+        class_days: classDays,
+        class_time: classTime,
+        class_schedule: data.classSchedule, // Store the full schedule 
         timezone: data.timezone,
         replay_access: data.replayAccess,
         discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
@@ -183,7 +288,6 @@ const CreateCourse = () => {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -207,6 +311,12 @@ const CreateCourse = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {formError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-6">
                 <h3 className="text-lg font-medium">Basic Information</h3>
                 <CourseBasicInfo form={form} />
@@ -229,6 +339,8 @@ const CreateCourse = () => {
                   onImageChange={handleImageChange}
                   onMaterialsChange={handleMaterialsChange}
                   imageUrl={imageUrl}
+                  materialUploads={materialUploads}
+                  imageError={imageError}
                 />
               </div>
 

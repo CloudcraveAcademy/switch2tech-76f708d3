@@ -19,7 +19,9 @@ export const setupDemoAccounts = async () => {
     
     // Create admin account
     const adminEmail = "admin@example.com";
-    const adminExists = await checkIfUserExists(adminEmail);
+    // Check if admin already exists using supabase auth API directly
+    const { data: existingUsers, error: checkError } = await supabase.auth.admin.listUsers();
+    const adminExists = checkError ? false : existingUsers?.users.some(user => user.email === adminEmail);
     
     if (!adminExists) {
       await createDemoUser({
@@ -33,7 +35,7 @@ export const setupDemoAccounts = async () => {
     
     // Create instructor account
     const instructorEmail = "instructor@example.com";
-    const instructorExists = await checkIfUserExists(instructorEmail);
+    const instructorExists = existingUsers?.users.some(user => user.email === instructorEmail) || false;
     
     if (!instructorExists) {
       await createDemoUser({
@@ -47,7 +49,7 @@ export const setupDemoAccounts = async () => {
     
     // Create student account
     const studentEmail = "student@example.com";
-    const studentExists = await checkIfUserExists(studentEmail);
+    const studentExists = existingUsers?.users.some(user => user.email === studentEmail) || false;
     
     if (!studentExists) {
       await createDemoUser({
@@ -63,16 +65,6 @@ export const setupDemoAccounts = async () => {
   } catch (error) {
     console.error("Error setting up demo accounts:", error);
   }
-};
-
-// Helper to check if user exists to avoid the infinite recursion issue
-const checkIfUserExists = async (email: string) => {
-  const { data, error } = await supabase.auth.admin.listUsers();
-  if (error) {
-    console.error("Error checking if user exists:", error);
-    return false;
-  }
-  return data.users.some(user => user.email === email);
 };
 
 // Helper to create a demo user

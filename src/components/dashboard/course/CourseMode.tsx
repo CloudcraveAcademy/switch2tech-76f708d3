@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ACCESS_DURATION_OPTIONS = [
   { value: "30", label: "30 days" },
@@ -40,9 +43,59 @@ interface CourseModeProps {
   form: any;
 }
 
+interface ClassSession {
+  day: string;
+  time: string;
+}
+
 export const CourseMode = ({ form }: CourseModeProps) => {
   const mode = form.watch("mode");
   const isVirtualLive = mode === "virtual-live";
+  const [classSessions, setClassSessions] = useState<ClassSession[]>([]);
+
+  // Update form value when classSessions change
+  const updateClassSessionsInForm = (sessions: ClassSession[]) => {
+    // Extract just the days for the form field that expects days only
+    const days = sessions.map(session => session.day);
+    
+    // Set the days in the form
+    form.setValue("classDays", days);
+    
+    // Create a sessions object that contains both days and times
+    const sessionsMap = sessions.reduce((acc, session) => {
+      acc[session.day] = session.time;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    // Set the class times in the form (as a JSON string)
+    form.setValue("classSchedule", JSON.stringify(sessionsMap));
+  };
+
+  const handleDayToggle = (day: string, checked: boolean) => {
+    let newSessions = [...classSessions];
+    
+    if (checked) {
+      // Add day if it doesn't exist
+      if (!newSessions.some(session => session.day === day)) {
+        newSessions.push({ day, time: "" });
+      }
+    } else {
+      // Remove day if it exists
+      newSessions = newSessions.filter(session => session.day !== day);
+    }
+    
+    setClassSessions(newSessions);
+    updateClassSessionsInForm(newSessions);
+  };
+
+  const handleTimeChange = (day: string, time: string) => {
+    const newSessions = classSessions.map(session => 
+      session.day === day ? { ...session, time } : session
+    );
+    
+    setClassSessions(newSessions);
+    updateClassSessionsInForm(newSessions);
+  };
 
   return (
     <div className="space-y-6">
@@ -53,7 +106,17 @@ export const CourseMode = ({ form }: CourseModeProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel>Course Mode</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select 
+              onValueChange={(value) => {
+                field.onChange(value);
+                // Reset class sessions when switching away from virtual-live
+                if (value !== "virtual-live") {
+                  setClassSessions([]);
+                  updateClassSessionsInForm([]);
+                }
+              }} 
+              defaultValue={field.value}
+            >
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Select course mode" />
@@ -195,89 +258,93 @@ export const CourseMode = ({ form }: CourseModeProps) => {
             />
           </div>
 
-          {/* Class Time and Timezone */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="classTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Class Time</FormLabel>
+          {/* Timezone */}
+          <FormField
+            control={form.control}
+            name="timezone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Timezone</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="e.g., 6:00 PM - 8:00 PM"
-                    />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  <SelectContent>
+                    {TIMEZONE_OPTIONS.map((timezone) => (
+                      <SelectItem key={timezone} value={timezone}>
+                        {timezone}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="timezone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Timezone</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {TIMEZONE_OPTIONS.map((timezone) => (
-                        <SelectItem key={timezone} value={timezone}>
-                          {timezone}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* Class Days */}
+          {/* Class Days with Times */}
           <FormField
             control={form.control}
             name="classDays"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
-                <FormLabel>Class Days</FormLabel>
+                <FormLabel>Class Schedule</FormLabel>
                 <FormDescription>
-                  Select the days when classes will take place
+                  Select the days when classes will take place and set the time for each day
                 </FormDescription>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                  {WEEKDAYS.map((day) => (
-                    <div key={day} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`day-${day}`}
-                        value={day}
-                        checked={field.value?.includes(day) || false}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          const currentDays = field.value || [];
-                          field.onChange(
-                            checked
-                              ? [...currentDays, day]
-                              : currentDays.filter((d: string) => d !== day)
-                          );
-                        }}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <label htmlFor={`day-${day}`} className="text-sm font-medium text-gray-700">
-                        {day}
-                      </label>
-                    </div>
-                  ))}
+                <div className="space-y-4 mt-2">
+                  {WEEKDAYS.map((day) => {
+                    const isSelected = classSessions.some(session => session.day === day);
+                    const sessionTime = classSessions.find(session => session.day === day)?.time || "";
+                    
+                    return (
+                      <Card key={day} className={cn(
+                        "border", 
+                        isSelected ? "border-primary" : "border-gray-200"
+                      )}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`day-${day}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => 
+                                  handleDayToggle(day, checked as boolean)
+                                }
+                              />
+                              <label htmlFor={`day-${day}`} className="text-sm font-medium">
+                                {day}
+                              </label>
+                            </div>
+                            
+                            {isSelected && (
+                              <div className="w-32">
+                                <Input 
+                                  type="time"
+                                  value={sessionTime}
+                                  onChange={(e) => handleTimeChange(day, e.target.value)}
+                                  placeholder="Class time"
+                                  className="h-8"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
                 <FormMessage />
               </FormItem>
             )}
+          />
+          
+          {/* Hidden field to store the class schedule */}
+          <input 
+            type="hidden" 
+            {...form.register("classSchedule")} 
           />
         </div>
       )}
