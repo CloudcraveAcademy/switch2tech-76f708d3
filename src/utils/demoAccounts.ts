@@ -1,79 +1,115 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '../integrations/supabase/client';
 
-export type DemoAccountType = "admin" | "instructor" | "student";
-
-export const demoAccounts = {
-  admin: {
-    email: "admin@example.com",
-    password: "Admin123!",
-    role: "admin" as const
-  },
-  instructor: {
-    email: "instructor@example.com",
-    password: "Instructor123!",
-    role: "instructor" as const
-  },
-  student: {
-    email: "student@example.com",
-    password: "Student123!",
-    role: "student" as const
-  }
+// Function to check if user exists
+const userExists = async (email: string) => {
+  const { data } = await supabase
+    .from('user_profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+  
+  return !!data;
 };
 
-export const createDemoAccountIfNotExists = async (accountType: DemoAccountType) => {
-  try {
-    const account = demoAccounts[accountType];
-    
-    // Check if the user already exists
-    const { data: existingUser } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('email', account.email)
-      .maybeSingle();
-      
-    if (!existingUser) {
-      // User doesn't exist, create it
-      const { data, error } = await supabase.auth.signUp({
-        email: account.email,
-        password: account.password,
-        options: {
-          data: {
-            role: account.role,
-            first_name: accountType.charAt(0).toUpperCase() + accountType.slice(1),
-            last_name: "User"
-          }
-        }
-      });
-      
-      if (error) {
-        console.error(`Error creating ${accountType} demo account:`, error);
-        return false;
-      }
-      
-      console.log(`${accountType} demo account created successfully`);
-      return true;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error(`Error checking/creating ${accountType} demo account:`, error);
-    return false;
-  }
-};
-
+// Setup demo accounts
 export const setupDemoAccounts = async () => {
   try {
-    await Promise.all([
-      createDemoAccountIfNotExists('admin'),
-      createDemoAccountIfNotExists('instructor'),
-      createDemoAccountIfNotExists('student')
-    ]);
+    console.log("Setting up demo accounts...");
     
-    console.log('Demo accounts setup complete');
-    return true;
+    // Create admin account
+    const adminEmail = "admin@example.com";
+    const adminExists = await checkIfUserExists(adminEmail);
+    
+    if (!adminExists) {
+      await createDemoUser({
+        email: adminEmail,
+        password: "admin123",
+        firstName: "Admin",
+        lastName: "User",
+        role: "admin"
+      });
+    }
+    
+    // Create instructor account
+    const instructorEmail = "instructor@example.com";
+    const instructorExists = await checkIfUserExists(instructorEmail);
+    
+    if (!instructorExists) {
+      await createDemoUser({
+        email: instructorEmail,
+        password: "instructor123",
+        firstName: "Test",
+        lastName: "Instructor",
+        role: "instructor"
+      });
+    }
+    
+    // Create student account
+    const studentEmail = "student@example.com";
+    const studentExists = await checkIfUserExists(studentEmail);
+    
+    if (!studentExists) {
+      await createDemoUser({
+        email: studentEmail,
+        password: "student123",
+        firstName: "Test",
+        lastName: "Student",
+        role: "student"
+      });
+    }
+    
+    console.log("Demo accounts setup completed");
   } catch (error) {
-    console.error('Error setting up demo accounts:', error);
+    console.error("Error setting up demo accounts:", error);
+  }
+};
+
+// Helper to check if user exists to avoid the infinite recursion issue
+const checkIfUserExists = async (email: string) => {
+  const { data, error } = await supabase.auth.admin.listUsers();
+  if (error) {
+    console.error("Error checking if user exists:", error);
     return false;
+  }
+  return data.users.some(user => user.email === email);
+};
+
+// Helper to create a demo user
+const createDemoUser = async ({ 
+  email, 
+  password, 
+  firstName, 
+  lastName, 
+  role 
+}: { 
+  email: string; 
+  password: string; 
+  firstName: string; 
+  lastName: string; 
+  role: string;
+}) => {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          role
+        }
+      }
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    console.log(`Created ${role} account: ${email}`);
+    return data;
+  } catch (error) {
+    console.error(`Error creating ${role} account:`, error);
+    return null;
   }
 };

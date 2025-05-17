@@ -1,626 +1,760 @@
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Shield, Settings, Server, Database, Cpu, RefreshCw, AlertTriangle, CheckCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Shield,
+  Server,
+  HardDrive,
+  Database,
+  Settings,
+  Lock,
+  FileText,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const SystemPage = () => {
-  const [activeTab, setActiveTab] = useState("status");
-  const [isPerformingAction, setIsPerformingAction] = useState(false);
-
-  // Mock system status data
-  const systemStatus = {
-    serverStatus: "operational",
-    databaseStatus: "operational",
-    storageStatus: "operational",
-    apiStatus: "operational",
-    lastChecked: new Date().toISOString(),
-    serverLoad: 32,
-    memoryUsage: 45,
-    diskUsage: 68,
-  };
-
-  // Mock email settings
-  const [emailSettings, setEmailSettings] = useState({
-    sendWelcomeEmail: true,
-    sendCourseEnrollment: true,
-    sendCourseCompletion: true,
-    sendPaymentReceipt: true,
-    senderName: "Switch to Tech",
-    senderEmail: "no-reply@switch2tech.com",
-    smtpServer: "smtp.example.com",
-    smtpPort: "587",
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const [smtpSettings, setSmtpSettings] = useState({
+    host: "smtp.example.com",
+    port: "587",
+    username: "notifications@example.com",
+    password: "**********"
   });
 
-  // Mock site settings
-  const [siteSettings, setSiteSettings] = useState({
-    siteName: "Switch to Tech",
-    siteDescription: "Learn tech skills and switch careers",
-    allowRegistration: true,
-    requireEmailVerification: false,
-    maintenanceMode: false,
-    defaultUserRole: "student",
-    defaultCurrency: "NGN",
-    timezone: "Africa/Lagos",
+  const [apiKeys, setApiKeys] = useState({
+    paystackLive: "sk_live_*******************",
+    paystackTest: "sk_test_******************",
+    googleMaps: "AIza*********************",
+    cloudinary: "cloudinary://**************"
   });
 
-  const handleRefreshStatus = () => {
-    setIsPerformingAction(true);
-    toast({
-      title: "Refreshing system status",
-      description: "Checking all system components...",
-    });
+  // Mock system health data
+  const systemHealth = [
+    { name: "API Server", status: "operational", uptime: "99.99%" },
+    { name: "Database", status: "operational", uptime: "99.95%" },
+    { name: "Storage", status: "operational", uptime: "100%" },
+    { name: "Authentication", status: "operational", uptime: "99.98%" },
+    { name: "Payment Processing", status: "partial_outage", uptime: "98.5%" },
+  ];
+  
+  // Mock logs data
+  const recentLogs = [
+    { 
+      timestamp: "2025-05-17 08:15:23", 
+      level: "info", 
+      service: "auth", 
+      message: "User authenticated successfully" 
+    },
+    { 
+      timestamp: "2025-05-17 08:14:55", 
+      level: "warning", 
+      service: "payment", 
+      message: "Payment gateway timeout, retrying..." 
+    },
+    { 
+      timestamp: "2025-05-17 08:12:30", 
+      level: "error", 
+      service: "database", 
+      message: "Connection pool exhausted" 
+    },
+    { 
+      timestamp: "2025-05-17 08:10:15", 
+      level: "info", 
+      service: "storage", 
+      message: "Backup completed successfully" 
+    },
+    { 
+      timestamp: "2025-05-17 08:05:42", 
+      level: "info", 
+      service: "api", 
+      message: "Rate limit increased for premium users" 
+    },
+  ];
 
-    // Simulate API call
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    // Simulate refresh delay
     setTimeout(() => {
-      setIsPerformingAction(false);
-      toast({
-        title: "System status refreshed",
-        description: "All systems are operational.",
-      });
-    }, 2000);
+      setIsRefreshing(false);
+    }, 1500);
   };
 
-  const handleRunMaintenance = () => {
-    if (!confirm("Are you sure you want to run system maintenance? This may temporarily affect system performance.")) {
-      return;
+  const handleSmtpChange = (e) => {
+    setSmtpSettings({
+      ...smtpSettings,
+      [e.target.id]: e.target.value
+    });
+  };
+
+  const handleApiKeyChange = (e) => {
+    setApiKeys({
+      ...apiKeys,
+      [e.target.id]: e.target.value
+    });
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "operational":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Operational
+          </span>
+        );
+      case "partial_outage":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            Partial Outage
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            Major Outage
+          </span>
+        );
     }
-
-    setIsPerformingAction(true);
-    toast({
-      title: "Maintenance started",
-      description: "Running system maintenance tasks...",
-    });
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsPerformingAction(false);
-      toast({
-        title: "Maintenance completed",
-        description: "System maintenance tasks have been successfully completed.",
-      });
-    }, 3000);
   };
 
-  const handleClearCache = () => {
-    if (!confirm("Are you sure you want to clear the system cache? This may temporarily slow down the system.")) {
-      return;
+  const getLogLevelBadge = (level) => {
+    switch (level) {
+      case "info":
+        return <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900/30 dark:text-blue-300">INFO</span>;
+      case "warning":
+        return <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900/30 dark:text-yellow-300">WARNING</span>;
+      case "error":
+        return <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900/30 dark:text-red-300">ERROR</span>;
+      default:
+        return <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">{level.toUpperCase()}</span>;
     }
-
-    setIsPerformingAction(true);
-    toast({
-      title: "Clearing cache",
-      description: "Clearing system cache...",
-    });
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsPerformingAction(false);
-      toast({
-        title: "Cache cleared",
-        description: "System cache has been successfully cleared.",
-      });
-    }, 2000);
-  };
-
-  const handleSaveEmailSettings = () => {
-    toast({
-      title: "Saving email settings",
-      description: "Updating email configuration...",
-    });
-
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Email settings saved",
-        description: "Your email settings have been successfully updated.",
-      });
-    }, 1000);
-  };
-
-  const handleSaveSiteSettings = () => {
-    toast({
-      title: "Saving site settings",
-      description: "Updating site configuration...",
-    });
-
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Site settings saved",
-        description: "Your site settings have been successfully updated.",
-      });
-    }, 1000);
   };
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">System Management</h1>
-          <p className="text-gray-600">Monitor and manage platform system settings</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">System</h1>
+          <p className="text-gray-600 dark:text-gray-400">Monitor and configure system settings</p>
         </div>
-        <div>
-          <Button onClick={handleRefreshStatus} disabled={isPerformingAction}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh Status
-          </Button>
-        </div>
+        <Button 
+          onClick={handleRefresh} 
+          disabled={isRefreshing}
+          className="mt-4 sm:mt-0"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
       </div>
 
-      <Tabs defaultValue="status" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="status">System Status</TabsTrigger>
-          <TabsTrigger value="settings">Site Settings</TabsTrigger>
-          <TabsTrigger value="email">Email Configuration</TabsTrigger>
-          <TabsTrigger value="backup">Backup & Restore</TabsTrigger>
-          <TabsTrigger value="logs">System Logs</TabsTrigger>
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full md:w-fit">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="logs">Logs</TabsTrigger>
+          <TabsTrigger value="backups">Backups</TabsTrigger>
         </TabsList>
-
-        {/* System Status Tab */}
-        <TabsContent value="status">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Server className="mr-2 h-4 w-4" />
+                <CardTitle className="text-lg flex items-center">
+                  <Server className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                   Server Status
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex justify-between items-center">
-                  <Badge variant={systemStatus.serverStatus === "operational" ? "success" : "destructive"}>
-                    {systemStatus.serverStatus === "operational" ? (
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                    ) : (
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                    )}
-                    {systemStatus.serverStatus}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Database className="mr-2 h-4 w-4" />
-                  Database Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center">
-                  <Badge variant={systemStatus.databaseStatus === "operational" ? "success" : "destructive"}>
-                    {systemStatus.databaseStatus === "operational" ? (
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                    ) : (
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                    )}
-                    {systemStatus.databaseStatus}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Shield className="mr-2 h-4 w-4" />
-                  API Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center">
-                  <Badge variant={systemStatus.apiStatus === "operational" ? "success" : "destructive"}>
-                    {systemStatus.apiStatus === "operational" ? (
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                    ) : (
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                    )}
-                    {systemStatus.apiStatus}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Cpu className="mr-2 h-4 w-4" />
-                  Storage Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center">
-                  <Badge variant={systemStatus.storageStatus === "operational" ? "success" : "destructive"}>
-                    {systemStatus.storageStatus === "operational" ? (
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                    ) : (
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                    )}
-                    {systemStatus.storageStatus}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Server Load</CardTitle>
-                <CardDescription>Current CPU usage</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>{systemStatus.serverLoad}%</span>
-                    <span className="text-sm text-gray-500">Low</span>
-                  </div>
-                  <Progress value={systemStatus.serverLoad} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Memory Usage</CardTitle>
-                <CardDescription>RAM utilization</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>{systemStatus.memoryUsage}%</span>
-                    <span className="text-sm text-gray-500">Normal</span>
-                  </div>
-                  <Progress value={systemStatus.memoryUsage} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Disk Usage</CardTitle>
-                <CardDescription>Storage utilization</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>{systemStatus.diskUsage}%</span>
-                    <span className="text-sm text-orange-500">High</span>
-                  </div>
-                  <Progress value={systemStatus.diskUsage} className="bg-orange-100" indicatorClassName="bg-orange-500" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Maintenance</CardTitle>
-                <CardDescription>Perform system maintenance tasks</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Clear System Cache</h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    Clear temporary files and cached data to free up resources.
-                  </p>
-                  <Button variant="outline" onClick={handleClearCache} disabled={isPerformingAction}>
-                    Clear Cache
-                  </Button>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Run Database Optimization</h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    Optimize database tables, repair inconsistencies, and improve performance.
-                  </p>
-                  <Button variant="outline" onClick={handleRunMaintenance} disabled={isPerformingAction}>
-                    Run Maintenance
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Platform Updates</CardTitle>
-                <CardDescription>System version and update history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-medium">Current Version</h3>
-                    <Badge>v2.5.3</Badge>
-                  </div>
-                  <p className="text-sm text-gray-500">Released on May 12, 2023</p>
-                </div>
-                
-                <h3 className="font-medium mb-4">Update History</h3>
                 <div className="space-y-4">
-                  {[
-                    { version: "v2.5.3", date: "May 12, 2023", description: "Added improved reporting features and fixed student enrollment bugs" },
-                    { version: "v2.5.2", date: "April 28, 2023", description: "Security updates and performance improvements" },
-                  ].map((update, index) => (
-                    <div key={index} className="border-b pb-4 last:border-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <h4 className="font-medium">{update.version}</h4>
-                        <span className="text-sm text-gray-500">{update.date}</span>
-                      </div>
-                      <p className="text-sm">{update.description}</p>
+                  <div>
+                    <div className="flex justify-between mb-1 text-sm">
+                      <span>CPU Usage</span>
+                      <span>32%</span>
                     </div>
-                  ))}
+                    <Progress value={32} className="h-2" />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1 text-sm">
+                      <span>Memory Usage</span>
+                      <span>45%</span>
+                    </div>
+                    <Progress value={45} className="h-2" />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1 text-sm">
+                      <span>Disk Usage</span>
+                      <span>67%</span>
+                    </div>
+                    <Progress value={67} className="h-2" />
+                  </div>
+                  <div className="pt-2">
+                    <p className="text-sm text-gray-500">Last updated: 1 minute ago</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <Database className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
+                  Database
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Status</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      Healthy
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Connections</span>
+                    <span>23/100</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Queries/sec</span>
+                    <span>156</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Avg Response Time</span>
+                    <span>45ms</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center">
+                  <Shield className="h-5 w-5 mr-2 text-red-600 dark:text-red-400" />
+                  Security
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm">SSL Certificate</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      Valid
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">SSL Expiry</span>
+                    <span>87 days</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Firewall</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      Active
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Blocked Attempts</span>
+                    <span>243 today</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
 
-        {/* Site Settings Tab */}
-        <TabsContent value="settings">
           <Card>
             <CardHeader>
-              <CardTitle>Site Configuration</CardTitle>
-              <CardDescription>Manage general platform settings</CardDescription>
+              <CardTitle>System Health</CardTitle>
+              <CardDescription>Current status of all system components</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="siteName">Site Name</Label>
-                  <Input
-                    id="siteName"
-                    value={siteSettings.siteName}
-                    onChange={(e) => setSiteSettings({...siteSettings, siteName: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="defaultCurrency">Default Currency</Label>
-                  <Select 
-                    value={siteSettings.defaultCurrency}
-                    onValueChange={(value) => setSiteSettings({...siteSettings, defaultCurrency: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>
-                      <SelectItem value="USD">US Dollar ($)</SelectItem>
-                      <SelectItem value="EUR">Euro (€)</SelectItem>
-                      <SelectItem value="GBP">British Pound (£)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="siteDescription">Site Description</Label>
-                <Textarea
-                  id="siteDescription"
-                  value={siteSettings.siteDescription}
-                  onChange={(e) => setSiteSettings({...siteSettings, siteDescription: e.target.value})}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Default Timezone</Label>
-                  <Select 
-                    value={siteSettings.timezone}
-                    onValueChange={(value) => setSiteSettings({...siteSettings, timezone: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Africa/Lagos">Africa/Lagos</SelectItem>
-                      <SelectItem value="Europe/London">Europe/London</SelectItem>
-                      <SelectItem value="America/New_York">America/New_York</SelectItem>
-                      <SelectItem value="Asia/Dubai">Asia/Dubai</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="defaultUserRole">Default User Role</Label>
-                  <Select 
-                    value={siteSettings.defaultUserRole}
-                    onValueChange={(value) => setSiteSettings({...siteSettings, defaultUserRole: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select default role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="instructor">Instructor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Security & Access</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="allowRegistration"
-                      checked={siteSettings.allowRegistration}
-                      onCheckedChange={(checked) => setSiteSettings({...siteSettings, allowRegistration: checked})}
-                    />
-                    <Label htmlFor="allowRegistration">Allow User Registration</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="requireEmailVerification"
-                      checked={siteSettings.requireEmailVerification}
-                      onCheckedChange={(checked) => setSiteSettings({...siteSettings, requireEmailVerification: checked})}
-                    />
-                    <Label htmlFor="requireEmailVerification">Require Email Verification</Label>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Maintenance</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="maintenanceMode"
-                    checked={siteSettings.maintenanceMode}
-                    onCheckedChange={(checked) => setSiteSettings({...siteSettings, maintenanceMode: checked})}
-                  />
-                  <div>
-                    <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-                    <p className="text-sm text-gray-500">When enabled, only administrators can access the site.</p>
-                  </div>
-                </div>
-              </div>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Component</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Uptime</TableHead>
+                    <TableHead className="text-right">Last Incident</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {systemHealth.map((component) => (
+                    <TableRow key={component.name}>
+                      <TableCell className="font-medium">{component.name}</TableCell>
+                      <TableCell>{getStatusBadge(component.status)}</TableCell>
+                      <TableCell>{component.uptime}</TableCell>
+                      <TableCell className="text-right">
+                        {component.status === "operational" ? "None" : "2 days ago"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleSaveSiteSettings}>Save Settings</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
 
-        {/* Email Configuration Tab */}
-        <TabsContent value="email">
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Email Configuration</CardTitle>
-              <CardDescription>Manage email settings and notifications</CardDescription>
+              <CardDescription>Configure SMTP settings for system emails</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="senderName">Sender Name</Label>
-                  <Input
-                    id="senderName"
-                    value={emailSettings.senderName}
-                    onChange={(e) => setEmailSettings({...emailSettings, senderName: e.target.value})}
-                  />
+            <CardContent>
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="host">SMTP Host</Label>
+                    <Input 
+                      id="host" 
+                      value={smtpSettings.host} 
+                      onChange={handleSmtpChange}
+                      className="max-w-md" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="port">SMTP Port</Label>
+                    <Input 
+                      id="port" 
+                      value={smtpSettings.port} 
+                      onChange={handleSmtpChange}
+                      className="max-w-md" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="username">SMTP Username</Label>
+                    <Input 
+                      id="username" 
+                      value={smtpSettings.username} 
+                      onChange={handleSmtpChange}
+                      className="max-w-md" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password">SMTP Password</Label>
+                    <Input 
+                      id="password" 
+                      type="password" 
+                      value={smtpSettings.password} 
+                      onChange={handleSmtpChange}
+                      className="max-w-md" 
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="senderEmail">Sender Email</Label>
-                  <Input
-                    id="senderEmail"
-                    type="email"
-                    value={emailSettings.senderEmail}
-                    onChange={(e) => setEmailSettings({...emailSettings, senderEmail: e.target.value})}
-                  />
+
+                <div className="space-y-4">
+                  <Card className="border-dashed">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center mb-4">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
+                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Email Templates</h3>
+                          <p className="text-sm text-gray-500">Customize system email templates</p>
+                        </div>
+                      </div>
+                      <Button variant="outline">Manage Templates</Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-dashed">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center mb-4">
+                        <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3">
+                          <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Notification Settings</h3>
+                          <p className="text-sm text-gray-500">Configure system notification preferences</p>
+                        </div>
+                      </div>
+                      <Button variant="outline">Configure</Button>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
+              
+              <div className="mt-6 flex justify-end">
+                <Button className="mr-2" variant="outline">Cancel</Button>
+                <Button>Save Changes</Button>
+              </div>
+            </CardContent>
+          </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>API Keys</CardTitle>
+              <CardDescription>Manage API keys for third-party integrations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="smtpServer">SMTP Server</Label>
-                  <Input
-                    id="smtpServer"
-                    value={emailSettings.smtpServer}
-                    onChange={(e) => setEmailSettings({...emailSettings, smtpServer: e.target.value})}
+                  <Label htmlFor="paystackLive">Paystack Live Key</Label>
+                  <Input 
+                    id="paystackLive" 
+                    value={apiKeys.paystackLive} 
+                    onChange={handleApiKeyChange}
+                    className="max-w-2xl" 
                   />
                 </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="smtpPort">SMTP Port</Label>
-                  <Input
-                    id="smtpPort"
-                    value={emailSettings.smtpPort}
-                    onChange={(e) => setEmailSettings({...emailSettings, smtpPort: e.target.value})}
+                  <Label htmlFor="paystackTest">Paystack Test Key</Label>
+                  <Input 
+                    id="paystackTest" 
+                    value={apiKeys.paystackTest} 
+                    onChange={handleApiKeyChange}
+                    className="max-w-2xl" 
                   />
                 </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Email Notifications</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="sendWelcomeEmail"
-                      checked={emailSettings.sendWelcomeEmail}
-                      onCheckedChange={(checked) => setEmailSettings({...emailSettings, sendWelcomeEmail: checked})}
-                    />
-                    <Label htmlFor="sendWelcomeEmail">Welcome Email</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="sendCourseEnrollment"
-                      checked={emailSettings.sendCourseEnrollment}
-                      onCheckedChange={(checked) => setEmailSettings({...emailSettings, sendCourseEnrollment: checked})}
-                    />
-                    <Label htmlFor="sendCourseEnrollment">Course Enrollment</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="sendCourseCompletion"
-                      checked={emailSettings.sendCourseCompletion}
-                      onCheckedChange={(checked) => setEmailSettings({...emailSettings, sendCourseCompletion: checked})}
-                    />
-                    <Label htmlFor="sendCourseCompletion">Course Completion</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="sendPaymentReceipt"
-                      checked={emailSettings.sendPaymentReceipt}
-                      onCheckedChange={(checked) => setEmailSettings({...emailSettings, sendPaymentReceipt: checked})}
-                    />
-                    <Label htmlFor="sendPaymentReceipt">Payment Receipts</Label>
-                  </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="googleMaps">Google Maps API Key</Label>
+                  <Input 
+                    id="googleMaps" 
+                    value={apiKeys.googleMaps} 
+                    onChange={handleApiKeyChange}
+                    className="max-w-2xl" 
+                  />
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Email Templates</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Button variant="outline" asChild>
-                    <a href="/dashboard/email-templates/welcome">Edit Welcome Email</a>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href="/dashboard/email-templates/enrollment">Edit Enrollment Email</a>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href="/dashboard/email-templates/completion">Edit Completion Email</a>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href="/dashboard/email-templates/receipt">Edit Payment Receipt</a>
-                  </Button>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cloudinary">Cloudinary URL</Label>
+                  <Input 
+                    id="cloudinary" 
+                    value={apiKeys.cloudinary} 
+                    onChange={handleApiKeyChange}
+                    className="max-w-2xl" 
+                  />
+                </div>
+                
+                <div className="mt-6 flex justify-end">
+                  <Button className="mr-2" variant="outline">Cancel</Button>
+                  <Button>Save Keys</Button>
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleSaveEmailSettings}>Save Email Settings</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
 
-        {/* Similar structure for Backup and Logs tabs */}
+        {/* Logs Tab */}
+        <TabsContent value="logs" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div>
+                  <CardTitle>System Logs</CardTitle>
+                  <CardDescription>Review recent system activity</CardDescription>
+                </div>
+                <div className="mt-4 sm:mt-0 flex">
+                  <Button variant="outline" size="sm" className="mr-2">
+                    <FileText className="h-4 w-4 mr-1" />
+                    Export Logs
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-1" />
+                    Log Settings
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Level</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Message</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentLogs.map((log, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-mono text-xs">{log.timestamp}</TableCell>
+                        <TableCell>{getLogLevelBadge(log.level)}</TableCell>
+                        <TableCell>{log.service}</TableCell>
+                        <TableCell className="max-w-md truncate">{log.message}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <div className="mt-4 flex justify-center">
+                <Button variant="outline">Load More</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Log Filters</CardTitle>
+              <CardDescription>Narrow down logs by specific criteria</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="logLevel">Log Level</Label>
+                  <select id="logLevel" className="w-full mt-1 p-2 border rounded">
+                    <option value="all">All Levels</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                    <option value="debug">Debug</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="service">Service</Label>
+                  <select id="service" className="w-full mt-1 p-2 border rounded">
+                    <option value="all">All Services</option>
+                    <option value="api">API</option>
+                    <option value="auth">Auth</option>
+                    <option value="payment">Payment</option>
+                    <option value="database">Database</option>
+                    <option value="storage">Storage</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="dateFrom">From Date</Label>
+                  <Input id="dateFrom" type="date" />
+                </div>
+                
+                <div>
+                  <Label htmlFor="dateTo">To Date</Label>
+                  <Input id="dateTo" type="date" />
+                </div>
+              </div>
+              
+              <div className="mt-4 flex justify-end">
+                <Button>Apply Filters</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Backups Tab */}
+        <TabsContent value="backups" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div>
+                  <CardTitle>Database Backups</CardTitle>
+                  <CardDescription>Manage system backup schedule and restoration</CardDescription>
+                </div>
+                <Button className="mt-4 sm:mt-0">
+                  Create Backup Now
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Backup Date</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">2025-05-17 00:00:00</TableCell>
+                      <TableCell>2.3 GB</TableCell>
+                      <TableCell>Automated</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Completed
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" className="mr-2">Download</Button>
+                        <Button variant="outline" size="sm">Restore</Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">2025-05-16 00:00:00</TableCell>
+                      <TableCell>2.2 GB</TableCell>
+                      <TableCell>Automated</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Completed
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" className="mr-2">Download</Button>
+                        <Button variant="outline" size="sm">Restore</Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">2025-05-15 00:00:00</TableCell>
+                      <TableCell>2.1 GB</TableCell>
+                      <TableCell>Automated</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Completed
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" className="mr-2">Download</Button>
+                        <Button variant="outline" size="sm">Restore</Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Backup Configuration</CardTitle>
+              <CardDescription>Configure automatic backup settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="schedule">
+                  <AccordionTrigger>Backup Schedule</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="daily"
+                          name="backupFrequency"
+                          checked
+                        />
+                        <label htmlFor="daily" className="ml-2">Daily</label>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="weekly"
+                          name="backupFrequency"
+                        />
+                        <label htmlFor="weekly" className="ml-2">Weekly</label>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="monthly"
+                          name="backupFrequency"
+                        />
+                        <label htmlFor="monthly" className="ml-2">Monthly</label>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="backupTime">Backup Time</Label>
+                        <Input id="backupTime" type="time" value="00:00" className="mt-1 max-w-xs" />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="storage">
+                  <AccordionTrigger>Storage Options</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="localStorage"
+                          checked
+                        />
+                        <label htmlFor="localStorage" className="ml-2">Local Storage</label>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="cloudStorage"
+                          checked
+                        />
+                        <label htmlFor="cloudStorage" className="ml-2">Cloud Storage</label>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="retentionDays">Retention Period (days)</Label>
+                        <Input id="retentionDays" type="number" value="30" className="mt-1 max-w-xs" />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="notification">
+                  <AccordionTrigger>Notification Settings</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="emailNotification"
+                          checked
+                        />
+                        <label htmlFor="emailNotification" className="ml-2">Email Notifications</label>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="notificationEmail">Notification Email</Label>
+                        <Input id="notificationEmail" value="admin@example.com" className="mt-1 max-w-xs" />
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="failureOnly"
+                        />
+                        <label htmlFor="failureOnly" className="ml-2">Only notify on failure</label>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+              
+              <div className="mt-6 flex justify-end">
+                <Button className="mr-2" variant="outline">Cancel</Button>
+                <Button>Save Configuration</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
-  );
-};
-
-// Define a custom Badge variant for success
-const Input = ({ className, ...props }) => {
-  return (
-    <input
-      className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      {...props}
-    />
   );
 };
 
