@@ -22,7 +22,7 @@ export interface CourseMediaUploadProps {
   existingMaterials?: string[];
   materialUploads?: UploadStatus[];
   imageError?: boolean;
-  form?: any; // Make form optional since we're not using it everywhere
+  form?: any; // Form object
   onMaterialRemove?: (url: string) => void;
 }
 
@@ -39,7 +39,9 @@ export const CourseMediaUpload = ({
   onMaterialRemove
 }: CourseMediaUploadProps) => {
   const [materialFileNames, setMaterialFileNames] = useState<string[]>([]);
+  const [imagePreviewError, setImagePreviewError] = useState(false);
   
+  // Handle file selection for course materials
   const handleMaterialsChange = (files: FileList) => {
     if (onMaterialsChange) {
       const newFileNames = Array.from(files).map(file => file.name);
@@ -48,6 +50,7 @@ export const CourseMediaUpload = ({
     }
   };
 
+  // Handle removal of existing material
   const handleMaterialRemove = (url: string) => {
     if (onMaterialRemove) {
       onMaterialRemove(url);
@@ -95,6 +98,7 @@ export const CourseMediaUpload = ({
                 className="h-full w-full object-cover"
                 onError={(e) => {
                   console.error("Error loading image:", e);
+                  setImagePreviewError(true);
                   // If image fails to load, we'll show a placeholder
                   e.currentTarget.src = "/placeholder.svg";
                 }}
@@ -116,19 +120,20 @@ export const CourseMediaUpload = ({
               if (file) {
                 console.log("Image file selected:", file.name);
                 onCoverImageChange(file);
+                setImagePreviewError(false);
               }
             }}
             className="sr-only"
           />
         </div>
-        {imageError && !imageUrl && (
+        {(imageError && !imageUrl) || imagePreviewError ? (
           <Alert variant="destructive" className="mt-2">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Course image is required
+              {imageError && !imageUrl ? "Course image is required" : "Unable to load image preview. Please try a different image."}
             </AlertDescription>
           </Alert>
-        )}
+        ) : null}
       </div>
 
       {/* Course Materials Upload */}

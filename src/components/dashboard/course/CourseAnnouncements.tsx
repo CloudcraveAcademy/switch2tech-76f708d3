@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,9 +36,17 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
     content: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Track if the component is mounted
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
-  // Fetch announcements using rpc function
-  const { data: announcements, isLoading } = useQuery<Announcement[]>({
+  // Fetch announcements using the query key that includes the courseId
+  const { data: announcements, isLoading, refetch } = useQuery<Announcement[]>({
     queryKey: ['course-announcements', courseId],
     queryFn: async () => {
       try {
@@ -58,8 +66,15 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
         throw e;
       }
     },
-    enabled: !!courseId
+    enabled: !!courseId && isMounted
   });
+
+  // Force refetch announcements when courseId changes
+  useEffect(() => {
+    if (courseId && isMounted) {
+      refetch();
+    }
+  }, [courseId, refetch, isMounted]);
 
   const saveAnnouncement = async (announcement: AnnouncementFormState, id?: string) => {
     if (!announcement.title.trim() || !announcement.content.trim()) {
@@ -129,7 +144,10 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
       return Promise.reject("Invalid operation");
     },
     onSuccess: () => {
+      // Force refetch after mutation
       queryClient.invalidateQueries({ queryKey: ['course-announcements', courseId] });
+      refetch();
+      
       toast({
         title: "Success",
         description: "Announcement updated successfully"
@@ -291,10 +309,14 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
                       size="icon" 
                       variant="destructive"
                       title="Delete" 
-                      onClick={() => mutation.mutate({ 
-                        type: "delete", 
-                        id: announcement.id 
-                      })}
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this announcement?")) {
+                          mutation.mutate({ 
+                            type: "delete", 
+                            id: announcement.id 
+                          });
+                        }
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

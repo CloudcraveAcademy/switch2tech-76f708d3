@@ -116,6 +116,15 @@ export function CourseMode({ form }: { form: any }) {
     updateClassSchedule(updatedTimeSlots);
   };
 
+  // Ensures the selected date is properly set in the form
+  const handleDateChange = (date: Date | undefined, fieldName: string) => {
+    if (date) {
+      form.setValue(fieldName, date, { shouldValidate: true });
+    } else {
+      form.setValue(fieldName, null, { shouldValidate: true });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Course Mode Selection */}
@@ -179,7 +188,7 @@ export function CourseMode({ form }: { form: any }) {
                     <Calendar
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={field.onChange}
+                      onSelect={(date) => handleDateChange(date, 'courseStartDate')}
                       disabled={(date) =>
                         date < new Date(new Date().setHours(0, 0, 0, 0))
                       }
@@ -223,7 +232,7 @@ export function CourseMode({ form }: { form: any }) {
                     <Calendar
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={field.onChange}
+                      onSelect={(date) => handleDateChange(date, 'registrationDeadline')}
                       disabled={(date) =>
                         date < new Date(new Date().setHours(0, 0, 0, 0))
                       }

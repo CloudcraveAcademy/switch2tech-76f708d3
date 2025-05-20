@@ -29,7 +29,7 @@ export const courseSchema = z.object({
   level: z.string().min(1, 'Level is required'),
   category: z.string().min(1, 'Category is required'),
   language: z.string().default('English'),
-  mode: z.enum(['virtual-live', 'self-paced']).default('self-paced'),
+  mode: z.enum(['virtual-live', 'self-paced']),
   multi_language_support: z.boolean().default(false),
   additional_languages: z.array(z.string()).default([]),
   image_url: z.string().optional(),
@@ -38,7 +38,6 @@ export const courseSchema = z.object({
   is_published: z.boolean().default(false),
   certificateEnabled: z.boolean().default(false),
   accessDuration: z.string().optional(),
-  // Updated to handle date objects properly
   registrationDeadline: z.date().optional().nullable(), 
   courseStartDate: z.date().optional().nullable(),
   classDays: z.array(z.string()).optional(),
@@ -51,7 +50,7 @@ export const courseSchema = z.object({
   objectives: z.array(z.string()).default([]),
   target_audience: z.string().optional(),
   promotion_enabled: z.boolean().default(false),
-  promotionEndDate: z.date().optional(),
+  promotionEndDate: z.date().optional().nullable(),
   autoEnrollAfterPurchase: z.boolean().default(true),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
@@ -69,6 +68,12 @@ const CourseEdit = () => {
   const [coursePreviewVideoFile, setCoursePreviewVideoFile] = useState<File | null>(null);
   const [courseMaterialFiles, setCourseMaterialFiles] = useState<File[]>([]);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [materialUploads, setMaterialUploads] = useState<{
+    file: File;
+    name: string;
+    status: 'idle' | 'uploading' | 'success' | 'error';
+    url?: string;
+  }[]>([]);
 
   // Initialize form
   const methods = useForm({
@@ -103,7 +108,7 @@ const CourseEdit = () => {
       objectives: [],
       target_audience: '',
       promotion_enabled: false,
-      promotionEndDate: undefined,
+      promotionEndDate: null as unknown as Date,
       autoEnrollAfterPurchase: true,
     }
   });
@@ -132,7 +137,7 @@ const CourseEdit = () => {
             ...course,
             registrationDeadline: course.registration_deadline ? new Date(course.registration_deadline) : null,
             courseStartDate: course.course_start_date ? new Date(course.course_start_date) : null,
-            promotionEndDate: course.promotion_end_date ? new Date(course.promotion_end_date) : undefined,
+            promotionEndDate: course.promotion_end_date ? new Date(course.promotion_end_date) : null,
             // Map database fields to form fields
             certificateEnabled: course.certificate_enabled || false,
             replayAccess: course.replay_access || false,
@@ -171,6 +176,78 @@ const CourseEdit = () => {
     const currentMaterials = methods.getValues('course_materials') || [];
     const updatedMaterials = currentMaterials.filter(url => url !== urlToRemove);
     methods.setValue('course_materials', updatedMaterials);
+  };
+
+  const handleMaterialUpload = async (files: File[]) => {
+    if (!id || !user || files.length === 0) return;
+    
+    // Add files to material uploads state with 'idle' status
+    const newUploads = files.map(file => ({
+      file,
+      name: file.name,
+      status: 'uploading' as const
+    }));
+    
+    setMaterialUploads(prev => [...prev, ...newUploads]);
+    
+    // Process each file upload
+    const updatedMaterialUrls = [...methods.getValues('course_materials')];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      try {
+        // Set status to uploading
+        setMaterialUploads(prev => 
+          prev.map(item => 
+            item.name === file.name 
+              ? { ...item, status: 'uploading' as const } 
+              : item
+          )
+        );
+        
+        // Upload to Supabase Storage
+        const filePath = `${user.id}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(filePath, file);
+          
+        if (uploadError) {
+          throw new Error(`Error uploading file: ${uploadError.message}`);
+        }
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('course-materials')
+          .getPublicUrl(filePath);
+          
+        // Add URL to course materials
+        updatedMaterialUrls.push(publicUrlData.publicUrl);
+        
+        // Update status to success
+        setMaterialUploads(prev => 
+          prev.map(item => 
+            item.name === file.name 
+              ? { ...item, status: 'success' as const, url: publicUrlData.publicUrl } 
+              : item
+          )
+        );
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        
+        // Update status to error
+        setMaterialUploads(prev => 
+          prev.map(item => 
+            item.name === file.name 
+              ? { ...item, status: 'error' as const } 
+              : item
+          )
+        );
+      }
+    }
+    
+    // Update form with new URLs
+    methods.setValue('course_materials', updatedMaterialUrls);
   };
 
   const onSubmit = async (data: z.infer<typeof courseSchema>) => {
@@ -217,28 +294,6 @@ const CourseEdit = () => {
         previewVideoUrl = publicUrlData.publicUrl;
       }
       
-      // Upload course materials if selected
-      let courseMaterialUrls = [...data.course_materials];
-      if (courseMaterialFiles.length > 0) {
-        for (const file of courseMaterialFiles) {
-          const filePath = `${user.id}/${Date.now()}_${file.name}`;
-          const { error: uploadError } = await supabase.storage
-            .from('course-materials')
-            .upload(filePath, file);
-            
-          if (uploadError) {
-            console.error(`Error uploading course material ${file.name}:`, uploadError);
-            continue; // Skip this file but continue with others
-          }
-          
-          const { data: publicUrlData } = supabase.storage
-            .from('course-materials')
-            .getPublicUrl(filePath);
-            
-          courseMaterialUrls.push(publicUrlData.publicUrl);
-        }
-      }
-      
       // Convert form data to match the database schema
       const courseData = {
         title: data.title,
@@ -257,7 +312,7 @@ const CourseEdit = () => {
         certificate_enabled: data.certificateEnabled,
         image_url: imageUrl,
         preview_video: previewVideoUrl,
-        course_materials: courseMaterialUrls,
+        course_materials: data.course_materials,
         // Convert Date objects to ISO strings for the database
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
         course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
@@ -452,9 +507,11 @@ const CourseEdit = () => {
                     onMaterialsChange={(files) => {
                       const fileArray = Array.from(files);
                       setCourseMaterialFiles([...courseMaterialFiles, ...fileArray]);
+                      handleMaterialUpload(fileArray);
                     }}
                     imageUrl={methods.getValues('image_url')}
                     existingMaterials={methods.getValues('course_materials')}
+                    materialUploads={materialUploads}
                     onMaterialRemove={handleRemoveMaterial}
                     form={methods}
                   />
