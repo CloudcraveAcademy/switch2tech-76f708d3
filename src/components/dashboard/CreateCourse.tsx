@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { z } from "zod";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,8 +37,8 @@ const courseFormSchema = z.object({
   certificateEnabled: z.boolean().default(false),
   previewVideo: z.string().optional(),
   accessDuration: z.string().optional(),
-  registrationDeadline: z.string().optional(), // Changed to string instead of Date
-  courseStartDate: z.string().optional(), // Changed to string instead of Date
+  registrationDeadline: z.string().optional(), 
+  courseStartDate: z.string().optional(), 
   classDays: z.array(z.string()).optional(),
   class_time: z.string().optional(),
   timezone: z.string().optional(),
@@ -49,7 +49,7 @@ const courseFormSchema = z.object({
 
 type CourseFormValues = z.infer<typeof courseFormSchema>;
 
-const CreateCourse: React.FC = () => {
+const CreateCourse = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -57,6 +57,7 @@ const CreateCourse: React.FC = () => {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [imageError, setImageError] = useState(false);
+  const [materialUploads, setMaterialUploads] = useState<any[]>([]);
   
   // Form setup
   const form = useForm<CourseFormValues>({
@@ -87,7 +88,7 @@ const CreateCourse: React.FC = () => {
   });
 
   // Handle form submission
-  const onSubmit: SubmitHandler<CourseFormValues> = async (data) => {
+  const onSubmit = async (data: CourseFormValues) => {
     if (!user) {
       toast({
         title: "Authentication Error",
@@ -114,14 +115,30 @@ const CreateCourse: React.FC = () => {
       
       // Prepare course data
       const courseData = {
-        ...data,
+        title: data.title,
+        description: data.description,
         price: Number(data.price),
-        duration: Number(data.duration),
+        duration_hours: Number(data.duration),
         instructor_id: user.id,
+        level: data.level,
+        category: data.category,
+        mode: data.mode,
+        language: data.language,
+        multi_language_support: data.multiLanguageSupport,
+        certificate_enabled: data.certificateEnabled,
+        preview_video: data.previewVideo,
+        access_duration: data.accessDuration,
+        registration_deadline: data.registrationDeadline,
+        course_start_date: data.courseStartDate,
+        class_days: data.classDays,
+        class_time: data.class_time,
+        timezone: data.timezone,
+        replay_access: data.replayAccess,
+        discounted_price: data.discountEnabled && data.discountedPrice ? Number(data.discountedPrice) : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        status: "draft",
-        discountedPrice: data.discountedPrice ? Number(data.discountedPrice) : null,
+        is_published: false, // Default to draft
+        additional_languages: data.multiLanguageSupport ? data.additionalLanguages : [],
       };
       
       console.log("Prepared course data:", courseData);
@@ -169,11 +186,18 @@ const CreateCourse: React.FC = () => {
           throw uploadError;
         }
         
+        // Get the public URL
+        const { data: publicURLData } = supabase.storage
+          .from('course_covers')
+          .getPublicUrl(filePath);
+          
+        const imagePublicUrl = publicURLData.publicUrl;
+        
         // Update course with cover image URL
         const { error: updateError } = await supabase
           .from("courses")
           .update({ 
-            image_url: `${filePath}`
+            image_url: imagePublicUrl
           })
           .eq('id', insertedCourse.id);
           
@@ -222,6 +246,17 @@ const CreateCourse: React.FC = () => {
     setImageUrl(imagePreviewUrl);
   };
 
+  const handleMaterialsChange = (files: FileList) => {
+    // Create uploads array from selected files
+    const newUploads = Array.from(files).map(file => ({
+      file,
+      name: file.name,
+      status: 'idle' as const
+    }));
+    
+    setMaterialUploads(prev => [...prev, ...newUploads]);
+  };
+
   return (
     <div className="p-6">
       <Card className="w-full max-w-4xl mx-auto">
@@ -253,8 +288,10 @@ const CreateCourse: React.FC = () => {
                 <CourseMediaUpload 
                   form={form}
                   onCoverImageChange={handleCoverImageChange}
+                  onMaterialsChange={handleMaterialsChange}
                   imageUrl={imageUrl}
                   imageError={imageError}
+                  materialUploads={materialUploads}
                 />
               </div>
               

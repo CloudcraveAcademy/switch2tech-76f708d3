@@ -1,32 +1,39 @@
 
-import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+import { useEffect } from "react";
+import { 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Category } from "@/hooks/useCategories";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect } from "react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { useCategories } from "@/hooks/useCategories";
+import { useToast } from "@/hooks/use-toast";
 
-const COURSE_LEVELS = [
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-  "All Levels"
-];
-
-interface CourseBasicInfoProps {
-  form: any;
-  categories?: Category[];
-  categoriesLoading?: boolean;
-}
-
-export function CourseBasicInfo({ form, categories = [], categoriesLoading = false }: CourseBasicInfoProps) {
-  // Log categories for debugging
+export const CourseBasicInfo = ({ form }: { form: any }) => {
+  const { data: categories, isLoading, error } = useCategories();
+  const { toast } = useToast();
+  
   useEffect(() => {
-    if (categories && categories.length > 0) {
-      console.log("CourseBasicInfo received categories:", categories);
+    if (error) {
+      console.error("Error loading categories:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load categories. Please try again later.",
+        variant: "destructive",
+      });
     }
-  }, [categories]);
+  }, [error, toast]);
 
   return (
     <div className="space-y-6">
@@ -40,9 +47,6 @@ export function CourseBasicInfo({ form, categories = [], categoriesLoading = fal
             <FormControl>
               <Input placeholder="Enter course title" {...field} />
             </FormControl>
-            <FormDescription>
-              A clear and concise title that describes your course.
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -57,14 +61,11 @@ export function CourseBasicInfo({ form, categories = [], categoriesLoading = fal
             <FormLabel>Course Description <span className="text-red-500">*</span></FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Enter a detailed description of your course" 
-                className="min-h-32" 
-                {...field} 
+                placeholder="Describe your course in detail" 
+                className="min-h-32"
+                {...field}
               />
             </FormControl>
-            <FormDescription>
-              Provide a detailed description of what students will learn in this course.
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -78,21 +79,23 @@ export function CourseBasicInfo({ form, categories = [], categoriesLoading = fal
           render={({ field }) => (
             <FormItem>
               <FormLabel>Course Level <span className="text-red-500">*</span></FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value} 
+                value={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select level" />
+                    <SelectValue placeholder="Select course level" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {COURSE_LEVELS.map((level) => (
-                    <SelectItem key={level} value={level.toLowerCase()}>
-                      {level}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="beginner">Beginner</SelectItem>
+                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                  <SelectItem value="advanced">Advanced</SelectItem>
+                  <SelectItem value="all-levels">All Levels</SelectItem>
                 </SelectContent>
               </Select>
-              <FormDescription>The difficulty level of your course.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -104,32 +107,31 @@ export function CourseBasicInfo({ form, categories = [], categoriesLoading = fal
           name="category"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
-              {categoriesLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories && categories.length > 0 ? (
-                      categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="loading" disabled>
-                        No categories available
+              <FormLabel>Course Category <span className="text-red-500">*</span></FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoading ? "Loading categories..." : "Select course category"} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {isLoading ? (
+                    <SelectItem value="" disabled>Loading categories...</SelectItem>
+                  ) : categories && categories.length > 0 ? (
+                    categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              )}
-              <FormDescription>The category your course belongs to.</FormDescription>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No categories available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -141,11 +143,48 @@ export function CourseBasicInfo({ form, categories = [], categoriesLoading = fal
           name="duration"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Duration (hours) <span className="text-red-500">*</span></FormLabel>
+              <FormLabel>Course Duration (hours) <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input type="number" min="1" {...field} />
+                <Input 
+                  type="number" 
+                  placeholder="Enter duration in hours" 
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.value)}
+                />
               </FormControl>
-              <FormDescription>The total length of your course in hours.</FormDescription>
+              <FormDescription>Total hours of course content</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {/* Course Language */}
+        <FormField
+          control={form.control}
+          name="language"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Primary Language <span className="text-red-500">*</span></FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select primary language" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="Spanish">Spanish</SelectItem>
+                  <SelectItem value="French">French</SelectItem>
+                  <SelectItem value="German">German</SelectItem>
+                  <SelectItem value="Mandarin">Mandarin</SelectItem>
+                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Hindi">Hindi</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -153,4 +192,4 @@ export function CourseBasicInfo({ form, categories = [], categoriesLoading = fal
       </div>
     </div>
   );
-}
+};

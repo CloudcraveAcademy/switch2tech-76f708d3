@@ -13,13 +13,13 @@ interface UploadStatus {
   url?: string;
 }
 
-interface CourseMediaUploadProps {
+export interface CourseMediaUploadProps {
   onCoverImageChange: (file: File) => void;
   onMaterialsChange?: (files: FileList) => void;
   imageUrl?: string;
   materialUploads?: UploadStatus[];
   imageError?: boolean;
-  form?: any; // Make form optional since we're not using it anymore
+  form?: any; // Make form optional since we're not using it everywhere
 }
 
 export const CourseMediaUpload = ({ 
