@@ -120,7 +120,7 @@ export const CourseBasicInfo = ({ form }: { form: any }) => {
                 </FormControl>
                 <SelectContent>
                   {isLoading ? (
-                    <SelectItem value="" disabled>Loading categories...</SelectItem>
+                    <SelectItem value="loading">Loading categories...</SelectItem>
                   ) : categories && categories.length > 0 ? (
                     categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
@@ -128,7 +128,7 @@ export const CourseBasicInfo = ({ form }: { form: any }) => {
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No categories available</SelectItem>
+                    <SelectItem value="no-categories">No categories available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
