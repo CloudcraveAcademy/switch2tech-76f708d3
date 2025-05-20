@@ -166,7 +166,7 @@ const CreateCourse = () => {
       // Handle cover image upload if provided
       if (coverImage && insertedCourse?.id) {
         try {
-          // Use existing bucket instead of creating one (which requires admin privileges)
+          // Upload to course_covers bucket
           const fileExt = coverImage.name.split('.').pop();
           const filePath = `${insertedCourse.id}_cover.${fileExt}`;
           
@@ -214,7 +214,7 @@ const CreateCourse = () => {
               const fileExt = material.file.name.split('.').pop();
               const filePath = `${insertedCourse.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
               
-              const { error: materialUploadError } = await supabase.storage
+              const { error: materialUploadError, data: uploadData } = await supabase.storage
                 .from('course-materials')
                 .upload(filePath, material.file);
                 
@@ -226,18 +226,24 @@ const CreateCourse = () => {
                 if (materialUrlData?.publicUrl) {
                   materialUrls.push(materialUrlData.publicUrl);
                 }
+              } else {
+                console.error("Error uploading material:", materialUploadError);
               }
             }
           }
           
           if (materialUrls.length > 0) {
             // Update course with material URLs
-            await supabase
+            const { error: materialUpdateError } = await supabase
               .from("courses")
               .update({ 
                 course_materials: materialUrls
               })
               .eq('id', insertedCourse.id);
+              
+            if (materialUpdateError) {
+              console.error("Error updating course with materials:", materialUpdateError);
+            }
           }
         } catch (materialErr) {
           console.error("Error uploading course materials:", materialErr);

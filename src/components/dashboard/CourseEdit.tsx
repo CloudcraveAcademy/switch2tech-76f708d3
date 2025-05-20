@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -214,20 +213,7 @@ const CourseEdit = () => {
     const materialUrls: string[] = [];
     
     try {
-      // Check if the bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketExists = buckets?.some(bucket => bucket.name === 'course-materials');
-      
-      if (!bucketExists) {
-        console.log("Course materials bucket doesn't exist yet, uploads will fail");
-        toast({
-          title: "Storage Error",
-          description: "Course materials storage not configured. Please contact support.",
-          variant: "destructive",
-        });
-        return [];
-      }
-      
+      // Skip bucket existence check as we know it exists
       for (const material of newMaterials) {
         if (!material.file) continue;
         
@@ -236,7 +222,7 @@ const CourseEdit = () => {
         const filePath = `${courseId}/${fileName}`;
         
         try {
-          const { error: uploadError } = await supabase.storage
+          const { error: uploadError, data: uploadData } = await supabase.storage
             .from('course-materials')
             .upload(filePath, material.file);
             
@@ -317,31 +303,23 @@ const CourseEdit = () => {
       // Upload new image if one was selected
       if (image) {
         try {
-          // Check if the bucket exists
-          const { data: buckets } = await supabase.storage.listBuckets();
-          const bucketExists = buckets?.some(bucket => bucket.name === 'course_covers');
-          
-          if (!bucketExists) {
-            toast({
-              title: "Storage Error",
-              description: "Course image storage not configured. Please contact support.",
-              variant: "destructive",
-            });
-            return;
-          }
-          
+          // Use the standard 'course_covers' bucket
           const fileExt = image.name.split('.').pop();
           const fileName = `${courseId}_cover_${Math.random().toString(36).substring(2)}.${fileExt}`;
           
-          const { error: uploadError } = await supabase.storage
+          const { error: uploadError, data: uploadData } = await supabase.storage
             .from('course_covers')
             .upload(fileName, image);
             
           if (uploadError) {
+            console.error("Error uploading image:", uploadError);
             throw new Error(`Error uploading image: ${uploadError.message}`);
           }
           
-          const { data: imageData } = supabase.storage.from('course_covers').getPublicUrl(fileName);
+          const { data: imageData } = supabase.storage
+            .from('course_covers')
+            .getPublicUrl(fileName);
+            
           if (imageData?.publicUrl) {
             updatedImageUrl = imageData.publicUrl;
           }
