@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -113,7 +114,6 @@ const CourseEdit = () => {
   const uploadCourseMaterials = async () => {
     // Filter to only upload new materials
     const newMaterials = materialUploads.filter(item => item.status === 'idle');
-    const newMaterialFiles = courseMaterials.filter((_, i) => materialUploads[i]?.status === 'idle');
     
     if (newMaterials.length === 0) return [];
     
@@ -125,16 +125,17 @@ const CourseEdit = () => {
     const materialUrls: string[] = [];
     
     try {
-      for (let i = 0; i < newMaterialFiles.length; i++) {
-        const material = newMaterialFiles[i];
-        const fileExt = material.name.split('.').pop();
+      for (const material of newMaterials) {
+        if (!material.file) continue;
+        
+        const fileExt = material.file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `course-materials/${fileName}`;
+        const filePath = `${courseId}/${fileName}`;
         
         try {
           const { error: uploadError } = await supabase.storage
             .from('course-materials')
-            .upload(filePath, material);
+            .upload(filePath, material.file);
             
           if (uploadError) {
             // Find the index in the full materials array
@@ -202,18 +203,18 @@ const CourseEdit = () => {
       // Upload new image if one was selected
       if (image) {
         const fileExt = image.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `course-images/${fileName}`;
+        const fileName = `${courseId}_cover_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${fileName}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('course-materials')
+          .from('course_covers')
           .upload(filePath, image);
           
         if (uploadError) {
           throw new Error(`Error uploading image: ${uploadError.message}`);
         }
         
-        const { data: imageData } = supabase.storage.from('course-materials').getPublicUrl(filePath);
+        const { data: imageData } = supabase.storage.from('course_covers').getPublicUrl(filePath);
         updatedImageUrl = imageData.publicUrl;
       }
       
@@ -238,6 +239,7 @@ const CourseEdit = () => {
           image_url: updatedImageUrl,
           preview_video: previewVideo,
           course_materials: allMaterialUrls.length > 0 ? allMaterialUrls : null,
+          updated_at: new Date().toISOString()
         })
         .eq('id', courseId);
 
@@ -254,6 +256,13 @@ const CourseEdit = () => {
       toast({
         title: "Success",
         description: "Course details updated successfully.",
+      });
+    } catch (error: any) {
+      console.error("Error saving course:", error);
+      toast({
+        title: "Error",
+        description: `Failed to save course: ${error.message}`,
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
@@ -366,6 +375,7 @@ const CourseEdit = () => {
                 onMaterialsChange={handleMaterialsChange}
                 imageUrl={imageUrl}
                 materialUploads={materialUploads}
+                imageError={false}
               />
               <div className="grid gap-2">
                 <Label htmlFor="previewVideo">Video URL</Label>

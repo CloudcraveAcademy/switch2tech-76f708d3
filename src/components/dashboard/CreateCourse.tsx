@@ -72,13 +72,13 @@ const CreateCourse = () => {
       mode: "self-paced",
       language: "English",
       multiLanguageSupport: false,
-      additionalLanguages: [], // Ensure array is initialized
+      additionalLanguages: [],
       certificateEnabled: false,
       previewVideo: "",
       accessDuration: "",
       registrationDeadline: undefined,
       courseStartDate: undefined,
-      classDays: [], // Ensure array is initialized
+      classDays: [],
       class_time: "",
       timezone: "",
       replayAccess: false,
@@ -134,7 +134,7 @@ const CreateCourse = () => {
         access_duration: data.accessDuration,
         registration_deadline: data.registrationDeadline,
         course_start_date: data.courseStartDate,
-        class_days: classDays, // Use the initialized value
+        class_days: classDays,
         class_time: data.class_time,
         timezone: data.timezone,
         replay_access: data.replayAccess,
@@ -142,7 +142,7 @@ const CreateCourse = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_published: false, // Default to draft
-        additional_languages: additionalLanguages, // Use the initialized value
+        additional_languages: additionalLanguages,
       };
       
       console.log("Prepared course data:", courseData);
@@ -161,92 +161,87 @@ const CreateCourse = () => {
       
       console.log("Course created successfully:", insertedCourse);
       
+      let imagePublicUrl = "";
+      
       // Handle cover image upload if provided
       if (coverImage && insertedCourse?.id) {
-        // First check if the course_covers bucket exists
-        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-        
-        if (bucketsError) {
-          console.error("Error listing buckets:", bucketsError);
-          throw bucketsError;
-        }
-        
-        // Check if course_covers bucket exists
-        const bucketExists = buckets.some(bucket => bucket.name === 'course_covers');
-        
-        // Create the bucket if it doesn't exist
-        if (!bucketExists) {
-          console.log("Creating course_covers bucket");
-          const { error: createBucketError } = await supabase.storage.createBucket('course_covers', {
-            public: true,
-            fileSizeLimit: 5242880, // 5MB
-          });
+        try {
+          // Use existing bucket instead of creating one (which requires admin privileges)
+          const fileExt = coverImage.name.split('.').pop();
+          const filePath = `${insertedCourse.id}_cover.${fileExt}`;
           
-          if (createBucketError) {
-            console.error("Error creating bucket:", createBucketError);
-            throw createBucketError;
+          const { error: uploadError, data: uploadData } = await supabase.storage
+            .from('course_covers')
+            .upload(filePath, coverImage);
+            
+          if (uploadError) {
+            console.error("Error uploading cover image:", uploadError);
+            // Continue with course creation even if image upload fails
+          } else {
+            // Get the public URL
+            const { data: publicURLData } = supabase.storage
+              .from('course_covers')
+              .getPublicUrl(filePath);
+              
+            imagePublicUrl = publicURLData.publicUrl;
+            
+            // Update course with cover image URL
+            const { error: updateError } = await supabase
+              .from("courses")
+              .update({ 
+                image_url: imagePublicUrl
+              })
+              .eq('id', insertedCourse.id);
+              
+            if (updateError) {
+              console.error("Error updating course with cover image:", updateError);
+              // Continue with course creation even if image URL update fails
+            }
           }
-        }
-        
-        // Upload the file
-        const fileExt = coverImage.name.split('.').pop();
-        const filePath = `${insertedCourse.id}_cover.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('course_covers')
-          .upload(filePath, coverImage);
-          
-        if (uploadError) {
-          console.error("Error uploading cover image:", uploadError);
-          throw uploadError;
-        }
-        
-        // Get the public URL
-        const { data: publicURLData } = supabase.storage
-          .from('course_covers')
-          .getPublicUrl(filePath);
-          
-        const imagePublicUrl = publicURLData.publicUrl;
-        
-        // Update course with cover image URL
-        const { error: updateError } = await supabase
-          .from("courses")
-          .update({ 
-            image_url: imagePublicUrl
-          })
-          .eq('id', insertedCourse.id);
-          
-        if (updateError) {
-          console.error("Error updating course with cover image:", updateError);
-          throw updateError;
+        } catch (uploadErr) {
+          console.error("Exception during image upload:", uploadErr);
+          // Continue with course creation even if image upload fails
         }
       }
       
-      // Check for course materials bucket
-      if (materialUploads.length > 0) {
-        // First check if the course-materials bucket exists
-        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-        
-        if (bucketsError) {
-          console.error("Error listing buckets:", bucketsError);
-          throw bucketsError;
-        }
-        
-        // Check if course-materials bucket exists
-        const bucketExists = buckets.some(bucket => bucket.name === 'course-materials');
-        
-        // Create the bucket if it doesn't exist
-        if (!bucketExists) {
-          console.log("Creating course-materials bucket");
-          const { error: createBucketError } = await supabase.storage.createBucket('course-materials', {
-            public: true,
-            fileSizeLimit: 52428800, // 50MB
-          });
+      // Upload course materials if provided
+      if (materialUploads.length > 0 && insertedCourse?.id) {
+        try {
+          const materialUrls: string[] = [];
           
-          if (createBucketError) {
-            console.error("Error creating materials bucket:", createBucketError);
-            throw createBucketError;
+          for (const material of materialUploads) {
+            if (material.file) {
+              const fileExt = material.file.name.split('.').pop();
+              const filePath = `${insertedCourse.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+              
+              const { error: materialUploadError } = await supabase.storage
+                .from('course-materials')
+                .upload(filePath, material.file);
+                
+              if (!materialUploadError) {
+                const { data: materialUrlData } = supabase.storage
+                  .from('course-materials')
+                  .getPublicUrl(filePath);
+                  
+                if (materialUrlData?.publicUrl) {
+                  materialUrls.push(materialUrlData.publicUrl);
+                }
+              }
+            }
           }
+          
+          if (materialUrls.length > 0) {
+            // Update course with material URLs
+            await supabase
+              .from("courses")
+              .update({ 
+                course_materials: materialUrls
+              })
+              .eq('id', insertedCourse.id);
+          }
+        } catch (materialErr) {
+          console.error("Error uploading course materials:", materialErr);
+          // Continue with course creation even if materials upload fails
         }
       }
       
