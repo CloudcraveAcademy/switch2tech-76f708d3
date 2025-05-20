@@ -58,7 +58,18 @@ const LessonForm: React.FC = () => {
       setIsLoading(true);
 
       try {
-        if (isEditMode) {
+        // Guard clause to make sure courseId is defined
+        if (!courseId) {
+          toast({
+            title: "Error",
+            description: "Course ID is missing",
+            variant: "destructive",
+          });
+          navigate('/dashboard/');
+          return;
+        }
+
+        if (isEditMode && lessonId) {
           // We're editing an existing lesson
           const { data: lessonData, error: lessonError } = await supabase
             .from('lessons')
@@ -140,6 +151,16 @@ const LessonForm: React.FC = () => {
       return;
     }
 
+    // Ensure courseId is defined before proceeding
+    if (!courseId) {
+      toast({
+        title: "Error",
+        description: "Course ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Verify the user is the instructor for this course
     try {
       const { data: courseData, error: courseError } = await supabase
@@ -184,7 +205,7 @@ const LessonForm: React.FC = () => {
 
       let result;
 
-      if (isEditMode) {
+      if (isEditMode && lessonId) {
         // Update existing lesson
         result = await supabase
           .from('lessons')

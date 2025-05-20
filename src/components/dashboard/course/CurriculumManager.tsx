@@ -48,8 +48,14 @@ const CurriculumManager: React.FC<CurriculumManagerProps> = ({ courseId, onLesso
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Only try to fetch if courseId is defined
     if (courseId) {
+      console.log("Fetching lessons for course ID:", courseId);
       fetchLessons();
+    } else {
+      console.error("Course ID is undefined, cannot fetch lessons");
+      setError("Course ID is missing");
+      setIsLoading(false);
     }
   }, [courseId]);
 
@@ -58,6 +64,11 @@ const CurriculumManager: React.FC<CurriculumManagerProps> = ({ courseId, onLesso
     setError(null);
 
     try {
+      // Ensure courseId is defined before proceeding
+      if (!courseId) {
+        throw new Error("Course ID is missing");
+      }
+
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
@@ -68,6 +79,7 @@ const CurriculumManager: React.FC<CurriculumManagerProps> = ({ courseId, onLesso
         throw error;
       }
 
+      console.log("Fetched lessons:", data);
       setLessons(data || []);
     } catch (err: any) {
       console.error('Error fetching lessons:', err);
@@ -83,10 +95,26 @@ const CurriculumManager: React.FC<CurriculumManagerProps> = ({ courseId, onLesso
   };
 
   const handleAddLesson = () => {
+    if (!courseId) {
+      toast({
+        title: "Error",
+        description: "Course ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
     navigate(`/dashboard/courses/${courseId}/lessons/new`);
   };
 
   const handleEditLesson = (lessonId: string) => {
+    if (!courseId) {
+      toast({
+        title: "Error",
+        description: "Course ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
     navigate(`/dashboard/courses/${courseId}/lessons/${lessonId}/edit`);
   };
 
