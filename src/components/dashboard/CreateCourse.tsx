@@ -166,14 +166,14 @@ const CreateCourse = () => {
       // Handle cover image upload if provided
       if (coverImage && insertedCourse?.id) {
         try {
-          // Upload to course_covers bucket
+          // Upload to course-materials bucket with a covers/ prefix
           const fileExt = coverImage.name.split('.').pop();
-          const filePath = `${insertedCourse.id}_cover.${fileExt}`;
+          const filePath = `covers/${insertedCourse.id}_cover.${fileExt}`;
           
           console.log("Uploading cover image to path:", filePath);
           
           const { error: uploadError, data: uploadData } = await supabase.storage
-            .from('course_covers')
+            .from('course-materials')
             .upload(filePath, coverImage);
             
           if (uploadError) {
@@ -188,7 +188,7 @@ const CreateCourse = () => {
             
             // Get the public URL
             const { data: publicURLData } = supabase.storage
-              .from('course_covers')
+              .from('course-materials')
               .getPublicUrl(filePath);
               
             imagePublicUrl = publicURLData.publicUrl;

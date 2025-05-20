@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -314,12 +313,12 @@ const CourseEdit = () => {
       if (image) {
         try {
           console.log("Uploading new cover image...");
-          // Use the standard 'course_covers' bucket
+          // Use the course-materials bucket with covers/ prefix
           const fileExt = image.name.split('.').pop();
-          const fileName = `${courseId}_cover_${Math.random().toString(36).substring(2)}.${fileExt}`;
+          const fileName = `covers/${courseId}_cover_${Math.random().toString(36).substring(2)}.${fileExt}`;
           
           const { error: uploadError, data: uploadData } = await supabase.storage
-            .from('course_covers')
+            .from('course-materials')
             .upload(fileName, image);
             
           if (uploadError) {
@@ -330,7 +329,7 @@ const CourseEdit = () => {
           console.log("Cover image upload success:", uploadData);
           
           const { data: imageData } = supabase.storage
-            .from('course_covers')
+            .from('course-materials')
             .getPublicUrl(fileName);
             
           if (imageData?.publicUrl) {
