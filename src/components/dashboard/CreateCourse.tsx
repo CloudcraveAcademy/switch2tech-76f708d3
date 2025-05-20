@@ -59,7 +59,6 @@ const CreateCourse = () => {
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
-  const [coursePreviewVideoFile, setCoursePreviewVideoFile] = useState<File | null>(null);
   const [courseMaterialFiles, setCourseMaterialFiles] = useState<File[]>([]);
   const [materialUploads, setMaterialUploads] = useState<{
     file: File;
@@ -216,25 +215,6 @@ const CreateCourse = () => {
         imageUrl = publicUrlData.publicUrl;
       }
       
-      // Upload preview video if selected
-      let previewVideoUrl = data.preview_video || '';
-      if (coursePreviewVideoFile) {
-        const videoPath = `${user.id}/${Date.now()}_${coursePreviewVideoFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('course-materials')
-          .upload(videoPath, coursePreviewVideoFile);
-          
-        if (uploadError) {
-          throw new Error(`Error uploading preview video: ${uploadError.message}`);
-        }
-        
-        const { data: publicUrlData } = supabase.storage
-          .from('course-materials')
-          .getPublicUrl(videoPath);
-          
-        previewVideoUrl = publicUrlData.publicUrl;
-      }
-      
       // Get course materials from the form
       const courseMaterialUrls = data.course_materials || [];
       
@@ -255,7 +235,7 @@ const CreateCourse = () => {
         is_published: data.is_published,
         certificate_enabled: data.certificateEnabled,
         image_url: imageUrl,
-        preview_video: previewVideoUrl,
+        preview_video: data.preview_video,
         course_materials: courseMaterialUrls,
         // Convert Date objects to ISO strings for the database
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
@@ -351,7 +331,6 @@ const CreateCourse = () => {
                       setCourseImageFile(file);
                       setImageError(false);
                     }}
-                    onPreviewVideoChange={(file) => setCoursePreviewVideoFile(file)}
                     onMaterialsChange={(files) => handleMaterialUpload(files)}
                     imageUrl={methods.watch('image_url')}
                     previewVideoUrl={methods.watch('preview_video')}

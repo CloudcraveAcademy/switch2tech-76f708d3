@@ -16,7 +16,6 @@ interface UploadStatus {
 
 export interface CourseMediaUploadProps {
   onCoverImageChange: (file: File) => void;
-  onPreviewVideoChange?: (file: File) => void;
   onMaterialsChange?: (files: FileList) => void;
   imageUrl?: string;
   previewVideoUrl?: string;
@@ -29,7 +28,6 @@ export interface CourseMediaUploadProps {
 
 export const CourseMediaUpload = ({ 
   onCoverImageChange,
-  onPreviewVideoChange,
   onMaterialsChange,
   imageUrl,
   previewVideoUrl,
@@ -41,7 +39,6 @@ export const CourseMediaUpload = ({
 }: CourseMediaUploadProps) => {
   const [materialFileNames, setMaterialFileNames] = useState<string[]>([]);
   const [imagePreviewError, setImagePreviewError] = useState(false);
-  const [previewVideoType, setPreviewVideoType] = useState<'url' | 'file'>('url');
   
   // Handle file selection for course materials
   const handleMaterialsChange = (files: FileList) => {
@@ -61,89 +58,30 @@ export const CourseMediaUpload = ({
 
   return (
     <div className="space-y-6">
-      {/* Course Preview Video */}
-      <div className="space-y-4">
-        <FormLabel>Course Preview Video</FormLabel>
-        
-        <div className="flex space-x-2 mb-2">
-          <Button
-            type="button"
-            variant={previewVideoType === 'url' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPreviewVideoType('url')}
-          >
-            URL Link
-          </Button>
-          <Button
-            type="button"
-            variant={previewVideoType === 'file' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPreviewVideoType('file')}
-          >
-            Upload File
-          </Button>
-        </div>
-        
-        {previewVideoType === 'url' ? (
-          <FormField
-            control={form?.control}
-            name="preview_video"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="relative">
-                    <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      {...field}
-                      placeholder="YouTube or Vimeo link"
-                      className="pl-9"
-                    />
-                  </div>
-                </FormControl>
-                <FormDescription>
-                  Add a preview video to showcase your course (YouTube or Vimeo URL)
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        ) : (
-          <div>
-            <div className="flex items-center space-x-4">
-              {previewVideoUrl && !previewVideoUrl.includes('youtube.com') && !previewVideoUrl.includes('vimeo.com') && (
-                <div className="shrink-0 flex items-center">
-                  <Video className="h-8 w-8 text-gray-400" />
-                  <span className="ml-2 text-sm">{previewVideoUrl.split('/').pop()}</span>
-                </div>
-              )}
-              <Label
-                htmlFor="preview-video-upload"
-                className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 flex items-center"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {previewVideoUrl && !previewVideoUrl.includes('youtube.com') && !previewVideoUrl.includes('vimeo.com') 
-                  ? "Change video" 
-                  : "Upload video"}
-              </Label>
-              <Input
-                id="preview-video-upload"
-                type="file"
-                accept="video/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file && onPreviewVideoChange) {
-                    onPreviewVideoChange(file);
-                  }
-                }}
-                className="sr-only"
-              />
-            </div>
-            <FormDescription className="mt-2">
-              Upload a preview video file (MP4, WebM, etc.)
+      {/* Course Preview Video - URL Only */}
+      <FormField
+        control={form?.control}
+        name="preview_video"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Course Preview Video</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Input
+                  {...field}
+                  placeholder="YouTube or Vimeo URL"
+                  className="pl-9"
+                />
+              </div>
+            </FormControl>
+            <FormDescription>
+              Add a preview video to showcase your course (YouTube or Vimeo URL)
             </FormDescription>
-          </div>
+            <FormMessage />
+          </FormItem>
         )}
-      </div>
+      />
 
       {/* Course Image - Required */}
       <div>

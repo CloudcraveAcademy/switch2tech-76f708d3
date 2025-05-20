@@ -65,8 +65,6 @@ const CourseEdit = () => {
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
-  const [coursePreviewVideoFile, setCoursePreviewVideoFile] = useState<File | null>(null);
-  const [courseMaterialFiles, setCourseMaterialFiles] = useState<File[]>([]);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [materialUploads, setMaterialUploads] = useState<{
     file: File;
@@ -155,7 +153,7 @@ const CourseEdit = () => {
             accessDuration: course.access_duration || '',
             // Ensure mode is one of the enum values
             mode: (course.mode === 'virtual-live' || course.mode === 'self-paced') 
-              ? course.mode 
+              ? course.mode as 'virtual-live' | 'self-paced'
               : 'self-paced' as const,
           };
           
@@ -282,25 +280,6 @@ const CourseEdit = () => {
         imageUrl = publicUrlData.publicUrl;
       }
       
-      // Upload preview video if selected
-      let previewVideoUrl = data.preview_video;
-      if (coursePreviewVideoFile) {
-        const videoPath = `${user.id}/${Date.now()}_${coursePreviewVideoFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('course-materials')
-          .upload(videoPath, coursePreviewVideoFile);
-          
-        if (uploadError) {
-          throw new Error(`Error uploading preview video: ${uploadError.message}`);
-        }
-        
-        const { data: publicUrlData } = supabase.storage
-          .from('course-materials')
-          .getPublicUrl(videoPath);
-          
-        previewVideoUrl = publicUrlData.publicUrl;
-      }
-      
       // Convert form data to match the database schema
       const courseData = {
         title: data.title,
@@ -318,7 +297,7 @@ const CourseEdit = () => {
         is_published: data.is_published,
         certificate_enabled: data.certificateEnabled,
         image_url: imageUrl,
-        preview_video: previewVideoUrl,
+        preview_video: data.preview_video,
         course_materials: data.course_materials,
         // Convert Date objects to ISO strings for the database
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
@@ -356,9 +335,7 @@ const CourseEdit = () => {
       });
 
       // Clear uploaded files state after successful update
-      setCourseMaterialFiles([]);
       setCourseImageFile(null);
-      setCoursePreviewVideoFile(null);
       
     } catch (error: any) {
       console.error('Error updating course:', error);
@@ -514,7 +491,6 @@ const CourseEdit = () => {
                       setCourseImageFile(file);
                       setImageError(false);
                     }}
-                    onPreviewVideoChange={(file) => setCoursePreviewVideoFile(file)}
                     onMaterialsChange={(files) => handleMaterialUpload(files)}
                     imageUrl={methods.getValues('image_url')}
                     previewVideoUrl={methods.getValues('preview_video')}

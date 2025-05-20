@@ -36,6 +36,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
     content: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Track if the component is mounted
   const [isMounted, setIsMounted] = useState(false);
@@ -47,7 +48,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
 
   // Fetch announcements using the query key that includes the courseId
   const { data: announcements, isLoading, refetch } = useQuery<Announcement[]>({
-    queryKey: ['course-announcements', courseId],
+    queryKey: ['course-announcements', courseId, refreshTrigger],
     queryFn: async () => {
       try {
         // Call the RPC function we created
@@ -66,7 +67,9 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
         throw e;
       }
     },
-    enabled: !!courseId && isMounted
+    enabled: !!courseId && isMounted,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0  // Don't cache results
   });
 
   // Force refetch announcements when courseId changes
@@ -74,7 +77,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
     if (courseId && isMounted) {
       refetch();
     }
-  }, [courseId, refetch, isMounted]);
+  }, [courseId, refetch, isMounted, refreshTrigger]);
 
   const saveAnnouncement = async (announcement: AnnouncementFormState, id?: string) => {
     if (!announcement.title.trim() || !announcement.content.trim()) {
@@ -146,7 +149,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
     onSuccess: () => {
       // Force refetch after mutation
       queryClient.invalidateQueries({ queryKey: ['course-announcements', courseId] });
-      refetch();
+      setRefreshTrigger(prev => prev + 1);
       
       toast({
         title: "Success",
