@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -363,7 +362,7 @@ const CourseEdit = () => {
             <CardContent className="grid gap-4">
               <CourseMediaUpload
                 form={{ control: { register: () => ({}) } }}
-                onImageChange={handleImageChange}
+                onCoverImageChange={handleImageChange}
                 onMaterialsChange={handleMaterialsChange}
                 imageUrl={imageUrl}
                 materialUploads={materialUploads}

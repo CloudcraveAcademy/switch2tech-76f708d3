@@ -159,13 +159,23 @@ const CreateCourse = () => {
       
       // Handle cover image upload if provided
       if (coverImage && insertedCourse?.id) {
-        // Check if the bucket exists, and create it if not
-        const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('course_covers');
+        // First check if the course_covers bucket exists
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
         
-        if (bucketError && bucketError.message.includes('does not exist')) {
-          // Attempt to create the bucket
+        if (bucketsError) {
+          console.error("Error listing buckets:", bucketsError);
+          throw bucketsError;
+        }
+        
+        // Check if course_covers bucket exists
+        const bucketExists = buckets.some(bucket => bucket.name === 'course_covers');
+        
+        // Create the bucket if it doesn't exist
+        if (!bucketExists) {
+          console.log("Creating course_covers bucket");
           const { error: createBucketError } = await supabase.storage.createBucket('course_covers', {
-            public: true
+            public: true,
+            fileSizeLimit: 5242880, // 5MB
           });
           
           if (createBucketError) {
@@ -174,6 +184,7 @@ const CreateCourse = () => {
           }
         }
         
+        // Upload the file
         const fileExt = coverImage.name.split('.').pop();
         const filePath = `${insertedCourse.id}_cover.${fileExt}`;
         
@@ -204,6 +215,34 @@ const CreateCourse = () => {
         if (updateError) {
           console.error("Error updating course with cover image:", updateError);
           throw updateError;
+        }
+      }
+      
+      // Check for course materials bucket
+      if (materialUploads.length > 0) {
+        // First check if the course-materials bucket exists
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        
+        if (bucketsError) {
+          console.error("Error listing buckets:", bucketsError);
+          throw bucketsError;
+        }
+        
+        // Check if course-materials bucket exists
+        const bucketExists = buckets.some(bucket => bucket.name === 'course-materials');
+        
+        // Create the bucket if it doesn't exist
+        if (!bucketExists) {
+          console.log("Creating course-materials bucket");
+          const { error: createBucketError } = await supabase.storage.createBucket('course-materials', {
+            public: true,
+            fileSizeLimit: 52428800, // 50MB
+          });
+          
+          if (createBucketError) {
+            console.error("Error creating materials bucket:", createBucketError);
+            throw createBucketError;
+          }
         }
       }
       
