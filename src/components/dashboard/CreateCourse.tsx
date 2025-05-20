@@ -170,20 +170,29 @@ const CreateCourse = () => {
           const fileExt = coverImage.name.split('.').pop();
           const filePath = `${insertedCourse.id}_cover.${fileExt}`;
           
+          console.log("Uploading cover image to path:", filePath);
+          
           const { error: uploadError, data: uploadData } = await supabase.storage
             .from('course_covers')
             .upload(filePath, coverImage);
             
           if (uploadError) {
             console.error("Error uploading cover image:", uploadError);
-            // Continue with course creation even if image upload fails
+            toast({
+              title: "Image Upload Warning",
+              description: "Course created but cover image upload failed. You can add it later.",
+              variant: "warning",
+            });
           } else {
+            console.log("Cover image uploaded successfully:", uploadData);
+            
             // Get the public URL
             const { data: publicURLData } = supabase.storage
               .from('course_covers')
               .getPublicUrl(filePath);
               
             imagePublicUrl = publicURLData.publicUrl;
+            console.log("Image public URL:", imagePublicUrl);
             
             // Update course with cover image URL
             const { error: updateError } = await supabase
@@ -195,12 +204,20 @@ const CreateCourse = () => {
               
             if (updateError) {
               console.error("Error updating course with cover image:", updateError);
-              // Continue with course creation even if image URL update fails
+              toast({
+                title: "Warning",
+                description: "Course created but couldn't update with image URL.",
+                variant: "warning",
+              });
             }
           }
         } catch (uploadErr) {
           console.error("Exception during image upload:", uploadErr);
-          // Continue with course creation even if image upload fails
+          toast({
+            title: "Image Upload Error",
+            description: "Course created but there was an error with the image upload.",
+            variant: "warning",
+          });
         }
       }
       
@@ -214,17 +231,22 @@ const CreateCourse = () => {
               const fileExt = material.file.name.split('.').pop();
               const filePath = `${insertedCourse.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
               
+              console.log("Uploading material to path:", filePath);
+              
               const { error: materialUploadError, data: uploadData } = await supabase.storage
                 .from('course-materials')
                 .upload(filePath, material.file);
                 
               if (!materialUploadError) {
+                console.log("Material uploaded successfully:", uploadData);
+                
                 const { data: materialUrlData } = supabase.storage
                   .from('course-materials')
                   .getPublicUrl(filePath);
                   
                 if (materialUrlData?.publicUrl) {
                   materialUrls.push(materialUrlData.publicUrl);
+                  console.log("Material public URL:", materialUrlData.publicUrl);
                 }
               } else {
                 console.error("Error uploading material:", materialUploadError);
@@ -243,11 +265,20 @@ const CreateCourse = () => {
               
             if (materialUpdateError) {
               console.error("Error updating course with materials:", materialUpdateError);
+              toast({
+                title: "Materials Upload Warning",
+                description: "Some course materials may not have been properly linked to the course.",
+                variant: "warning",
+              });
             }
           }
         } catch (materialErr) {
           console.error("Error uploading course materials:", materialErr);
-          // Continue with course creation even if materials upload fails
+          toast({
+            title: "Materials Upload Error",
+            description: "Course created but there was an error with some material uploads.",
+            variant: "warning",
+          });
         }
       }
       

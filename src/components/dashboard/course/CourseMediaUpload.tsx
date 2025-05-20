@@ -30,8 +30,6 @@ export const CourseMediaUpload = ({
   imageError = false,
   form
 }: CourseMediaUploadProps) => {
-  console.log("Rendering CourseMediaUpload with imageUrl:", imageUrl);
-  
   return (
     <div className="space-y-6">
       {/* Course Preview Video */}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -185,6 +186,7 @@ const CourseEdit = () => {
   const handleImageChange = (file: File) => {
     setImage(file);
     setImageUrl(URL.createObjectURL(file));
+    console.log("Image changed:", file.name);
   };
 
   const handleMaterialsChange = (files: FileList) => {
@@ -197,6 +199,7 @@ const CourseEdit = () => {
     }));
     
     setMaterialUploads([...materialUploads, ...newUploads]);
+    console.log("Materials changed, total uploads:", materialUploads.length + newUploads.length);
   };
 
   const uploadCourseMaterials = async () => {
@@ -204,6 +207,8 @@ const CourseEdit = () => {
     const newMaterials = materialUploads.filter(item => item.status === 'idle');
     
     if (newMaterials.length === 0) return [];
+    
+    console.log("Uploading new materials:", newMaterials.length);
     
     // Update status for all new materials to uploading
     setMaterialUploads(prev => 
@@ -213,13 +218,14 @@ const CourseEdit = () => {
     const materialUrls: string[] = [];
     
     try {
-      // Skip bucket existence check as we know it exists
       for (const material of newMaterials) {
         if (!material.file) continue;
         
         const fileExt = material.file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${courseId}/${fileName}`;
+        
+        console.log(`Uploading ${material.name} to ${filePath}...`);
         
         try {
           const { error: uploadError, data: uploadData } = await supabase.storage
@@ -230,6 +236,8 @@ const CourseEdit = () => {
             // Find the index in the full materials array
             const fullIndex = materialUploads.findIndex(m => m.name === material.name && m.status === 'uploading');
             
+            console.error(`Error uploading material ${material.name}:`, uploadError);
+            
             // Update status for this material to error
             if (fullIndex !== -1) {
               setMaterialUploads(prev => {
@@ -239,9 +247,10 @@ const CourseEdit = () => {
               });
             }
             
-            console.error(`Error uploading material: ${uploadError.message}`);
             continue; // Skip to next file
           }
+          
+          console.log(`Successfully uploaded ${material.name}`);
           
           const { data: materialData } = supabase.storage
             .from('course-materials')
@@ -249,6 +258,7 @@ const CourseEdit = () => {
           
           if (materialData?.publicUrl) {
             materialUrls.push(materialData.publicUrl);
+            console.log("Got public URL:", materialData.publicUrl);
           
             // Find the index in the full materials array
             const fullIndex = materialUploads.findIndex(m => m.name === material.name && m.status === 'uploading');
@@ -303,6 +313,7 @@ const CourseEdit = () => {
       // Upload new image if one was selected
       if (image) {
         try {
+          console.log("Uploading new cover image...");
           // Use the standard 'course_covers' bucket
           const fileExt = image.name.split('.').pop();
           const fileName = `${courseId}_cover_${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -316,12 +327,15 @@ const CourseEdit = () => {
             throw new Error(`Error uploading image: ${uploadError.message}`);
           }
           
+          console.log("Cover image upload success:", uploadData);
+          
           const { data: imageData } = supabase.storage
             .from('course_covers')
             .getPublicUrl(fileName);
             
           if (imageData?.publicUrl) {
             updatedImageUrl = imageData.publicUrl;
+            console.log("New cover image URL:", updatedImageUrl);
           }
         } catch (error) {
           console.error("Error uploading image:", error);
@@ -334,15 +348,21 @@ const CourseEdit = () => {
       }
       
       // Upload any new course materials
+      console.log("Uploading new materials...");
       let newMaterialUrls: string[] = await uploadCourseMaterials();
+      console.log("New material URLs:", newMaterialUrls);
       
       // Get existing material URLs that were not replaced
       const existingMaterialUrls = materialUploads
         .filter(item => item.status === 'success' && item.url)
         .map(item => item.url as string);
       
+      console.log("Existing material URLs:", existingMaterialUrls);
+      
       // Combine all material URLs
       const allMaterialUrls = [...existingMaterialUrls, ...newMaterialUrls];
+      
+      console.log("All material URLs:", allMaterialUrls);
       
       // Ensure array fields are properly initialized
       const classDays = data.classDays || [];
@@ -377,6 +397,8 @@ const CourseEdit = () => {
         updated_at: new Date().toISOString()
       };
       
+      console.log("Updating course with data:", courseData);
+      
       // Update course in database
       const { error } = await supabase
         .from('courses')
@@ -393,6 +415,8 @@ const CourseEdit = () => {
         return;
       }
 
+      console.log("Course updated successfully");
+      
       toast({
         title: "Success",
         description: "Course updated successfully.",
