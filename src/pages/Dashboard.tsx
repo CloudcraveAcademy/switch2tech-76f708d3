@@ -33,6 +33,7 @@ const Dashboard = () => {
       
       if (!isValid) {
         console.log("Session invalid, redirecting to login");
+        // Use replace: true to prevent back button from returning to dashboard
         navigate("/login", { 
           replace: true,
           state: { from: location.pathname } 
@@ -62,7 +63,7 @@ const Dashboard = () => {
       validateAuthAndRedirect();
     }
     
-    // Handle redirect for users without roles - no early returns
+    // Handle redirect for users without roles
     if (user && !user.role) {
       console.log("User has no role, redirecting to home");
       navigate("/", { replace: true });
@@ -73,6 +74,19 @@ const Dashboard = () => {
   useEffect(() => {
     validationAttemptedRef.current = false;
   }, [location.pathname]);
+
+  // Check if we need to redirect to login when component mounts
+  useEffect(() => {
+    if (!loading && !user && !isValidating) {
+      // Short timeout to avoid immediate redirect and give auth a chance to initialize
+      const timer = setTimeout(() => {
+        if (!user) {
+          navigate("/login", { replace: true });
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, user, isValidating, navigate]);
 
   // Single render path with conditional content
   return (

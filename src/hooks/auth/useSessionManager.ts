@@ -46,6 +46,8 @@ export const useSessionManager = () => {
           try {
             const enrichedUser = await enrichUserWithProfile(refreshedSession?.user ?? null);
             setUser(enrichedUser);
+          } catch (error) {
+            console.error("Error enriching user after refresh:", error);
           } finally {
             profileFetchInProgress.current = false;
           }
@@ -58,12 +60,13 @@ export const useSessionManager = () => {
       setSession(currentSession);
       
       // Make sure we have the user data even if just validating
-      // Prevent duplicate profile fetches
       if (!user && currentSession.user && !profileFetchInProgress.current) {
         profileFetchInProgress.current = true;
         try {
           const enrichedUser = await enrichUserWithProfile(currentSession.user);
           setUser(enrichedUser);
+        } catch (error) {
+          console.error("Error enriching user data:", error);
         } finally {
           profileFetchInProgress.current = false;
         }
@@ -96,11 +99,19 @@ export const useSessionManager = () => {
       }
     } catch (error) {
       console.error("Error initializing session:", error);
-      // Don't throw here - allow the app to continue even if session init fails
+      // Clear state on initialization errors
+      setUser(null);
+      setSession(null);
     } finally {
       profileFetchInProgress.current = false;
     }
   }, [enrichUserWithProfile]);
+
+  // Clear session state
+  const clearSession = useCallback(() => {
+    setUser(null);
+    setSession(null);
+  }, []);
 
   return {
     user,
@@ -109,5 +120,6 @@ export const useSessionManager = () => {
     setSession,
     validateSession,
     initializeSession,
+    clearSession,
   };
 };

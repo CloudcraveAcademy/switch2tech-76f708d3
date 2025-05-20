@@ -77,11 +77,15 @@ export const useAuthOperations = () => {
     }
   }, [toast]);
 
-  const logout = useCallback(async (onLogout?: (path?: string) => void) => {
+  const logout = useCallback(async () => {
     try {
       console.log("Attempting logout");
       setLoading(true);
       
+      // Clear local storage first to prevent any potential state issues
+      localStorage.removeItem('supabase.auth.token');
+      
+      // Then perform the actual logout
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -90,21 +94,8 @@ export const useAuthOperations = () => {
       }
       
       console.log("Logout successful");
-      // Clear any local storage tokens to ensure proper logout
-      localStorage.removeItem('supabase.auth.token');
       
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-      
-      // Make sure the callback is called after a brief delay to prevent UI issues
-      if (onLogout) {
-        setTimeout(() => {
-          onLogout();
-        }, 100);
-      }
-      
+      // Return success
       return true;
     } catch (error: any) {
       console.error("Logout error:", error);

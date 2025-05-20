@@ -122,6 +122,11 @@ const CreateCourse = () => {
   const uploadCourseMaterials = async () => {
     const materialUrls: string[] = [];
     
+    // Don't proceed if there are no materials
+    if (courseMaterials.length === 0) {
+      return materialUrls;
+    }
+    
     // Update status for all materials to uploading
     setMaterialUploads(prev => 
       prev.map(item => ({ ...item, status: 'uploading' }))
@@ -154,14 +159,16 @@ const CreateCourse = () => {
             .from('course-materials')
             .getPublicUrl(filePath);
           
-          materialUrls.push(materialData.publicUrl);
-          
-          // Update status for this material to success
-          setMaterialUploads(prev => 
-            prev.map((item, idx) => 
-              idx === i ? { ...item, status: 'success', url: materialData.publicUrl } : item
-            )
-          );
+          if (materialData) {
+            materialUrls.push(materialData.publicUrl);
+            
+            // Update status for this material to success
+            setMaterialUploads(prev => 
+              prev.map((item, idx) => 
+                idx === i ? { ...item, status: 'success', url: materialData.publicUrl } : item
+              )
+            );
+          }
         } catch (error) {
           console.error(`Error processing material ${material.name}:`, error);
           
@@ -177,7 +184,7 @@ const CreateCourse = () => {
       return materialUrls;
     } catch (error) {
       console.error('Error uploading course materials:', error);
-      return [];
+      return materialUrls;
     }
   };
 
@@ -249,8 +256,12 @@ const CreateCourse = () => {
         }
         
         const { data: imageData } = supabase.storage.from('course-materials').getPublicUrl(filePath);
-        finalImageUrl = imageData.publicUrl;
-        console.log("Image uploaded successfully:", finalImageUrl);
+        if (imageData) {
+          finalImageUrl = imageData.publicUrl;
+          console.log("Image uploaded successfully:", finalImageUrl);
+        } else {
+          throw new Error("Failed to get public URL for uploaded image");
+        }
       }
       
       // Upload course materials
@@ -261,17 +272,13 @@ const CreateCourse = () => {
         console.log("Materials uploaded:", materialUrls);
       }
       
-      // Parse the class schedule if it exists
-      let classDays = data.classDays || [];
-      let classSchedule = data.classSchedule || "{}";
-      
       console.log("Preparing course data for submission");
       const courseData = {
         instructor_id: user.id,
         title: data.title,
         description: data.description,
-        price: Number(data.price),
-        duration_hours: Number(data.duration),
+        price: parseFloat(data.price),
+        duration_hours: parseInt(data.duration),
         level: data.level.toLowerCase(),
         category: data.category,
         image_url: finalImageUrl,
@@ -281,16 +288,16 @@ const CreateCourse = () => {
         multi_language_support: data.multiLanguageSupport,
         additional_languages: data.multiLanguageSupport ? data.additionalLanguages : null,
         certificate_enabled: data.certificateEnabled,
-        preview_video: data.previewVideo,
+        preview_video: data.previewVideo || null,
         course_materials: materialUrls.length > 0 ? materialUrls : null,
-        access_duration: data.accessDuration,
+        access_duration: data.accessDuration || null,
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
         course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
-        class_days: classDays.length > 0 ? classDays : null,
-        class_schedule: classSchedule !== "{}" ? classSchedule : null,
-        timezone: data.timezone,
+        class_days: data.classDays && data.classDays.length > 0 ? data.classDays : null,
+        class_schedule: data.classSchedule && data.classSchedule !== "{}" ? data.classSchedule : null,
+        timezone: data.timezone || null,
         replay_access: data.replayAccess,
-        discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
+        discounted_price: data.discountEnabled && data.discountedPrice ? parseFloat(data.discountedPrice) : null,
       };
       
       console.log("Submitting course data to Supabase:", courseData);
@@ -308,15 +315,16 @@ const CreateCourse = () => {
       
       console.log("Course created successfully:", course);
       
+      // Display success toast
       toast({
         title: "Course created successfully",
         description: "Your course has been saved as a draft",
       });
       
-      // Make sure to wait a bit before navigating to ensure toast is visible
-      setTimeout(() => {
-        navigate(`/dashboard/courses/${course.id}/edit`);
-      }, 500);
+      setLoading(false);
+      
+      // Navigate to the course edit page
+      navigate(`/dashboard/courses/${course.id}/edit`);
       
     } catch (error: any) {
       console.error("Error in course creation:", error);
