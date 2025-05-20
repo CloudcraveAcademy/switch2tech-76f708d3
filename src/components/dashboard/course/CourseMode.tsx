@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarIcon, Clock } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +36,22 @@ interface ClassTimeSlot {
 export function CourseMode({ form }: { form: any }) {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [timeSlots, setTimeSlots] = useState<Record<string, { startTime: string, endTime: string }>>({});
+
+  // Initialize values on component mount
+  useEffect(() => {
+    // Ensure classDays is an array
+    const classDays = form.getValues('classDays') || [];
+    setSelectedDays(classDays);
+    
+    // Create default time slots for initially selected days
+    const initialTimeSlots: Record<string, { startTime: string, endTime: string }> = {};
+    classDays.forEach((day: string) => {
+      initialTimeSlots[day] = { startTime: "09:00", endTime: "10:00" };
+    });
+    
+    setTimeSlots(initialTimeSlots);
+    updateClassSchedule(initialTimeSlots);
+  }, []);
 
   // Monitor changes to the form's classDays field
   useEffect(() => {
@@ -245,6 +261,7 @@ export function CourseMode({ form }: { form: any }) {
                       control={form.control}
                       name="classDays"
                       render={({ field }) => {
+                        const currentValue = field.value || [];
                         return (
                           <FormItem
                             key={day}
@@ -252,14 +269,13 @@ export function CourseMode({ form }: { form: any }) {
                           >
                             <FormControl>
                               <Checkbox
-                                checked={field.value?.includes(day)}
+                                checked={currentValue.includes(day)}
                                 onCheckedChange={(checked) => {
-                                  const currentValue = [...(field.value || [])];
                                   if (checked) {
                                     field.onChange([...currentValue, day]);
                                   } else {
                                     field.onChange(
-                                      currentValue.filter((value) => value !== day)
+                                      currentValue.filter((value: string) => value !== day)
                                     );
                                   }
                                 }}

@@ -72,13 +72,13 @@ const CreateCourse = () => {
       mode: "self-paced",
       language: "English",
       multiLanguageSupport: false,
-      additionalLanguages: [],
+      additionalLanguages: [], // Ensure array is initialized
       certificateEnabled: false,
       previewVideo: "",
       accessDuration: "",
       registrationDeadline: undefined,
       courseStartDate: undefined,
-      classDays: [],
+      classDays: [], // Ensure array is initialized
       class_time: "",
       timezone: "",
       replayAccess: false,
@@ -113,6 +113,10 @@ const CreateCourse = () => {
       setIsSubmitting(true);
       console.log("Form data:", data);
       
+      // Ensure array fields are properly initialized
+      const classDays = data.classDays || [];
+      const additionalLanguages = data.multiLanguageSupport ? (data.additionalLanguages || []) : [];
+      
       // Prepare course data
       const courseData = {
         title: data.title,
@@ -130,7 +134,7 @@ const CreateCourse = () => {
         access_duration: data.accessDuration,
         registration_deadline: data.registrationDeadline,
         course_start_date: data.courseStartDate,
-        class_days: data.classDays,
+        class_days: classDays, // Use the initialized value
         class_time: data.class_time,
         timezone: data.timezone,
         replay_access: data.replayAccess,
@@ -138,7 +142,7 @@ const CreateCourse = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_published: false, // Default to draft
-        additional_languages: data.multiLanguageSupport ? data.additionalLanguages : [],
+        additional_languages: additionalLanguages, // Use the initialized value
       };
       
       console.log("Prepared course data:", courseData);
