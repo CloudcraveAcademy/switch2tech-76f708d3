@@ -74,6 +74,7 @@ const CourseEdit = () => {
     status: 'idle' | 'uploading' | 'success' | 'error';
     url?: string;
   }[]>([]);
+  const [imageError, setImageError] = useState(false);
 
   // Initialize form
   const methods = useForm({
@@ -152,7 +153,10 @@ const CourseEdit = () => {
             promotion_enabled: course.promotion_enabled || false,
             autoEnrollAfterPurchase: course.auto_enroll_after_purchase !== false, // default to true
             accessDuration: course.access_duration || '',
-            mode: course.mode || 'self-paced',
+            // Ensure mode is one of the enum values
+            mode: (course.mode === 'virtual-live' || course.mode === 'self-paced') 
+              ? course.mode 
+              : 'self-paced' as const,
           };
           
           methods.reset(formattedCourse);
@@ -178,11 +182,14 @@ const CourseEdit = () => {
     methods.setValue('course_materials', updatedMaterials);
   };
 
-  const handleMaterialUpload = async (files: File[]) => {
+  const handleMaterialUpload = async (files: FileList) => {
     if (!id || !user || files.length === 0) return;
     
+    // Convert FileList to array
+    const fileArray = Array.from(files);
+    
     // Add files to material uploads state with 'idle' status
-    const newUploads = files.map(file => ({
+    const newUploads = fileArray.map(file => ({
       file,
       name: file.name,
       status: 'uploading' as const
@@ -193,8 +200,8 @@ const CourseEdit = () => {
     // Process each file upload
     const updatedMaterialUrls = [...methods.getValues('course_materials')];
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
       
       try {
         // Set status to uploading
@@ -503,17 +510,19 @@ const CourseEdit = () => {
 
                 <TabsContent value="media">
                   <CourseMediaUpload 
-                    onCoverImageChange={(file) => setCourseImageFile(file)}
-                    onMaterialsChange={(files) => {
-                      const fileArray = Array.from(files);
-                      setCourseMaterialFiles([...courseMaterialFiles, ...fileArray]);
-                      handleMaterialUpload(fileArray);
+                    onCoverImageChange={(file) => {
+                      setCourseImageFile(file);
+                      setImageError(false);
                     }}
+                    onPreviewVideoChange={(file) => setCoursePreviewVideoFile(file)}
+                    onMaterialsChange={(files) => handleMaterialUpload(files)}
                     imageUrl={methods.getValues('image_url')}
+                    previewVideoUrl={methods.getValues('preview_video')}
                     existingMaterials={methods.getValues('course_materials')}
                     materialUploads={materialUploads}
                     onMaterialRemove={handleRemoveMaterial}
                     form={methods}
+                    imageError={imageError}
                   />
                 </TabsContent>
 

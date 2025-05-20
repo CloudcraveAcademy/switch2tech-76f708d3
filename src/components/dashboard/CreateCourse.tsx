@@ -59,7 +59,14 @@ const CreateCourse = () => {
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
+  const [coursePreviewVideoFile, setCoursePreviewVideoFile] = useState<File | null>(null);
   const [courseMaterialFiles, setCourseMaterialFiles] = useState<File[]>([]);
+  const [materialUploads, setMaterialUploads] = useState<{
+    file: File;
+    name: string;
+    status: 'idle' | 'uploading' | 'success' | 'error';
+    url?: string;
+  }[]>([]);
   const [imageError, setImageError] = useState(false);
 
   // Initialize form
@@ -100,6 +107,79 @@ const CreateCourse = () => {
     }
   });
 
+  const handleMaterialUpload = async (files: FileList) => {
+    if (!user || files.length === 0) return;
+    
+    // Convert FileList to array
+    const fileArray = Array.from(files);
+    setCourseMaterialFiles([...courseMaterialFiles, ...fileArray]);
+    
+    // Add files to material uploads state with 'uploading' status
+    const newUploads = fileArray.map(file => ({
+      file,
+      name: file.name,
+      status: 'uploading' as const
+    }));
+    
+    setMaterialUploads(prev => [...prev, ...newUploads]);
+    
+    // Process each file upload
+    const updatedMaterialUrls = [...methods.getValues('course_materials')];
+    
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      
+      try {
+        // Upload to Supabase Storage
+        const filePath = `${user.id}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(filePath, file);
+          
+        if (uploadError) {
+          throw new Error(`Error uploading file: ${uploadError.message}`);
+        }
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('course-materials')
+          .getPublicUrl(filePath);
+          
+        // Add URL to course materials
+        updatedMaterialUrls.push(publicUrlData.publicUrl);
+        
+        // Update status to success
+        setMaterialUploads(prev => 
+          prev.map(item => 
+            item.name === file.name 
+              ? { ...item, status: 'success' as const, url: publicUrlData.publicUrl } 
+              : item
+          )
+        );
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        
+        // Update status to error
+        setMaterialUploads(prev => 
+          prev.map(item => 
+            item.name === file.name 
+              ? { ...item, status: 'error' as const } 
+              : item
+          )
+        );
+      }
+    }
+    
+    // Update form with new URLs
+    methods.setValue('course_materials', updatedMaterialUrls);
+  };
+
+  const handleRemoveMaterial = (urlToRemove: string) => {
+    const currentMaterials = methods.getValues('course_materials') || [];
+    const updatedMaterials = currentMaterials.filter(url => url !== urlToRemove);
+    methods.setValue('course_materials', updatedMaterials);
+  };
+
   const onSubmit = async (data: z.infer<typeof courseSchema>) => {
     if (!user) return;
     
@@ -136,27 +216,27 @@ const CreateCourse = () => {
         imageUrl = publicUrlData.publicUrl;
       }
       
-      // Upload course materials if selected
-      const courseMaterialUrls: string[] = [];
-      if (courseMaterialFiles.length > 0) {
-        for (const file of courseMaterialFiles) {
-          const filePath = `${user.id}/${Date.now()}_${file.name}`;
-          const { error: uploadError } = await supabase.storage
-            .from('course-materials')
-            .upload(filePath, file);
-            
-          if (uploadError) {
-            console.error(`Error uploading course material ${file.name}:`, uploadError);
-            continue; // Skip this file but continue with others
-          }
+      // Upload preview video if selected
+      let previewVideoUrl = data.preview_video || '';
+      if (coursePreviewVideoFile) {
+        const videoPath = `${user.id}/${Date.now()}_${coursePreviewVideoFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(videoPath, coursePreviewVideoFile);
           
-          const { data: publicUrlData } = supabase.storage
-            .from('course-materials')
-            .getPublicUrl(filePath);
-            
-          courseMaterialUrls.push(publicUrlData.publicUrl);
+        if (uploadError) {
+          throw new Error(`Error uploading preview video: ${uploadError.message}`);
         }
+        
+        const { data: publicUrlData } = supabase.storage
+          .from('course-materials')
+          .getPublicUrl(videoPath);
+          
+        previewVideoUrl = publicUrlData.publicUrl;
       }
+      
+      // Get course materials from the form
+      const courseMaterialUrls = data.course_materials || [];
       
       // Convert form data to match the database schema
       const courseData = {
@@ -175,7 +255,7 @@ const CreateCourse = () => {
         is_published: data.is_published,
         certificate_enabled: data.certificateEnabled,
         image_url: imageUrl,
-        preview_video: data.preview_video,
+        preview_video: previewVideoUrl,
         course_materials: courseMaterialUrls,
         // Convert Date objects to ISO strings for the database
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
@@ -271,12 +351,15 @@ const CreateCourse = () => {
                       setCourseImageFile(file);
                       setImageError(false);
                     }}
-                    onMaterialsChange={(files) => {
-                      const fileArray = Array.from(files);
-                      setCourseMaterialFiles([...courseMaterialFiles, ...fileArray]);
-                    }}
+                    onPreviewVideoChange={(file) => setCoursePreviewVideoFile(file)}
+                    onMaterialsChange={(files) => handleMaterialUpload(files)}
+                    imageUrl={methods.watch('image_url')}
+                    previewVideoUrl={methods.watch('preview_video')}
+                    existingMaterials={methods.watch('course_materials')}
+                    materialUploads={materialUploads}
                     imageError={imageError}
                     form={methods}
+                    onMaterialRemove={handleRemoveMaterial}
                   />
                 </TabsContent>
 
