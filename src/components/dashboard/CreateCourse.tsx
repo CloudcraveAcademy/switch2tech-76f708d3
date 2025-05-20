@@ -182,9 +182,8 @@ const CreateCourse = () => {
   };
 
   const onSubmit = async (data: CourseFormValues) => {
+    console.log("Form submission started with data:", data);
     setFormError(null);
-    
-    console.log("Form data submitted:", data);
     
     // Validate required image
     if (!image) {
@@ -229,17 +228,19 @@ const CreateCourse = () => {
     setLoading(true);
     
     try {
+      console.log("Starting course creation process");
       let finalImageUrl = "";
       
       // Upload course image
       if (image) {
+        console.log("Uploading course image");
         const fileExt = image.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `course-images/${fileName}`;
         
         console.log("Uploading image to path:", filePath);
         
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError, data: uploadData } = await supabase.storage
           .from('course-materials')
           .upload(filePath, image);
           
@@ -255,7 +256,9 @@ const CreateCourse = () => {
       // Upload course materials
       let materialUrls: string[] = [];
       if (courseMaterials.length > 0) {
+        console.log("Uploading course materials");
         materialUrls = await uploadCourseMaterials();
+        console.log("Materials uploaded:", materialUrls);
       }
       
       // Parse the class schedule if it exists
@@ -283,8 +286,8 @@ const CreateCourse = () => {
         access_duration: data.accessDuration,
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
         course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
-        class_days: classDays,
-        class_schedule: classSchedule,
+        class_days: classDays.length > 0 ? classDays : null,
+        class_schedule: classSchedule !== "{}" ? classSchedule : null,
         timezone: data.timezone,
         replay_access: data.replayAccess,
         discounted_price: data.discountEnabled ? Number(data.discountedPrice) : null,
@@ -332,7 +335,7 @@ const CreateCourse = () => {
         <p className="text-gray-600">Fill out the form below to create a new course</p>
       </div>
 
-      <Card>
+      <Card className="mb-8">
         <CardHeader>
           <CardTitle>Course Details</CardTitle>
           <CardDescription>
