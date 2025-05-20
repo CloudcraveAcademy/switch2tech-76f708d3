@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormProvider, useForm } from "react-hook-form";
@@ -133,6 +133,7 @@ const CourseEdit = () => {
             // Map database fields to form fields
             certificateEnabled: course.certificate_enabled || false,
             replayAccess: course.replay_access || false,
+            discountedPrice: course.discounted_price || 0,
             enrollment_limit: course.enrollment_limit || 0,
             additional_languages: course.additional_languages || [],
             course_materials: course.course_materials || [],
@@ -142,11 +143,10 @@ const CourseEdit = () => {
             target_audience: course.target_audience || '',
             promotion_enabled: course.promotion_enabled || false,
             autoEnrollAfterPurchase: course.auto_enroll_after_purchase !== false, // default to true
-            // Ensure mode is properly typed
-            mode: (course.mode as 'self-paced' | 'virtual-live') || 'self-paced',
+            accessDuration: course.access_duration || '',
           };
           
-          methods.reset(formattedCourse);
+          methods.reset(formattedCourse as any);
         }
       } catch (error) {
         console.error('Error fetching course:', error);
@@ -357,7 +357,7 @@ const CourseEdit = () => {
                 </TabsContent>
 
                 <TabsContent value="curriculum">
-                  {id && <CurriculumManager courseId={id} isActive={() => true} />}
+                  {id && <CurriculumManager courseId={id} isActive={true} />}
                 </TabsContent>
 
                 <TabsContent value="mode">
