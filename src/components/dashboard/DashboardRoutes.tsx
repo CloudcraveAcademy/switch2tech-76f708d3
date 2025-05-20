@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import StudentDashboard from "./student/Dashboard";
@@ -16,6 +15,7 @@ import CourseEdit from "./CourseEdit";
 import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
 import InstructorMyCourses from "./MyCourses";
+import LessonForm from "./course/LessonForm";
 
 // Import admin pages
 import UsersPage from "@/pages/admin/UsersPage";
@@ -109,6 +109,8 @@ const DashboardRoutes = () => {
       {(currentRole === "admin" || currentRole === "super_admin") && adminRoutesFragment}
       
       {/* Common Routes */}
+      <Route path="/courses/:courseId/lessons/new" element={<LessonForm />} />
+      <Route path="/courses/:courseId/lessons/:lessonId/edit" element={<LessonForm />} />
       <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
     </Routes>
   );

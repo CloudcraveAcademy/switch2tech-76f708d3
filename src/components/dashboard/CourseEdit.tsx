@@ -4,10 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,7 +86,7 @@ const CourseEdit = () => {
       duration: "0",
       level: "",
       category: "",
-      mode: "self-paced",
+      mode: "self-paced" as "self-paced" | "virtual-live", // Fixed TypeScript error here
       language: "English",
       multiLanguageSupport: false,
       additionalLanguages: [],
@@ -137,7 +135,7 @@ const CourseEdit = () => {
           duration: data.duration_hours?.toString() || "0",
           level: data.level || "",
           category: data.category || "",
-          mode: data.mode || "self-paced",
+          mode: data.mode as "self-paced" | "virtual-live" || "self-paced", // Ensure proper type
           language: data.language || "English",
           multiLanguageSupport: data.multi_language_support || false,
           additionalLanguages: data.additional_languages || [],
@@ -582,7 +580,7 @@ const CourseEdit = () => {
               <CurriculumManager 
                 courseId={courseId} 
                 onLessonAdded={handleLessonAdded} 
-                isActive={()=>false}
+                isActive={() => false}
               />
             </div>
           </TabsContent>
