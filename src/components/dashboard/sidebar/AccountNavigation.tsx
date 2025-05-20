@@ -24,16 +24,14 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
       // Perform the logout operation
       await onLogout();
       
-      // Force navigation to login page after logout
+      // Show success toast
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account",
       });
       
-      // Use a short timeout to ensure UI updates before navigation
-      setTimeout(() => {
-        navigate("/login", { replace: true });
-      }, 100);
+      // Forcefully redirect to login page
+      window.location.href = "/login";
       
     } catch (error) {
       console.error("Logout failed:", error);

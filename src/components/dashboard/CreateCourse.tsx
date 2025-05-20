@@ -247,6 +247,20 @@ const CreateCourse = () => {
         
         console.log("Uploading image to path:", filePath);
         
+        // Create the bucket if it doesn't exist
+        const { data: bucketData, error: bucketError } = await supabase.storage
+          .getBucket('course-materials');
+          
+        if (bucketError && bucketError.message.includes('The resource was not found')) {
+          console.log("Bucket doesn't exist, creating it");
+          const { error: createBucketError } = await supabase.storage
+            .createBucket('course-materials', { public: true });
+            
+          if (createBucketError) {
+            throw new Error(`Error creating bucket: ${createBucketError.message}`);
+          }
+        }
+        
         const { error: uploadError } = await supabase.storage
           .from('course-materials')
           .upload(filePath, image);
@@ -273,12 +287,22 @@ const CreateCourse = () => {
       }
       
       console.log("Preparing course data for submission");
+      
+      // Format dates correctly for Postgres
+      const registrationDeadline = data.registrationDeadline 
+        ? data.registrationDeadline.toISOString() 
+        : null;
+      
+      const courseStartDate = data.courseStartDate 
+        ? data.courseStartDate.toISOString() 
+        : null;
+      
       const courseData = {
         instructor_id: user.id,
         title: data.title,
         description: data.description,
-        price: parseFloat(data.price),
-        duration_hours: parseInt(data.duration),
+        price: parseFloat(data.price) || 0,
+        duration_hours: parseInt(data.duration) || 0,
         level: data.level.toLowerCase(),
         category: data.category,
         image_url: finalImageUrl,
@@ -291,8 +315,8 @@ const CreateCourse = () => {
         preview_video: data.previewVideo || null,
         course_materials: materialUrls.length > 0 ? materialUrls : null,
         access_duration: data.accessDuration || null,
-        registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
-        course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
+        registration_deadline: registrationDeadline,
+        course_start_date: courseStartDate,
         class_days: data.classDays && data.classDays.length > 0 ? data.classDays : null,
         class_schedule: data.classSchedule && data.classSchedule !== "{}" ? data.classSchedule : null,
         timezone: data.timezone || null,
