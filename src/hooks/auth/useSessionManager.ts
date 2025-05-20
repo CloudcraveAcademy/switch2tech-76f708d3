@@ -84,9 +84,15 @@ export const useSessionManager = () => {
       profileFetchInProgress.current = true;
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       if (existingSession) {
+        console.log("Initializing session with existing session data");
         setSession(existingSession);
         const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
         setUser(enrichedUser);
+      } else {
+        console.log("No existing session found during initialization");
+        // Clear user and session state if no session exists
+        setUser(null);
+        setSession(null);
       }
     } catch (error) {
       console.error("Error initializing session:", error);

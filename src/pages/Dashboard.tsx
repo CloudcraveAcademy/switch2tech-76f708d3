@@ -7,7 +7,7 @@ import DashboardMobileNav from "@/components/dashboard/DashboardMobileNav";
 import DashboardMobileMenu from "@/components/dashboard/DashboardMobileMenu";
 import DashboardRoutes from "@/components/dashboard/DashboardRoutes";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   // Always call all hooks at the top level unconditionally
@@ -18,6 +18,7 @@ const Dashboard = () => {
   const [isValidating, setIsValidating] = useState(false);
   const validationAttemptedRef = useRef(false);
   const [loadAttempts, setLoadAttempts] = useState(0);
+  const { toast } = useToast();
   
   // Memoize validation logic to ensure it's stable across renders
   const validateAuthAndRedirect = useCallback(async () => {
@@ -45,7 +46,6 @@ const Dashboard = () => {
         toast({
           title: "Network issue detected",
           description: "There might be connection issues. Some features may be limited.",
-          variant: "destructive",
         });
       } else {
         setLoadAttempts(prev => prev + 1);
@@ -69,12 +69,10 @@ const Dashboard = () => {
     }
   }, [user, loading, validateAuthAndRedirect, navigate]);
 
-  // Reset validation attempts when component unmounts/remounts
+  // Reset validation attempts when location changes
   useEffect(() => {
-    return () => {
-      validationAttemptedRef.current = false;
-    };
-  }, []);
+    validationAttemptedRef.current = false;
+  }, [location.pathname]);
 
   // Single render path with conditional content
   return (

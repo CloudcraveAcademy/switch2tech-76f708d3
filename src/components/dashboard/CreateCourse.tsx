@@ -240,7 +240,7 @@ const CreateCourse = () => {
         
         console.log("Uploading image to path:", filePath);
         
-        const { error: uploadError, data: uploadData } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('course-materials')
           .upload(filePath, image);
           
@@ -313,7 +313,11 @@ const CreateCourse = () => {
         description: "Your course has been saved as a draft",
       });
       
-      navigate(`/dashboard/courses/${course.id}/edit`);
+      // Make sure to wait a bit before navigating to ensure toast is visible
+      setTimeout(() => {
+        navigate(`/dashboard/courses/${course.id}/edit`);
+      }, 500);
+      
     } catch (error: any) {
       console.error("Error in course creation:", error);
       toast({

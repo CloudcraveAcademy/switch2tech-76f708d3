@@ -16,10 +16,10 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
   const handleLogout = async () => {
     if (isLoggingOut) return;
     
-    setIsLoggingOut(true);
     try {
-      // Navigation is now handled by the AuthProvider's onLogout callback
+      setIsLoggingOut(true);
       await onLogout();
+      // The navigation is handled by the auth context
     } catch (error) {
       console.error("Logout failed:", error);
       toast({
@@ -27,8 +27,7 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
         description: "Please try again",
         variant: "destructive",
       });
-    } finally {
-      // Ensure the button is re-enabled even if logout fails
+      // Important: Reset the logging out state on error
       setIsLoggingOut(false);
     }
   };

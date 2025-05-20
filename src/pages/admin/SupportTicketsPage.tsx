@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -222,7 +221,7 @@ const SupportTicketsPage = () => {
 
   // Filter tickets based on status, priority, and search query
   const filteredTickets = tickets.filter((ticket: SupportTicket) => {
-    const matchesStatus = !statusFilter || ticket.status === statusFilter;
+    const matchesStatus = !statusFilter || ticket.status.toString() === statusFilter;
     const matchesPriority = !priorityFilter || ticket.priority === priorityFilter;
     const matchesSearch = !searchQuery || 
       ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
