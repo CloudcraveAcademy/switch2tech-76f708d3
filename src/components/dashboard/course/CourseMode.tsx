@@ -69,7 +69,7 @@ export function CourseMode({ form }: { form: any }) {
 
   // Update the class schedule JSON in the form when time slots change
   const updateClassSchedule = (slots: Record<string, { startTime: string, endTime: string }>) => {
-    form.setValue('classSchedule', JSON.stringify(slots));
+    form.setValue('class_time', JSON.stringify(slots));
   };
 
   const handleTimeChange = (day: string, field: 'startTime' | 'endTime', value: string) => {
