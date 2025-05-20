@@ -40,7 +40,7 @@ export const courseSchema = z.object({
   // Updated to handle date objects properly
   registrationDeadline: z.date().optional().nullable(), 
   courseStartDate: z.date().optional().nullable(),
-  classDays: z.array(z.string()).default([]),
+  classDays: z.array(z.string()).optional(),
   class_time: z.string().optional(),
   timezone: z.string().optional(),
   replayAccess: z.boolean().default(false),
@@ -144,6 +144,7 @@ const CourseEdit = () => {
             promotion_enabled: course.promotion_enabled || false,
             autoEnrollAfterPurchase: course.auto_enroll_after_purchase !== false, // default to true
             accessDuration: course.access_duration || '',
+            mode: course.mode || 'self-paced',
           };
           
           methods.reset(formattedCourse as any);
