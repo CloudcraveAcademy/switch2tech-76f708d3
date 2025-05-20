@@ -15,49 +15,71 @@ interface UploadStatus {
 
 export interface CourseMediaUploadProps {
   onCoverImageChange: (file: File) => void;
+  onPreviewVideoChange?: (file: File) => void;
   onMaterialsChange?: (files: FileList) => void;
   imageUrl?: string;
+  previewVideoUrl?: string;
+  existingMaterials?: string[];
   materialUploads?: UploadStatus[];
   imageError?: boolean;
   form?: any; // Make form optional since we're not using it everywhere
+  onMaterialRemove?: (url: string) => void;
 }
 
 export const CourseMediaUpload = ({ 
   onCoverImageChange,
+  onPreviewVideoChange,
   onMaterialsChange,
   imageUrl,
+  previewVideoUrl,
+  existingMaterials = [],
   materialUploads = [],
   imageError = false,
-  form
+  form,
+  onMaterialRemove
 }: CourseMediaUploadProps) => {
+  const [materialFileNames, setMaterialFileNames] = useState<string[]>([]);
+  
+  const handleMaterialsChange = (files: FileList) => {
+    if (onMaterialsChange) {
+      const newFileNames = Array.from(files).map(file => file.name);
+      setMaterialFileNames(prevNames => [...prevNames, ...newFileNames]);
+      onMaterialsChange(files);
+    }
+  };
+
+  const handleMaterialRemove = (url: string) => {
+    if (onMaterialRemove) {
+      onMaterialRemove(url);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Course Preview Video */}
-      {form && (
-        <FormField
-          control={form.control}
-          name="previewVideo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Course Preview Video (URL)</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    {...field}
-                    placeholder="YouTube or Vimeo link"
-                    className="pl-9"
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                Add a preview video to showcase your course (YouTube or Vimeo URL)
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form?.control}
+        name="preview_video"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Course Preview Video</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Input
+                  {...field}
+                  placeholder="YouTube or Vimeo link"
+                  className="pl-9"
+                />
+              </div>
+            </FormControl>
+            <FormDescription>
+              Add a preview video to showcase your course (YouTube or Vimeo URL)
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       {/* Course Image - Required */}
       <div>
@@ -129,15 +151,59 @@ export const CourseMediaUpload = ({
               multiple
               accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
               onChange={(e) => {
-                if (e.target.files?.length && onMaterialsChange) {
-                  console.log("Materials selected:", e.target.files.length);
-                  onMaterialsChange(e.target.files);
+                if (e.target.files?.length) {
+                  handleMaterialsChange(e.target.files);
                 }
               }}
               className="sr-only"
             />
 
-            {/* Show upload indicators and results here */}
+            {/* Show currently uploaded materials */}
+            {existingMaterials && existingMaterials.length > 0 && (
+              <div className="w-full mt-4 space-y-2">
+                <p className="text-sm font-medium">Current materials:</p>
+                {existingMaterials.map((url, idx) => {
+                  const fileName = url.split('/').pop() || `Material ${idx + 1}`;
+                  return (
+                    <div key={idx} className="flex items-center justify-between gap-3 bg-gray-50 p-2 rounded">
+                      <span className="truncate flex-1 text-xs">{fileName}</span>
+                      <div className="flex items-center space-x-2">
+                        <a 
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 underline"
+                        >
+                          View
+                        </a>
+                        <button 
+                          type="button" 
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleMaterialRemove(url)}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Show newly selected materials */}
+            {materialFileNames.length > 0 && (
+              <div className="w-full mt-4 space-y-2">
+                <p className="text-sm font-medium">Files to upload:</p>
+                {materialFileNames.map((name, idx) => (
+                  <div key={idx} className="flex items-center gap-3 bg-gray-50 p-2 rounded">
+                    <span className="truncate flex-1 text-xs">{name}</span>
+                    <Loader className="h-4 w-4 animate-spin text-brand-600" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Show upload indicators and results */}
             {materialUploads && materialUploads.length > 0 && (
               <div className="w-full mt-4 space-y-2">
                 {materialUploads.map((item, idx) => (

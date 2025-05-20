@@ -17,6 +17,7 @@ import { CourseMode } from "./course/CourseMode";
 import { CoursePricing } from "./course/CoursePricing";
 import { CourseSettings } from "./course/CourseSettings";
 import { CourseAnnouncements } from "./course/CourseAnnouncements";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 // Form schema
 export const courseSchema = z.object({
@@ -67,6 +68,7 @@ const CourseEdit = () => {
   const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
   const [coursePreviewVideoFile, setCoursePreviewVideoFile] = useState<File | null>(null);
   const [courseMaterialFiles, setCourseMaterialFiles] = useState<File[]>([]);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
 
   // Initialize form
   const methods = useForm({
@@ -124,6 +126,7 @@ const CourseEdit = () => {
         }
 
         if (course) {
+          console.log("Course data:", course);
           // Convert date strings to Date objects
           const formattedCourse = {
             ...course,
@@ -147,7 +150,7 @@ const CourseEdit = () => {
             mode: course.mode || 'self-paced',
           };
           
-          methods.reset(formattedCourse as any);
+          methods.reset(formattedCourse);
         }
       } catch (error) {
         console.error('Error fetching course:', error);
@@ -163,6 +166,12 @@ const CourseEdit = () => {
 
     fetchCourse();
   }, [id, user, methods.reset, toast]);
+
+  const handleRemoveMaterial = (urlToRemove: string) => {
+    const currentMaterials = methods.getValues('course_materials') || [];
+    const updatedMaterials = currentMaterials.filter(url => url !== urlToRemove);
+    methods.setValue('course_materials', updatedMaterials);
+  };
 
   const onSubmit = async (data: z.infer<typeof courseSchema>) => {
     if (!id || !user) return;
@@ -283,6 +292,11 @@ const CourseEdit = () => {
         title: "Course Updated",
         description: "Your course has been updated successfully.",
       });
+
+      // Clear uploaded files state after successful update
+      setCourseMaterialFiles([]);
+      setCourseImageFile(null);
+      setCoursePreviewVideoFile(null);
       
     } catch (error: any) {
       console.error('Error updating course:', error);
@@ -293,6 +307,68 @@ const CourseEdit = () => {
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePublishCourse = async () => {
+    if (!id || !user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .update({ is_published: true, updated_at: new Date().toISOString() })
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Update form state
+      methods.setValue('is_published', true);
+      
+      toast({
+        title: "Course Published",
+        description: "Your course is now live and available for enrollment.",
+      });
+      
+      setPublishDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error publishing course:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to publish course. Please try again later.",
+      });
+    }
+  };
+
+  const handleUnpublishCourse = async () => {
+    if (!id || !user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .update({ is_published: false, updated_at: new Date().toISOString() })
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Update form state
+      methods.setValue('is_published', false);
+      
+      toast({
+        title: "Course Unpublished",
+        description: "Your course has been unpublished and is no longer visible to students.",
+      });
+    } catch (error: any) {
+      console.error('Error unpublishing course:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to unpublish course. Please try again later.",
+      });
     }
   };
 
@@ -318,6 +394,31 @@ const CourseEdit = () => {
           <Button variant="outline" onClick={() => navigate('/dashboard/my-courses')}>
             Cancel
           </Button>
+          {methods.watch('is_published') ? (
+            <Button variant="outline" onClick={handleUnpublishCourse}>
+              Unpublish
+            </Button>
+          ) : (
+            <AlertDialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="default" className="bg-green-600 hover:bg-green-700">
+                  Publish
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Publish Course</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Publishing this course will make it visible to students and allow them to enroll. Are you sure you want to publish this course?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handlePublishCourse}>Publish</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button onClick={methods.handleSubmit(onSubmit)} disabled={submitting}>
             {submitting ? 'Saving...' : 'Save Changes'}
           </Button>
@@ -353,12 +454,14 @@ const CourseEdit = () => {
                       setCourseMaterialFiles([...courseMaterialFiles, ...fileArray]);
                     }}
                     imageUrl={methods.getValues('image_url')}
+                    existingMaterials={methods.getValues('course_materials')}
+                    onMaterialRemove={handleRemoveMaterial}
                     form={methods}
                   />
                 </TabsContent>
 
                 <TabsContent value="curriculum">
-                  {id && <CurriculumManager courseId={id} isActive={true} />}
+                  {id && <CurriculumManager courseId={id} isActive={activeTab === "curriculum"} />}
                 </TabsContent>
 
                 <TabsContent value="mode">

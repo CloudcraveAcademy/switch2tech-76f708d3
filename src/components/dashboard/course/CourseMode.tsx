@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -26,33 +27,49 @@ const TIME_ZONES = [
   "AEST (UTC+10)"
 ];
 
-interface ClassTimeSlot {
-  day: string;
+interface TimeSlot {
   startTime: string;
   endTime: string;
 }
 
 export function CourseMode({ form }: { form: any }) {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [timeSlots, setTimeSlots] = useState<Record<string, { startTime: string, endTime: string }>>({});
-
+  const [timeSlots, setTimeSlots] = useState<Record<string, TimeSlot>>({});
+  
   // Initialize values on component mount
   useEffect(() => {
     // Ensure classDays is an array
     const classDays = form.getValues('classDays') || [];
     setSelectedDays(classDays);
     
-    // Create default time slots for initially selected days
-    const initialTimeSlots: Record<string, { startTime: string, endTime: string }> = {};
-    classDays.forEach((day: string) => {
-      initialTimeSlots[day] = { startTime: "09:00", endTime: "10:00" };
-    });
-    
-    setTimeSlots(initialTimeSlots);
-    updateClassSchedule(initialTimeSlots);
+    // Try to parse existing class_time JSON if it exists
+    try {
+      const classTimeStr = form.getValues('class_time');
+      if (classTimeStr && typeof classTimeStr === 'string') {
+        const parsedTimeSlots = JSON.parse(classTimeStr);
+        setTimeSlots(parsedTimeSlots);
+      } else {
+        // Create default time slots for initially selected days
+        const initialTimeSlots: Record<string, TimeSlot> = {};
+        classDays.forEach((day: string) => {
+          initialTimeSlots[day] = { startTime: "09:00", endTime: "10:00" };
+        });
+        setTimeSlots(initialTimeSlots);
+        updateClassSchedule(initialTimeSlots);
+      }
+    } catch (e) {
+      console.error("Error parsing class times:", e);
+      // Create default time slots if parsing fails
+      const initialTimeSlots: Record<string, TimeSlot> = {};
+      classDays.forEach((day: string) => {
+        initialTimeSlots[day] = { startTime: "09:00", endTime: "10:00" };
+      });
+      setTimeSlots(initialTimeSlots);
+      updateClassSchedule(initialTimeSlots);
+    }
   }, []);
 
-  // Monitor changes to the form's classDays field
+  // Watch for changes to the form's classDays field
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name?: string }) => {
       if (name === 'classDays') {
@@ -83,7 +100,7 @@ export function CourseMode({ form }: { form: any }) {
   }, [form, timeSlots]);
 
   // Update the class schedule JSON in the form when time slots change
-  const updateClassSchedule = (slots: Record<string, { startTime: string, endTime: string }>) => {
+  const updateClassSchedule = (slots: Record<string, TimeSlot>) => {
     form.setValue('class_time', JSON.stringify(slots));
   };
 
@@ -111,7 +128,7 @@ export function CourseMode({ form }: { form: any }) {
             <FormControl>
               <RadioGroup
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                value={field.value}
                 className="flex flex-col space-y-1"
               >
                 <div className="flex items-center space-x-2">
@@ -227,7 +244,7 @@ export function CourseMode({ form }: { form: any }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Timezone</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select timezone" />
@@ -354,7 +371,7 @@ export function CourseMode({ form }: { form: any }) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Access Duration</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value || ""}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select access duration" />
