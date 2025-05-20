@@ -7,6 +7,7 @@ import { DashboardStats } from "./dashboard/DashboardStats";
 import EnrolledCourses from "./dashboard/EnrolledCourses";
 import UpcomingLiveClasses from "./dashboard/UpcomingLiveClasses";
 import { Announcements } from "./dashboard/Announcements";
+import StudentStatistics from "./dashboard/StudentStatistics";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -85,6 +86,10 @@ const Dashboard = () => {
             upcomingSessions: 0,
             averageProgress: 0
           }} />
+        </div>
+
+        <div className="col-span-3">
+          <StudentStatistics />
         </div>
 
         <div className="md:col-span-2 space-y-6">

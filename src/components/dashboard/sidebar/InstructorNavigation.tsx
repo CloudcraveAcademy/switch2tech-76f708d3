@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookPlus, BookOpen, Users, CircleDollarSign } from "lucide-react";
+import { BookPlus, BookOpen, Users, CircleDollarSign, GraduationCap } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface InstructorNavigationProps {
@@ -33,6 +33,12 @@ const InstructorNavigation = ({ isActive }: InstructorNavigationProps) => {
         icon={CircleDollarSign}
         label="Revenue"
         isActive={isActive("/dashboard/revenue")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/certificates"
+        icon={GraduationCap}
+        label="Certificates"
+        isActive={isActive("/dashboard/certificates")}
       />
     </>
   );

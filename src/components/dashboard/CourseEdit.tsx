@@ -2,43 +2,40 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FormProvider, useForm } from "react-hook-form";
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload } from "lucide-react";
-import CurriculumManager from './course/CurriculumManager';
-import { CourseBasicInfo } from './course/CourseBasicInfo';
-import { CourseMediaUpload } from './course/CourseMediaUpload';
-import { CourseMode } from './course/CourseMode';
-import { CoursePricing } from './course/CoursePricing';
-import { CourseSettings } from './course/CourseSettings';
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "@/components/ui/form";
+import CourseBasicInfo from "./course/CourseBasicInfo";
+import CourseMediaUpload from "./course/CourseMediaUpload";
+import CurriculumManager from "./course/CurriculumManager";
+import { CourseMode } from "./course/CourseMode";
+import CoursePricing from "./course/CoursePricing";
+import CourseSettings from "./course/CourseSettings";
+import CourseAnnouncements from "./course/CourseAnnouncements";
 
-// Form Schema matching the backend structure
-const courseFormSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  price: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Price must be a valid number",
-  }),
-  duration: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Duration must be a valid number greater than 0",
-  }),
-  level: z.string().min(1, "Level is required"),
-  category: z.string().min(1, "Category is required"),
-  mode: z.enum(["self-paced", "virtual-live"]),
-  language: z.string().min(1, "Language is required"),
-  multiLanguageSupport: z.boolean().default(false),
-  additionalLanguages: z.array(z.string()).default([]),
+// Form schema
+export const courseSchema = z.object({
+  title: z.string().min(5, 'Title is required and should be at least 5 characters'),
+  description: z.string().min(10, 'Description is required and should be at least 10 characters'),
+  price: z.number().min(0, 'Price is required'),
+  discountedPrice: z.number().min(0).optional(),
+  duration_hours: z.number().min(1, 'Duration is required'),
+  level: z.string().min(1, 'Level is required'),
+  category: z.string().min(1, 'Category is required'),
+  language: z.string().default('English'),
+  mode: z.enum(['virtual-live', 'self-paced']).default('self-paced'),
+  multi_language_support: z.boolean().default(false),
+  additional_languages: z.array(z.string()).default([]),
+  image_url: z.string().optional(),
+  preview_video: z.string().optional(),
+  course_materials: z.array(z.string()).default([]),
+  is_published: z.boolean().default(false),
   certificateEnabled: z.boolean().default(false),
-  previewVideo: z.string().optional(),
   accessDuration: z.string().optional(),
   // Updated to handle date objects properly
   registrationDeadline: z.date().optional().nullable(), 
@@ -47,548 +44,340 @@ const courseFormSchema = z.object({
   class_time: z.string().optional(),
   timezone: z.string().optional(),
   replayAccess: z.boolean().default(false),
-  discountEnabled: z.boolean().default(false),
-  discountedPrice: z.string().optional(),
-  isPublished: z.boolean().default(false),
+  enrollment_limit: z.number().min(0).default(0),
+  tags: z.array(z.string()).default([]),
+  prerequisites: z.array(z.string()).default([]),
+  objectives: z.array(z.string()).default([]),
+  target_audience: z.string().optional(),
+  promotion_enabled: z.boolean().default(false),
+  promotionEndDate: z.date().optional(),
+  autoEnrollAfterPurchase: z.boolean().default(true),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 
-type CourseFormValues = z.infer<typeof courseFormSchema>;
-
-interface UploadStatus {
-  file: File;
-  name: string;
-  status: 'idle' | 'uploading' | 'success' | 'error';
-  url?: string;
-}
-
 const CourseEdit = () => {
-  const { id: courseId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('basic');
+  const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
+  const [coursePreviewVideoFile, setCoursePreviewVideoFile] = useState<File | null>(null);
+  const [courseMaterialFiles, setCourseMaterialFiles] = useState<File[]>([]);
 
-  const [activeTab, setActiveTab] = useState("details");
-  const [course, setCourse] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  // Media states
-  const [image, setImage] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState("");
-  const [materialUploads, setMaterialUploads] = useState<UploadStatus[]>([]);
-  
-  // Form setup
-  const form = useForm<CourseFormValues>({
-    resolver: zodResolver(courseFormSchema),
+  // Initialize form
+  const methods = useForm({
+    resolver: zodResolver(courseSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      price: "0",
-      duration: "0",
-      level: "",
-      category: "",
-      mode: "self-paced" as "self-paced" | "virtual-live", // Fixed TypeScript error here
-      language: "English",
-      multiLanguageSupport: false,
-      additionalLanguages: [],
+      title: '',
+      description: '',
+      price: 0,
+      discountedPrice: 0,
+      duration_hours: 0,
+      level: '',
+      category: '',
+      language: 'English',
+      mode: 'self-paced' as const,
+      multi_language_support: false,
+      additional_languages: [],
+      image_url: '',
+      preview_video: '',
+      course_materials: [],
+      is_published: false,
       certificateEnabled: false,
-      previewVideo: "",
-      accessDuration: "",
-      registrationDeadline: undefined,
-      courseStartDate: undefined,
+      accessDuration: '',
+      registrationDeadline: null as unknown as Date,
+      courseStartDate: null as unknown as Date,
       classDays: [],
-      class_time: "",
-      timezone: "",
+      class_time: '',
+      timezone: '',
       replayAccess: false,
-      discountEnabled: false,
-      discountedPrice: "",
-      isPublished: false,
-    },
+      enrollment_limit: 0,
+      tags: [],
+      prerequisites: [],
+      objectives: [],
+      target_audience: '',
+      promotion_enabled: false,
+      promotionEndDate: undefined,
+      autoEnrollAfterPurchase: true,
+    }
   });
 
+  // Load course data
   useEffect(() => {
     const fetchCourse = async () => {
-      setIsLoading(true);
+      if (!id || !user) return;
+
       try {
-        const { data, error } = await supabase
+        const { data: course, error } = await supabase
           .from('courses')
           .select('*')
-          .eq('id', courseId)
+          .eq('id', id)
+          .eq('instructor_id', user.id)
           .single();
 
         if (error) {
-          console.error("Error fetching course:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load course details.",
-            variant: "destructive",
-          });
-          return;
+          throw error;
         }
 
-        setCourse(data);
-        
-        // Prepare form values
-        form.reset({
-          title: data.title || "",
-          description: data.description || "",
-          price: data.price?.toString() || "0",
-          duration: data.duration_hours?.toString() || "0",
-          level: data.level || "",
-          category: data.category || "",
-          mode: data.mode as "self-paced" | "virtual-live" || "self-paced", // Ensure proper type
-          language: data.language || "English",
-          multiLanguageSupport: data.multi_language_support || false,
-          additionalLanguages: data.additional_languages || [],
-          certificateEnabled: data.certificate_enabled || false,
-          previewVideo: data.preview_video || "",
-          accessDuration: data.access_duration || "",
-          registrationDeadline: data.registration_deadline || undefined,
-          courseStartDate: data.course_start_date || undefined,
-          classDays: data.class_days || [],
-          class_time: data.class_time || "",
-          timezone: data.timezone || "",
-          replayAccess: data.replay_access || false,
-          discountEnabled: data.discounted_price ? true : false,
-          discountedPrice: data.discounted_price?.toString() || "",
-          isPublished: data.is_published || false,
-        });
-        
-        setImageUrl(data.image_url || "");
-        
-        // Set up any existing materials
-        if (data.course_materials && Array.isArray(data.course_materials)) {
-          const existingMaterials = data.course_materials.map((url: string) => {
-            const fileName = url.split('/').pop() || "file";
-            return {
-              name: fileName,
-              status: 'success' as const,
-              url: url,
-              file: new File([], fileName) // Dummy file
-            };
-          });
-          setMaterialUploads(existingMaterials);
+        if (course) {
+          // Convert date strings to Date objects
+          const formattedCourse = {
+            ...course,
+            registrationDeadline: course.registration_deadline ? new Date(course.registration_deadline) : null,
+            courseStartDate: course.course_start_date ? new Date(course.course_start_date) : null,
+            promotionEndDate: course.promotion_end_date ? new Date(course.promotion_end_date) : undefined,
+            // Map additional fields as needed
+            classDays: course.class_days || [],
+            certificateEnabled: course.certificate_enabled || false,
+            replayAccess: course.replay_access || false,
+            enrollment_limit: course.enrollment_limit || 0,
+            additional_languages: course.additional_languages || [],
+            course_materials: course.course_materials || [],
+            tags: course.tags || [],
+            prerequisites: course.prerequisites || [],
+            objectives: course.objectives || [],
+            target_audience: course.target_audience || '',
+            promotion_enabled: course.promotion_enabled || false,
+            autoEnrollAfterPurchase: course.auto_enroll_after_purchase !== false, // default to true
+          };
+          
+          methods.reset(formattedCourse);
         }
       } catch (error) {
-        console.error("Error in fetchCourse:", error);
+        console.error('Error fetching course:', error);
         toast({
-          title: "Error",
-          description: "An unexpected error occurred loading course details.",
           variant: "destructive",
+          title: "Error",
+          description: "Failed to load course. Please try again later.",
         });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchCourse();
-  }, [courseId, toast, form]);
+  }, [id, user, methods.reset, toast]);
 
-  const handleImageChange = (file: File) => {
-    setImage(file);
-    setImageUrl(URL.createObjectURL(file));
-    console.log("Image changed:", file.name);
-  };
-
-  const handleMaterialsChange = (files: FileList) => {
-    const newMaterials = Array.from(files);
+  const onSubmit = async (data: z.infer<typeof courseSchema>) => {
+    if (!id || !user) return;
     
-    const newUploads = newMaterials.map(file => ({
-      file,
-      name: file.name,
-      status: 'idle' as const,
-    }));
-    
-    setMaterialUploads([...materialUploads, ...newUploads]);
-    console.log("Materials changed, total uploads:", materialUploads.length + newUploads.length);
-  };
-
-  const uploadCourseMaterials = async () => {
-    // Filter to only upload new materials
-    const newMaterials = materialUploads.filter(item => item.status === 'idle');
-    
-    if (newMaterials.length === 0) return [];
-    
-    console.log("Uploading new materials:", newMaterials.length);
-    
-    // Update status for all new materials to uploading
-    setMaterialUploads(prev => 
-      prev.map(item => item.status === 'idle' ? { ...item, status: 'uploading' } : item)
-    );
-    
-    const materialUrls: string[] = [];
+    setSubmitting(true);
     
     try {
-      for (const material of newMaterials) {
-        if (!material.file) continue;
+      // Upload course image if selected
+      let imageUrl = data.image_url;
+      if (courseImageFile) {
+        const imagePath = `${user.id}/${Date.now()}_${courseImageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(imagePath, courseImageFile);
+
+        if (uploadError) {
+          throw new Error(`Error uploading course image: ${uploadError.message}`);
+        }
         
-        const fileExt = material.file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${courseId}/${fileName}`;
+        const { data: publicUrlData } = supabase.storage
+          .from('course-materials')
+          .getPublicUrl(imagePath);
+          
+        imageUrl = publicUrlData.publicUrl;
+      }
+      
+      // Upload preview video if selected
+      let previewVideoUrl = data.preview_video;
+      if (coursePreviewVideoFile) {
+        const videoPath = `${user.id}/${Date.now()}_${coursePreviewVideoFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(videoPath, coursePreviewVideoFile);
+          
+        if (uploadError) {
+          throw new Error(`Error uploading preview video: ${uploadError.message}`);
+        }
         
-        console.log(`Uploading ${material.name} to ${filePath}...`);
-        
-        try {
-          const { error: uploadError, data: uploadData } = await supabase.storage
+        const { data: publicUrlData } = supabase.storage
+          .from('course-materials')
+          .getPublicUrl(videoPath);
+          
+        previewVideoUrl = publicUrlData.publicUrl;
+      }
+      
+      // Upload course materials if selected
+      let courseMaterialUrls = [...data.course_materials];
+      if (courseMaterialFiles.length > 0) {
+        for (const file of courseMaterialFiles) {
+          const filePath = `${user.id}/${Date.now()}_${file.name}`;
+          const { error: uploadError } = await supabase.storage
             .from('course-materials')
-            .upload(filePath, material.file);
+            .upload(filePath, file);
             
           if (uploadError) {
-            // Find the index in the full materials array
-            const fullIndex = materialUploads.findIndex(m => m.name === material.name && m.status === 'uploading');
-            
-            console.error(`Error uploading material ${material.name}:`, uploadError);
-            
-            // Update status for this material to error
-            if (fullIndex !== -1) {
-              setMaterialUploads(prev => {
-                const updated = [...prev];
-                updated[fullIndex] = { ...updated[fullIndex], status: 'error' };
-                return updated;
-              });
-            }
-            
-            continue; // Skip to next file
+            console.error(`Error uploading course material ${file.name}:`, uploadError);
+            continue; // Skip this file but continue with others
           }
           
-          console.log(`Successfully uploaded ${material.name}`);
-          
-          const { data: materialData } = supabase.storage
+          const { data: publicUrlData } = supabase.storage
             .from('course-materials')
             .getPublicUrl(filePath);
-          
-          if (materialData?.publicUrl) {
-            materialUrls.push(materialData.publicUrl);
-            console.log("Got public URL:", materialData.publicUrl);
-          
-            // Find the index in the full materials array
-            const fullIndex = materialUploads.findIndex(m => m.name === material.name && m.status === 'uploading');
             
-            // Update status for this material to success
-            if (fullIndex !== -1) {
-              setMaterialUploads(prev => {
-                const updated = [...prev];
-                updated[fullIndex] = { ...updated[fullIndex], status: 'success', url: materialData.publicUrl };
-                return updated;
-              });
-            }
-          }
-        } catch (error) {
-          console.error(`Error processing material ${material.name}:`, error);
-          
-          // Find the index in the full materials array
-          const fullIndex = materialUploads.findIndex(m => m.name === material.name && m.status === 'uploading');
-          
-          // Update status for this material to error
-          if (fullIndex !== -1) {
-            setMaterialUploads(prev => {
-              const updated = [...prev];
-              updated[fullIndex] = { ...updated[fullIndex], status: 'error' };
-              return updated;
-            });
-          }
+          courseMaterialUrls.push(publicUrlData.publicUrl);
         }
       }
       
-      return materialUrls;
-    } catch (error) {
-      console.error('Error uploading course materials:', error);
-      return [];
-    }
-  };
-
-  const onSubmit = async (data: CourseFormValues) => {
-    if (!user) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to edit a course",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSaving(true);
-    try {
-      let updatedImageUrl = imageUrl;
-      
-      // Upload new image if one was selected
-      if (image) {
-        try {
-          console.log("Uploading new cover image...");
-          // Use the course-materials bucket with covers/ prefix
-          const fileExt = image.name.split('.').pop();
-          const fileName = `covers/${courseId}_cover_${Math.random().toString(36).substring(2)}.${fileExt}`;
-          
-          const { error: uploadError, data: uploadData } = await supabase.storage
-            .from('course-materials')
-            .upload(fileName, image);
-            
-          if (uploadError) {
-            console.error("Error uploading image:", uploadError);
-            throw new Error(`Error uploading image: ${uploadError.message}`);
-          }
-          
-          console.log("Cover image upload success:", uploadData);
-          
-          const { data: imageData } = supabase.storage
-            .from('course-materials')
-            .getPublicUrl(fileName);
-            
-          if (imageData?.publicUrl) {
-            updatedImageUrl = imageData.publicUrl;
-            console.log("New cover image URL:", updatedImageUrl);
-          }
-        } catch (error) {
-          console.error("Error uploading image:", error);
-          toast({
-            title: "Image Upload Failed",
-            description: "Failed to upload course image but proceeding with other updates.",
-            variant: "destructive",
-          });
-        }
-      }
-      
-      // Upload any new course materials
-      console.log("Uploading new materials...");
-      let newMaterialUrls: string[] = await uploadCourseMaterials();
-      console.log("New material URLs:", newMaterialUrls);
-      
-      // Get existing material URLs that were not replaced
-      const existingMaterialUrls = materialUploads
-        .filter(item => item.status === 'success' && item.url)
-        .map(item => item.url as string);
-      
-      console.log("Existing material URLs:", existingMaterialUrls);
-      
-      // Combine all material URLs
-      const allMaterialUrls = [...existingMaterialUrls, ...newMaterialUrls];
-      
-      console.log("All material URLs:", allMaterialUrls);
-      
-      // Ensure array fields are properly initialized
-      const classDays = data.classDays || [];
-      const additionalLanguages = data.multiLanguageSupport ? (data.additionalLanguages || []) : [];
-      
-      // Prepare course data
+      // Convert form data to match the database schema
       const courseData = {
         title: data.title,
         description: data.description,
-        price: Number(data.price),
-        duration_hours: Number(data.duration),
+        price: data.price,
+        discounted_price: data.discountedPrice,
+        duration_hours: data.duration_hours,
         instructor_id: user.id,
         level: data.level,
         category: data.category,
         mode: data.mode,
         language: data.language,
-        multi_language_support: data.multiLanguageSupport,
-        additional_languages: additionalLanguages,
+        multi_language_support: data.multi_language_support,
+        additional_languages: data.additional_languages,
+        is_published: data.is_published,
         certificate_enabled: data.certificateEnabled,
-        preview_video: data.previewVideo,
-        access_duration: data.accessDuration,
-        registration_deadline: data.registrationDeadline,
-        course_start_date: data.courseStartDate,
-        class_days: classDays,
+        image_url: imageUrl,
+        preview_video: previewVideoUrl,
+        course_materials: courseMaterialUrls,
+        // Convert Date objects to ISO strings for the database
+        registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
+        course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
+        class_days: data.classDays,
         class_time: data.class_time,
         timezone: data.timezone,
+        access_duration: data.accessDuration,
         replay_access: data.replayAccess,
-        discounted_price: data.discountEnabled && data.discountedPrice ? Number(data.discountedPrice) : null,
-        is_published: data.isPublished,
-        image_url: updatedImageUrl,
-        course_materials: allMaterialUrls.length > 0 ? allMaterialUrls : null,
-        updated_at: new Date().toISOString()
+        // Additional fields
+        enrollment_limit: data.enrollment_limit,
+        tags: data.tags,
+        prerequisites: data.prerequisites,
+        objectives: data.objectives,
+        target_audience: data.target_audience,
+        promotion_enabled: data.promotion_enabled,
+        promotion_end_date: data.promotionEndDate ? data.promotionEndDate.toISOString() : null,
+        auto_enroll_after_purchase: data.autoEnrollAfterPurchase,
+        updated_at: new Date().toISOString(),
       };
       
-      console.log("Updating course with data:", courseData);
-      
-      // Update course in database
+      // Update the course
       const { error } = await supabase
         .from('courses')
         .update(courseData)
-        .eq('id', courseId);
-
+        .eq('id', id);
+        
       if (error) {
-        console.error("Error updating course:", error);
-        toast({
-          title: "Update Failed",
-          description: `Failed to update course: ${error.message}`,
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
-
-      console.log("Course updated successfully");
       
       toast({
-        title: "Success",
-        description: "Course updated successfully.",
+        title: "Course Updated",
+        description: "Your course has been updated successfully.",
       });
+      
     } catch (error: any) {
-      console.error("Error saving course:", error);
+      console.error('Error updating course:', error);
       toast({
-        title: "Error",
-        description: `Failed to save course: ${error.message}`,
         variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update course. Please try again later.",
       });
     } finally {
-      setIsSaving(false);
+      setSubmitting(false);
     }
   };
 
-  const handleAddLesson = () => {
-    navigate(`/dashboard/courses/${courseId}/lessons/new`);
-  };
-
-  const handleLessonAdded = () => {
-    toast({
-      title: "Success",
-      description: "Lesson added successfully.",
-    });
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-2xl font-bold">Course not found</p>
+      <div className="p-6">
+        <div className="flex items-center space-x-4">
+          <div className="w-6 h-6 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
+          <p>Loading course information...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Edit Course</h1>
-        <p className="text-gray-600">Manage your course details and curriculum</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Edit Course</h1>
+          <p className="text-gray-500">Update your course information and content</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => navigate('/dashboard/my-courses')}>
+            Cancel
+          </Button>
+          <Button onClick={methods.handleSubmit(onSubmit)} disabled={submitting}>
+            {submitting ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="details" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="media">Media</TabsTrigger>
-          <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-        </TabsList>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <TabsContent value="details" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Course Details</CardTitle>
-                  <CardDescription>Update the basic information about your course</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-8">
-                  {/* Course Basic Info */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Course Details</h3>
-                    <CourseBasicInfo form={form} />
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    {/* Course Mode */}
-                    <h3 className="text-lg font-medium mb-4">Course Mode</h3>
-                    <CourseMode form={form} />
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    {/* Course Pricing */}
-                    <h3 className="text-lg font-medium mb-4">Course Pricing</h3>
-                    <CoursePricing form={form} />
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    {/* Course Settings */}
-                    <h3 className="text-lg font-medium mb-4">Course Settings</h3>
-                    <CourseSettings form={form} />
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    {/* Published Status */}
-                    <div className="flex items-center space-x-2">
-                      <div className="flex-1">
-                        <Label htmlFor="isPublished">Published Status</Label>
-                        <p className="text-sm text-gray-500">
-                          When published, this course will be visible to students
-                        </p>
-                      </div>
-                      <Switch
-                        id="isPublished"
-                        checked={form.watch("isPublished")}
-                        onCheckedChange={(checked) => form.setValue("isPublished", checked)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : "Save Details"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
+      <FormProvider {...methods}>
+        <form onSubmit={methods.handleSubmit(onSubmit)}>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Card>
+              <CardHeader>
+                <TabsList className="grid grid-cols-2 md:grid-cols-7">
+                  <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                  <TabsTrigger value="media">Media</TabsTrigger>
+                  <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
+                  <TabsTrigger value="mode">Course Mode</TabsTrigger>
+                  <TabsTrigger value="pricing">Pricing</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                  <TabsTrigger value="announcements">Announcements</TabsTrigger>
+                </TabsList>
+              </CardHeader>
 
-            <TabsContent value="media" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Course Media</CardTitle>
-                  <CardDescription>Update course images, videos, and materials</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <CourseMediaUpload
-                    form={form}
-                    onCoverImageChange={handleImageChange}
-                    onMaterialsChange={handleMaterialsChange}
-                    imageUrl={imageUrl}
-                    materialUploads={materialUploads}
-                    imageError={false}
+              <CardContent>
+                <TabsContent value="basic">
+                  <CourseBasicInfo />
+                </TabsContent>
+
+                <TabsContent value="media">
+                  <CourseMediaUpload 
+                    courseImageFile={courseImageFile}
+                    setCourseImageFile={setCourseImageFile}
+                    coursePreviewVideoFile={coursePreviewVideoFile}
+                    setCoursePreviewVideoFile={setCoursePreviewVideoFile}
+                    courseMaterialFiles={courseMaterialFiles}
+                    setCourseMaterialFiles={setCourseMaterialFiles}
                   />
-                  
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Save Media
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </form>
-        </Form>
+                </TabsContent>
 
-        {activeTab === "curriculum" && (
-          <TabsContent value="curriculum">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Course Curriculum</h2>
-                <Button onClick={handleAddLesson}>Add Lesson</Button>
-              </div>
-              
-              <CurriculumManager 
-                courseId={courseId} 
-                onLessonAdded={handleLessonAdded} 
-                isActive={() => false}
-              />
-            </div>
-          </TabsContent>
-        )}
-      </Tabs>
+                <TabsContent value="curriculum">
+                  {id && <CurriculumManager courseId={id} />}
+                </TabsContent>
+
+                <TabsContent value="mode">
+                  <CourseMode form={methods} />
+                </TabsContent>
+
+                <TabsContent value="pricing">
+                  <CoursePricing />
+                </TabsContent>
+
+                <TabsContent value="settings">
+                  <CourseSettings />
+                </TabsContent>
+
+                <TabsContent value="announcements">
+                  {id && <CourseAnnouncements courseId={id} />}
+                </TabsContent>
+              </CardContent>
+            </Card>
+          </Tabs>
+        </form>
+      </FormProvider>
     </div>
   );
 };
