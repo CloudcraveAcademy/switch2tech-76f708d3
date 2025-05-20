@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -39,8 +40,9 @@ const courseFormSchema = z.object({
   certificateEnabled: z.boolean().default(false),
   previewVideo: z.string().optional(),
   accessDuration: z.string().optional(),
-  registrationDeadline: z.string().optional(), 
-  courseStartDate: z.string().optional(), 
+  // Updated to handle date objects properly
+  registrationDeadline: z.date().optional().nullable(), 
+  courseStartDate: z.date().optional().nullable(),
   classDays: z.array(z.string()).default([]),
   class_time: z.string().optional(),
   timezone: z.string().optional(),
