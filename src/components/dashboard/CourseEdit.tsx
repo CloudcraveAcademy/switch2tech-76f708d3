@@ -10,13 +10,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import CourseBasicInfo from "./course/CourseBasicInfo";
-import CourseMediaUpload from "./course/CourseMediaUpload";
+import { CourseBasicInfo } from "./course/CourseBasicInfo";
+import { CourseMediaUpload } from "./course/CourseMediaUpload";
 import CurriculumManager from "./course/CurriculumManager";
 import { CourseMode } from "./course/CourseMode";
-import CoursePricing from "./course/CoursePricing";
-import CourseSettings from "./course/CourseSettings";
-import CourseAnnouncements from "./course/CourseAnnouncements";
+import { CoursePricing } from "./course/CoursePricing";
+import { CourseSettings } from "./course/CourseSettings";
+import { CourseAnnouncements } from "./course/CourseAnnouncements";
 
 // Form schema
 export const courseSchema = z.object({
@@ -130,8 +130,7 @@ const CourseEdit = () => {
             registrationDeadline: course.registration_deadline ? new Date(course.registration_deadline) : null,
             courseStartDate: course.course_start_date ? new Date(course.course_start_date) : null,
             promotionEndDate: course.promotion_end_date ? new Date(course.promotion_end_date) : undefined,
-            // Map additional fields as needed
-            classDays: course.class_days || [],
+            // Map database fields to form fields
             certificateEnabled: course.certificate_enabled || false,
             replayAccess: course.replay_access || false,
             enrollment_limit: course.enrollment_limit || 0,
@@ -143,6 +142,8 @@ const CourseEdit = () => {
             target_audience: course.target_audience || '',
             promotion_enabled: course.promotion_enabled || false,
             autoEnrollAfterPurchase: course.auto_enroll_after_purchase !== false, // default to true
+            // Ensure mode is properly typed
+            mode: (course.mode as 'self-paced' | 'virtual-live') || 'self-paced',
           };
           
           methods.reset(formattedCourse);
@@ -340,22 +341,23 @@ const CourseEdit = () => {
 
               <CardContent>
                 <TabsContent value="basic">
-                  <CourseBasicInfo />
+                  <CourseBasicInfo form={methods} />
                 </TabsContent>
 
                 <TabsContent value="media">
                   <CourseMediaUpload 
-                    courseImageFile={courseImageFile}
-                    setCourseImageFile={setCourseImageFile}
-                    coursePreviewVideoFile={coursePreviewVideoFile}
-                    setCoursePreviewVideoFile={setCoursePreviewVideoFile}
-                    courseMaterialFiles={courseMaterialFiles}
-                    setCourseMaterialFiles={setCourseMaterialFiles}
+                    onCoverImageChange={(file) => setCourseImageFile(file)}
+                    onMaterialsChange={(files) => {
+                      const fileArray = Array.from(files);
+                      setCourseMaterialFiles([...courseMaterialFiles, ...fileArray]);
+                    }}
+                    imageUrl={methods.getValues('image_url')}
+                    form={methods}
                   />
                 </TabsContent>
 
                 <TabsContent value="curriculum">
-                  {id && <CurriculumManager courseId={id} />}
+                  {id && <CurriculumManager courseId={id} isActive={() => true} />}
                 </TabsContent>
 
                 <TabsContent value="mode">
@@ -363,11 +365,11 @@ const CourseEdit = () => {
                 </TabsContent>
 
                 <TabsContent value="pricing">
-                  <CoursePricing />
+                  <CoursePricing form={methods} />
                 </TabsContent>
 
                 <TabsContent value="settings">
-                  <CourseSettings />
+                  <CourseSettings form={methods} />
                 </TabsContent>
 
                 <TabsContent value="announcements">

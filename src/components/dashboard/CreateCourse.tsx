@@ -10,11 +10,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import CourseBasicInfo from "./course/CourseBasicInfo";
-import CourseMediaUpload from "./course/CourseMediaUpload";
+import { CourseBasicInfo } from "./course/CourseBasicInfo";
+import { CourseMediaUpload } from "./course/CourseMediaUpload";
 import { CourseMode } from "./course/CourseMode";
-import CoursePricing from "./course/CoursePricing";
-import CourseSettings from "./course/CourseSettings";
+import { CoursePricing } from "./course/CoursePricing";
+import { CourseSettings } from "./course/CourseSettings";
 
 // Form schema
 export const courseSchema = z.object({
@@ -59,8 +59,8 @@ const CreateCourse = () => {
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
-  const [coursePreviewVideoFile, setCoursePreviewVideoFile] = useState<File | null>(null);
   const [courseMaterialFiles, setCourseMaterialFiles] = useState<File[]>([]);
+  const [imageError, setImageError] = useState(false);
 
   // Initialize form
   const methods = useForm({
@@ -103,6 +103,17 @@ const CreateCourse = () => {
   const onSubmit = async (data: z.infer<typeof courseSchema>) => {
     if (!user) return;
     
+    // Validate that image is provided
+    if (!courseImageFile && !data.image_url) {
+      setImageError(true);
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Course image is required",
+      });
+      return;
+    }
+    
     setSubmitting(true);
     
     try {
@@ -123,25 +134,6 @@ const CreateCourse = () => {
           .getPublicUrl(imagePath);
           
         imageUrl = publicUrlData.publicUrl;
-      }
-      
-      // Upload preview video if selected
-      let previewVideoUrl = '';
-      if (coursePreviewVideoFile) {
-        const videoPath = `${user.id}/${Date.now()}_${coursePreviewVideoFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('course-materials')
-          .upload(videoPath, coursePreviewVideoFile);
-          
-        if (uploadError) {
-          throw new Error(`Error uploading preview video: ${uploadError.message}`);
-        }
-        
-        const { data: publicUrlData } = supabase.storage
-          .from('course-materials')
-          .getPublicUrl(videoPath);
-          
-        previewVideoUrl = publicUrlData.publicUrl;
       }
       
       // Upload course materials if selected
@@ -183,7 +175,7 @@ const CreateCourse = () => {
         is_published: data.is_published,
         certificate_enabled: data.certificateEnabled,
         image_url: imageUrl,
-        preview_video: previewVideoUrl,
+        preview_video: data.preview_video,
         course_materials: courseMaterialUrls,
         // Convert Date objects to ISO strings for the database
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
@@ -270,17 +262,21 @@ const CreateCourse = () => {
 
               <CardContent>
                 <TabsContent value="basic">
-                  <CourseBasicInfo />
+                  <CourseBasicInfo form={methods} />
                 </TabsContent>
 
                 <TabsContent value="media">
                   <CourseMediaUpload 
-                    courseImageFile={courseImageFile}
-                    setCourseImageFile={setCourseImageFile}
-                    coursePreviewVideoFile={coursePreviewVideoFile}
-                    setCoursePreviewVideoFile={setCoursePreviewVideoFile}
-                    courseMaterialFiles={courseMaterialFiles}
-                    setCourseMaterialFiles={setCourseMaterialFiles}
+                    onCoverImageChange={(file) => {
+                      setCourseImageFile(file);
+                      setImageError(false);
+                    }}
+                    onMaterialsChange={(files) => {
+                      const fileArray = Array.from(files);
+                      setCourseMaterialFiles([...courseMaterialFiles, ...fileArray]);
+                    }}
+                    imageError={imageError}
+                    form={methods}
                   />
                 </TabsContent>
 
@@ -289,11 +285,11 @@ const CreateCourse = () => {
                 </TabsContent>
 
                 <TabsContent value="pricing">
-                  <CoursePricing />
+                  <CoursePricing form={methods} />
                 </TabsContent>
 
                 <TabsContent value="settings">
-                  <CourseSettings />
+                  <CourseSettings form={methods} />
                 </TabsContent>
               </CardContent>
             </Card>
