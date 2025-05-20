@@ -14,50 +14,52 @@ interface UploadStatus {
 }
 
 interface CourseMediaUploadProps {
-  form: any;
-  onImageChange: (file: File) => void;
-  onMaterialsChange: (files: FileList) => void;
+  onCoverImageChange: (file: File) => void;
+  onMaterialsChange?: (files: FileList) => void;
   imageUrl?: string;
   materialUploads?: UploadStatus[];
   imageError?: boolean;
+  form?: any; // Make form optional since we're not using it anymore
 }
 
 export const CourseMediaUpload = ({ 
-  form, 
-  onImageChange, 
-  onMaterialsChange, 
+  onCoverImageChange,
+  onMaterialsChange,
   imageUrl,
   materialUploads = [],
-  imageError = false
+  imageError = false,
+  form
 }: CourseMediaUploadProps) => {
   console.log("Rendering CourseMediaUpload with imageUrl:", imageUrl);
   
   return (
     <div className="space-y-6">
       {/* Course Preview Video */}
-      <FormField
-        control={form.control}
-        name="previewVideo"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Course Preview Video (URL)</FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input
-                  {...field}
-                  placeholder="YouTube or Vimeo link"
-                  className="pl-9"
-                />
-              </div>
-            </FormControl>
-            <FormDescription>
-              Add a preview video to showcase your course (YouTube or Vimeo URL)
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {form && (
+        <FormField
+          control={form.control}
+          name="previewVideo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Course Preview Video (URL)</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  <Input
+                    {...field}
+                    placeholder="YouTube or Vimeo link"
+                    className="pl-9"
+                  />
+                </div>
+              </FormControl>
+              <FormDescription>
+                Add a preview video to showcase your course (YouTube or Vimeo URL)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
 
       {/* Course Image - Required */}
       <div>
@@ -93,7 +95,7 @@ export const CourseMediaUpload = ({
               const file = e.target.files?.[0];
               if (file) {
                 console.log("Image file selected:", file.name);
-                onImageChange(file);
+                onCoverImageChange(file);
               }
             }}
             className="sr-only"
@@ -129,7 +131,7 @@ export const CourseMediaUpload = ({
               multiple
               accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
               onChange={(e) => {
-                if (e.target.files?.length) {
+                if (e.target.files?.length && onMaterialsChange) {
                   console.log("Materials selected:", e.target.files.length);
                   onMaterialsChange(e.target.files);
                 }

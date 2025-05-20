@@ -37,10 +37,10 @@ const courseFormSchema = z.object({
   certificateEnabled: z.boolean().default(false),
   previewVideo: z.string().optional(),
   accessDuration: z.string().optional(),
-  registrationDeadline: z.date().optional(),
-  courseStartDate: z.date().optional(),
+  registrationDeadline: z.string().optional(), // Changed to string instead of Date
+  courseStartDate: z.string().optional(), // Changed to string instead of Date
   classDays: z.array(z.string()).optional(),
-  class_time: z.string().optional(), // Using class_time instead of classSchedule
+  class_time: z.string().optional(),
   timezone: z.string().optional(),
   replayAccess: z.boolean().default(false),
   discountEnabled: z.boolean().default(false),
@@ -55,6 +55,8 @@ const CreateCourse: React.FC = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [imageError, setImageError] = useState(false);
   
   // Form setup
   const form = useForm<CourseFormValues>({
@@ -95,6 +97,17 @@ const CreateCourse: React.FC = () => {
       return;
     }
 
+    // Validate cover image
+    if (!coverImage) {
+      setImageError(true);
+      toast({
+        title: "Missing Cover Image",
+        description: "Please upload a cover image for your course",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       console.log("Form data:", data);
@@ -102,20 +115,14 @@ const CreateCourse: React.FC = () => {
       // Prepare course data
       const courseData = {
         ...data,
+        price: Number(data.price),
+        duration: Number(data.duration),
         instructor_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         status: "draft",
+        discountedPrice: data.discountedPrice ? Number(data.discountedPrice) : null,
       };
-      
-      // Format date fields correctly for database
-      if (courseData.registrationDeadline) {
-        courseData.registrationDeadline = new Date(courseData.registrationDeadline).toISOString();
-      }
-      
-      if (courseData.courseStartDate) {
-        courseData.courseStartDate = new Date(courseData.courseStartDate).toISOString();
-      }
       
       console.log("Prepared course data:", courseData);
       
@@ -166,7 +173,7 @@ const CreateCourse: React.FC = () => {
         const { error: updateError } = await supabase
           .from("courses")
           .update({ 
-            cover_image: `${filePath}`
+            image_url: `${filePath}`
           })
           .eq('id', insertedCourse.id);
           
@@ -206,6 +213,15 @@ const CreateCourse: React.FC = () => {
     }
   };
 
+  const handleCoverImageChange = (file: File) => {
+    setCoverImage(file);
+    setImageError(false);
+    
+    // Create a preview URL for the image
+    const imagePreviewUrl = URL.createObjectURL(file);
+    setImageUrl(imagePreviewUrl);
+  };
+
   return (
     <div className="p-6">
       <Card className="w-full max-w-4xl mx-auto">
@@ -235,7 +251,10 @@ const CreateCourse: React.FC = () => {
                 {/* Course Media Section */}
                 <h3 className="text-lg font-medium mb-4">Course Media</h3>
                 <CourseMediaUpload 
-                  onCoverImageChange={(file) => setCoverImage(file)} 
+                  form={form}
+                  onCoverImageChange={handleCoverImageChange}
+                  imageUrl={imageUrl}
+                  imageError={imageError}
                 />
               </div>
               
