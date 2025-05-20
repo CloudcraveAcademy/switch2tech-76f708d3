@@ -95,8 +95,14 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     };
   }, [initializeSession, enrichUserWithProfile, setUser, setSession]);
 
+  // The fix: remove the onLogout parameter as performLogout doesn't expect it
   const logout = useCallback(async () => {
-    await performLogout(onLogout);
+    await performLogout();
+    
+    // We can still call onLogout separately if it exists
+    if (onLogout) {
+      onLogout();
+    }
   }, [performLogout, onLogout]);
 
   return {
