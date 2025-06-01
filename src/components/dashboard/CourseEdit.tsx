@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,7 +64,7 @@ const CourseEdit = () => {
       level: "beginner",
       category: "",
       language: "English",
-      mode: "self-paced",
+      mode: "self-paced" as "self-paced" | "virtual-live",
       multiLanguageSupport: false,
       additionalLanguages: [],
       certificateEnabled: false,
@@ -116,7 +115,7 @@ const CourseEdit = () => {
         level: course.level || "beginner",
         category: course.category || "",
         language: course.language || "English",
-        mode: course.mode || "self-paced",
+        mode: (course.mode as "self-paced" | "virtual-live") || "self-paced",
         multiLanguageSupport: course.multi_language_support || false,
         additionalLanguages: course.additional_languages || [],
         certificateEnabled: course.certificate_enabled || false,
@@ -143,7 +142,7 @@ const CourseEdit = () => {
         level: course.level || "beginner",
         category: course.category || "",
         language: course.language || "English",
-        mode: course.mode || "self-paced",
+        mode: (course.mode as "self-paced" | "virtual-live") || "self-paced",
         multi_language_support: course.multi_language_support || false,
         additional_languages: course.additional_languages || [],
         certificate_enabled: course.certificate_enabled || false,
@@ -398,7 +397,10 @@ const CourseEdit = () => {
         </TabsContent>
 
         <TabsContent value="curriculum">
-          <CurriculumManager courseId={courseId!} />
+          <CurriculumManager 
+            courseId={courseId!} 
+            isActive={(path: string) => activeTab === "curriculum"}
+          />
         </TabsContent>
 
         <TabsContent value="announcements">
