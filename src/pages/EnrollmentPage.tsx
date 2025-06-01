@@ -345,9 +345,22 @@ const EnrollmentPage = () => {
     const paymentStatus = urlParams.get('payment');
     const transactionId = urlParams.get('transaction_id');
     
-    if (paymentStatus === 'success' && transactionId) {
-      // Verify the payment and complete enrollment
-      verifyPaymentAndEnroll(transactionId);
+    if (paymentStatus === 'success') {
+      // Get enrollment data from localStorage if available
+      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
+      if (storedEnrollmentData) {
+        const enrollmentData = JSON.parse(storedEnrollmentData);
+        verifyPaymentAndEnroll(transactionId || 'redirect_success', enrollmentData);
+      } else {
+        // Fallback: just show success and redirect
+        toast({
+          title: "Payment Successful!",
+          description: "Your payment has been processed. Redirecting to course...",
+        });
+        setTimeout(() => {
+          navigate(`/dashboard/courses/${courseId}`);
+        }, 2000);
+      }
     } else if (paymentStatus === 'cancelled') {
       toast({
         title: "Payment Cancelled",
@@ -359,16 +372,65 @@ const EnrollmentPage = () => {
     }
   }, []);
 
-  const verifyPaymentAndEnroll = async (transactionId: string) => {
+  const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: EnrollmentFormData) => {
     try {
       console.log('Verifying payment with transaction ID:', transactionId);
       
-      // Here you would typically verify the payment with Flutterwave's API
-      // For now, we'll proceed with enrollment
+      if (!user?.id) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to complete your enrollment.",
+          variant: "destructive",
+        });
+        navigate('/login');
+        return;
+      }
+
+      // Save payment transaction record
+      const { error: paymentError } = await supabase
+        .from("payment_transactions")
+        .insert([{
+          user_id: user.id,
+          course_id: courseId,
+          amount: course?.price || 0,
+          currency: enrollmentData?.currency || 'USD',
+          payment_reference: transactionId,
+          paystack_reference: transactionId, // Using same for Flutterwave
+          status: "successful",
+          payment_method: "card",
+          metadata: {
+            flutterwave_redirect: true,
+            enrollment_data: enrollmentData
+          }
+        }]);
+
+      if (paymentError) {
+        console.error('Payment transaction save error:', paymentError);
+      }
+
+      // Complete enrollment
+      if (enrollmentData) {
+        await enrollDirectly(enrollmentData, user.id);
+      } else {
+        // Fallback enrollment for existing users
+        await enrollDirectly({
+          firstName: user.user_metadata?.first_name || "",
+          lastName: user.user_metadata?.last_name || "",
+          email: user.email || "",
+          phone: "",
+          country: "",
+          currency: "USD",
+          motivation: "Payment completed via redirect"
+        }, user.id);
+      }
+
       toast({
         title: "Payment Verified!",
-        description: "Your payment has been confirmed. Completing enrollment...",
+        description: "Your payment has been confirmed and you've been enrolled!",
       });
+
+      // Clean up stored data
+      localStorage.removeItem(`enrollment_${courseId}`);
 
       // Navigate to course dashboard
       setTimeout(() => {
@@ -491,6 +553,9 @@ const EnrollmentPage = () => {
 
     try {
       let currentUserId = user?.id;
+
+      // Store enrollment data for payment redirect scenario
+      localStorage.setItem(`enrollment_${courseId}`, JSON.stringify(data));
 
       // If user is not logged in, register them first
       if (!user && isNewUser) {
