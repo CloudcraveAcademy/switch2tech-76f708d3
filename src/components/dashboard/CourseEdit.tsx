@@ -13,8 +13,9 @@ import { CoursePricing } from "./course/CoursePricing";
 import { CourseMediaUpload } from "./course/CourseMediaUpload";
 import { CourseMode } from "./course/CourseMode";
 import { CourseSettings } from "./course/CourseSettings";
-import { CurriculumManager } from "./course/CurriculumManager";
+import CurriculumManager from "./course/CurriculumManager";
 import { CourseAnnouncements } from "./course/CourseAnnouncements";
+import { useForm } from "react-hook-form";
 
 interface CourseData {
   id: string;
@@ -26,7 +27,7 @@ interface CourseData {
   level: string;
   category: string;
   language: string;
-  mode: "self-paced" | "virtual" | "live";
+  mode: "self-paced" | "virtual-live";
   multi_language_support: boolean;
   additional_languages: string[];
   certificate_enabled: boolean;
@@ -54,6 +55,32 @@ const CourseEdit = () => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [courseData, setCourseData] = useState<CourseData | null>(null);
 
+  const form = useForm({
+    defaultValues: {
+      title: "",
+      description: "",
+      price: 0,
+      discountEnabled: false,
+      discountedPrice: 0,
+      level: "beginner",
+      category: "",
+      language: "English",
+      mode: "self-paced",
+      multiLanguageSupport: false,
+      additionalLanguages: [],
+      certificateEnabled: false,
+      registrationDeadline: null,
+      courseStartDate: null,
+      replayAccess: false,
+      preview_video: "",
+      accessDuration: "",
+      classDays: [],
+      class_time: "",
+      timezone: "",
+      duration_hours: 0,
+    }
+  });
+
   // Fetch course data
   const { data: course, isLoading, error } = useQuery({
     queryKey: ["course", courseId],
@@ -80,6 +107,32 @@ const CourseEdit = () => {
 
   useEffect(() => {
     if (course) {
+      const formData = {
+        title: course.title || "",
+        description: course.description || "",
+        price: course.price || 0,
+        discountEnabled: !!course.discounted_price,
+        discountedPrice: course.discounted_price || 0,
+        level: course.level || "beginner",
+        category: course.category || "",
+        language: course.language || "English",
+        mode: course.mode || "self-paced",
+        multiLanguageSupport: course.multi_language_support || false,
+        additionalLanguages: course.additional_languages || [],
+        certificateEnabled: course.certificate_enabled || false,
+        registrationDeadline: course.registration_deadline ? new Date(course.registration_deadline) : null,
+        courseStartDate: course.course_start_date ? new Date(course.course_start_date) : null,
+        replayAccess: course.replay_access || false,
+        preview_video: course.preview_video || "",
+        accessDuration: course.access_duration || "",
+        classDays: course.class_days || [],
+        class_time: course.class_time || "",
+        timezone: course.timezone || "",
+        duration_hours: course.duration_hours || 0,
+      };
+
+      form.reset(formData);
+
       setCourseData({
         id: course.id,
         title: course.title || "",
@@ -110,16 +163,39 @@ const CourseEdit = () => {
         updated_at: course.updated_at,
       });
     }
-  }, [course]);
+  }, [course, form]);
 
   // Save course mutation
   const saveMutation = useMutation({
-    mutationFn: async (updatedData: Partial<CourseData>) => {
+    mutationFn: async (formData: any) => {
       if (!courseId) throw new Error("Course ID is required");
       
+      const updateData = {
+        title: formData.title,
+        description: formData.description,
+        price: Number(formData.price),
+        discounted_price: formData.discountEnabled ? Number(formData.discountedPrice) : null,
+        level: formData.level,
+        category: formData.category,
+        language: formData.language,
+        mode: formData.mode,
+        multi_language_support: formData.multiLanguageSupport,
+        additional_languages: formData.additionalLanguages,
+        certificate_enabled: formData.certificateEnabled,
+        registration_deadline: formData.registrationDeadline ? formData.registrationDeadline.toISOString() : null,
+        course_start_date: formData.courseStartDate ? formData.courseStartDate.toISOString() : null,
+        replay_access: formData.replayAccess,
+        preview_video: formData.preview_video,
+        access_duration: formData.accessDuration,
+        class_days: formData.classDays,
+        class_time: formData.class_time,
+        timezone: formData.timezone,
+        duration_hours: Number(formData.duration_hours),
+      };
+
       const { error } = await supabase
         .from("courses")
-        .update(updatedData)
+        .update(updateData)
         .eq("id", courseId);
 
       if (error) throw error;
@@ -158,6 +234,7 @@ const CourseEdit = () => {
         description: `Course ${published ? "published" : "unpublished"} successfully`,
       });
       queryClient.invalidateQueries({ queryKey: ["course", courseId] });
+      setCourseData(prev => prev ? { ...prev, is_published: published } : null);
     },
     onError: (error: any) => {
       toast({
@@ -169,9 +246,8 @@ const CourseEdit = () => {
   });
 
   const handleSave = () => {
-    if (courseData) {
-      saveMutation.mutate(courseData);
-    }
+    const formData = form.getValues();
+    saveMutation.mutate(formData);
   };
 
   const handlePublishToggle = () => {
@@ -183,14 +259,14 @@ const CourseEdit = () => {
     });
   };
 
-  const handleCoverImageChange = (file: File) => {
-    // Handle image upload logic here
+  const handleCoverImageChange = async (file: File) => {
     console.log("Cover image changed:", file);
+    // Handle image upload logic here
   };
 
   const handleMaterialsChange = (files: FileList) => {
-    // Handle materials upload logic here
     console.log("Materials changed:", files);
+    // Handle materials upload logic here
   };
 
   if (isLoading) {
@@ -265,10 +341,7 @@ const CourseEdit = () => {
               <CardTitle>Basic Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <CourseBasicInfo
-                data={courseData}
-                onChange={(updates) => setCourseData(prev => prev ? { ...prev, ...updates } : null)}
-              />
+              <CourseBasicInfo form={form} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -279,10 +352,7 @@ const CourseEdit = () => {
               <CardTitle>Pricing</CardTitle>
             </CardHeader>
             <CardContent>
-              <CoursePricing
-                data={courseData}
-                onChange={(updates) => setCourseData(prev => prev ? { ...prev, ...updates } : null)}
-              />
+              <CoursePricing form={form} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -299,6 +369,7 @@ const CourseEdit = () => {
                 imageUrl={courseData.image_url}
                 previewVideoUrl={courseData.preview_video}
                 existingMaterials={courseData.course_materials}
+                form={form}
               />
             </CardContent>
           </Card>
@@ -310,10 +381,7 @@ const CourseEdit = () => {
               <CardTitle>Course Mode</CardTitle>
             </CardHeader>
             <CardContent>
-              <CourseMode
-                data={courseData}
-                onChange={(updates) => setCourseData(prev => prev ? { ...prev, ...updates } : null)}
-              />
+              <CourseMode form={form} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -324,10 +392,7 @@ const CourseEdit = () => {
               <CardTitle>Settings</CardTitle>
             </CardHeader>
             <CardContent>
-              <CourseSettings
-                data={courseData}
-                onChange={(updates) => setCourseData(prev => prev ? { ...prev, ...updates } : null)}
-              />
+              <CourseSettings form={form} />
             </CardContent>
           </Card>
         </TabsContent>
