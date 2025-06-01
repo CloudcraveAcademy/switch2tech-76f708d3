@@ -1,204 +1,102 @@
 
 import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle, Clock, File, Play, Star, Users, Video, BookOpen, Calendar } from "lucide-react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Clock, 
+  Users, 
+  Star, 
+  Globe, 
+  Award, 
+  CheckCircle, 
+  Play,
+  BookOpen,
+  Calendar
+} from "lucide-react";
+import CourseEnrollButton from "@/components/dashboard/course/CourseEnrollButton";
 
 const CourseDetails = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: courseId } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const [selectedTab, setSelectedTab] = useState("overview");
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [selectedPreviewLesson, setSelectedPreviewLesson] = useState<any>(null);
-  const navigate = useNavigate();
-
-  // Figure out user role
-  let userRole: string | undefined = undefined;
-  if (user && "role" in user) {
-    userRole = user.role;
-  }
+  const isInstructorPreview = searchParams.get('instructor') === 'true';
 
   const { data: course, isLoading } = useQuery({
-    queryKey: ["public-course", id],
+    queryKey: ["course-details", courseId],
     queryFn: async () => {
-      if (!id) return null;
+      if (!courseId) return null;
+      
       const { data: courseData, error } = await supabase
         .from("courses")
-        .select(
-          `
-            *,
-            user_profiles (
-              id,
-              first_name,
-              last_name,
-              avatar_url,
-              bio
-            ),
-            course_categories (
-              id,
-              name
-            )
-          `
-        )
-        .eq("id", id)
+        .select(`
+          *,
+          user_profiles (
+            id,
+            first_name,
+            last_name,
+            avatar_url
+          ),
+          course_categories (
+            id,
+            name
+          )
+        `)
+        .eq("id", courseId)
         .eq("is_published", true)
-        .maybeSingle();
+        .single();
 
-      if (error || !courseData) return null;
-
-      // Get lessons for preview
-      const { data: lessonRows } = await supabase
-        .from("lessons")
-        .select("*")
-        .eq("course_id", id)
-        .order("order_number", { ascending: true });
+      if (error) throw error;
 
       // Get enrollment count
       const { count: enrollmentCount } = await supabase
         .from("enrollments")
         .select("*", { count: 'exact', head: true })
-        .eq("course_id", id);
-
-      let curriculum = [];
-      let previewLessons = [];
-      if (lessonRows && lessonRows.length) {
-        // Get first two lessons as teasers
-        previewLessons = lessonRows.slice(0, 2);
-        
-        curriculum = [
-          {
-            id: "section-main",
-            title: "Course Content",
-            lessons: lessonRows.map(l => ({
-              id: l.id,
-              title: l.title,
-              duration: l.duration_minutes ? `${l.duration_minutes} min` : "N/A",
-              type: "video",
-              isPreview: lessonRows.indexOf(l) < 2 // First two are preview
-            }))
-          }
-        ];
-      }
+        .eq("course_id", courseId);
 
       return {
         ...courseData,
-        category_name: courseData.course_categories?.name || "",
-        enrolledStudents: enrollmentCount || 0,
-        duration:
-          courseData.duration_hours !== null && courseData.duration_hours !== undefined
-            ? `${courseData.duration_hours}h`
-            : "N/A",
-        instructor: courseData.user_profiles && {
-          name: `${courseData.user_profiles.first_name || ""} ${courseData.user_profiles.last_name || ""}`.trim(),
-          avatar: courseData.user_profiles.avatar_url || "",
-          bio: courseData.user_profiles.bio || "",
-        },
-        curriculum,
-        previewLessons
+        enrolledStudents: enrollmentCount || 0
       };
     },
-    enabled: !!id,
+    enabled: !!courseId,
   });
 
-  // Check enrollment status
+  // Check if user is already enrolled
   const { data: enrollment } = useQuery({
-    queryKey: ["enrollment-status", id, user?.id],
+    queryKey: ["enrollment-status", courseId, user?.id],
     queryFn: async () => {
-      if (!id || !user?.id) return null;
+      if (!courseId || !user?.id) return null;
       
       const { data, error } = await supabase
         .from("enrollments")
         .select("id, progress")
-        .eq("course_id", id)
+        .eq("course_id", courseId)
         .eq("student_id", user.id)
         .maybeSingle();
 
-      if (error) return null;
+      if (error) throw error;
       return data;
     },
-    enabled: !!id && !!user?.id,
+    enabled: !!courseId && !!user?.id,
   });
-
-  // Get course reviews
-  const { data: reviews = [] } = useQuery({
-    queryKey: ["course-reviews", id],
-    queryFn: async () => {
-      if (!id) return [];
-      
-      // For now, return sample data since reviews table might not exist
-      // TODO: Replace with actual reviews query when reviews table is created
-      return [
-        {
-          id: 1,
-          user_name: "John Doe",
-          rating: 5,
-          comment: "Excellent course! Very well structured and easy to follow.",
-          created_at: "2024-01-15"
-        },
-        {
-          id: 2,
-          user_name: "Jane Smith",
-          rating: 4,
-          comment: "Good content, learned a lot. Would recommend to others.",
-          created_at: "2024-01-10"
-        }
-      ];
-    },
-    enabled: !!id,
-  });
-
-  const handlePreviewLesson = (lesson: any) => {
-    setSelectedPreviewLesson(lesson);
-    setPreviewModalOpen(true);
-  };
-
-  const renderVideo = (url?: string) => {
-    if (!url) return null;
-    const ytMatch = url.match(
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-    );
-    if (ytMatch) {
-      return (
-        <iframe
-          src={`https://www.youtube.com/embed/${ytMatch[1]}`}
-          title="Course Preview"
-          allowFullScreen
-          className="w-full h-48 md:h-56 rounded-lg"
-        />
-      );
-    }
-    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-    if (vimeoMatch) {
-      return (
-        <iframe
-          src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
-          title="Course Preview"
-          allowFullScreen
-          className="w-full h-48 md:h-56 rounded-lg"
-        />
-      );
-    }
-    return (
-      <div className="w-full h-48 bg-gray-200 flex justify-center items-center rounded-lg">
-        <Play className="h-8 w-8 text-gray-400" />
-      </div>
-    );
-  };
 
   if (isLoading) {
     return (
       <Layout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <p className="text-lg font-medium">Loading course...</p>
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
         </div>
       </Layout>
     );
@@ -207,481 +105,380 @@ const CourseDetails = () => {
   if (!course) {
     return (
       <Layout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <h1 className="text-3xl font-bold mb-4">Course not found</h1>
-          <p className="mb-8">The course you're looking for doesn't exist or has been removed.</p>
-          <Link to="/courses">
-            <Button>Back to Courses</Button>
-          </Link>
+        <div className="max-w-6xl mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold mb-4">Course not found</h1>
+          <p className="text-gray-600">The course you're looking for doesn't exist or is not published.</p>
         </div>
       </Layout>
     );
   }
 
-  const levelColor = {
-    beginner: "bg-green-100 text-green-800",
-    intermediate: "bg-yellow-100 text-yellow-800",
-    advanced: "bg-red-100 text-red-800",
-  }[course?.level];
+  const instructorName = course.user_profiles 
+    ? `${course.user_profiles.first_name || ""} ${course.user_profiles.last_name || ""}`.trim()
+    : "Instructor";
 
-  const modeColor = {
-    "self-paced": "bg-blue-100 text-blue-800",
-    "virtual-live": "bg-purple-100 text-purple-800",
-  }[course?.mode];
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
-  };
-
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
-    : 4.8;
-
-  const requirements = [
-    "Basic knowledge of computer operations",
-    course.level !== "beginner" ? "Prior programming experience" : "No prior programming experience needed",
-    "A computer with internet access",
-    "Willingness to learn and practice",
-  ];
+  const isOwnCourse = user?.id === course.instructor_id;
 
   return (
     <Layout>
-      <div className="bg-gray-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="md:w-2/3">
-              <Badge className="mb-4">{course.category_name || "Uncategorized"}</Badge>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">{course.title}</h1>
-
-              <p className="text-lg text-gray-700 mb-6">
-                {course.description}
-              </p>
-
-              <div className="flex flex-wrap gap-4 mb-6">
-                <Badge className={levelColor}>{course.level || "All Levels"}</Badge>
-                <Badge className={modeColor}>{course.mode || "Self-paced"}</Badge>
-                <div className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span className="ml-1 font-medium">{averageRating.toFixed(1)}</span>
-                  <span className="text-gray-500 ml-1">({reviews.length} reviews)</span>
-                </div>
-                <div className="flex items-center text-gray-500">
-                  <Users className="w-5 h-5 mr-1" />
-                  <span>{course.enrolledStudents} students</span>
-                </div>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-2">
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Badge variant="secondary">
+                {course.course_categories?.name || "Course"}
+              </Badge>
+              <Badge variant="outline">{course.level}</Badge>
+              <Badge variant="outline">{course.mode}</Badge>
+            </div>
+            
+            <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
+            <p className="text-gray-600 text-lg mb-6">{course.description}</p>
+            
+            <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>{course.duration_hours} hours</span>
               </div>
-
-              <div className="flex items-center mb-8">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={course.instructor?.avatar || undefined} />
-                  <AvatarFallback>
-                    {course.instructor?.name?.substring(0, 2).toUpperCase() || "IN"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="ml-3">
-                  <p className="font-medium">{course.instructor?.name || "Instructor"}</p>
-                  <p className="text-sm text-gray-500">Course Instructor</p>
-                </div>
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                <span>{course.enrolledStudents} students</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Star className="h-4 w-4" />
+                <span>4.8 (124 reviews)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Globe className="h-4 w-4" />
+                <span>{course.language}</span>
               </div>
             </div>
 
-            <div className="md:w-1/3">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <div className="relative mb-6 rounded-lg overflow-hidden">
-                  {course.preview_video
-                    ? renderVideo(course.preview_video)
-                    : (course.image_url ? (
-                      <img
-                        src={course.image_url}
-                        alt={course.title}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gray-200 flex justify-center items-center rounded-lg">
-                        <Play className="h-8 w-8 text-gray-400" />
-                      </div>
-                    ))}
-                </div>
-                <div className="mb-6">
-                  <p className="text-3xl font-bold text-brand-600 mb-4">
-                    {formatPrice(course.price || 0)}
-                  </p>
-                  {course.discounted_price && (
-                    <p className="text-lg text-gray-500 line-through mb-2">
-                      {formatPrice(course.discounted_price)}
-                    </p>
-                  )}
-                  
-                  {enrollment ? (
-                    <Button className="w-full mb-4" onClick={() => navigate(`/dashboard/courses/${course.id}`)}>
-                      Continue Learning
-                    </Button>
+            {/* Instructor Info */}
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                {course.user_profiles?.avatar_url ? (
+                  <img 
+                    src={course.user_profiles.avatar_url} 
+                    alt={instructorName}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-medium">
+                    {instructorName.substring(0, 2).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="font-medium">Instructor: {instructorName}</p>
+                <p className="text-sm text-gray-600">Course Creator</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Course Preview/Enrollment Card */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-4">
+              <CardContent className="p-0">
+                {/* Course Image/Video */}
+                <div className="aspect-video rounded-t-lg overflow-hidden bg-gray-100">
+                  {course.image_url ? (
+                    <img
+                      src={course.image_url}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    // Enroll Now button: visible ONLY for students (role 'student') or unauthenticated users
-                    (userRole === undefined || userRole === 'student') && (
-                      <Button 
-                        className="w-full mb-4"
-                        onClick={() => navigate(`/enroll/${course.id}`)}
-                      >
-                        Enroll Now
-                      </Button>
-                    )
-                  )}
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      if (course.category) {
-                        navigate(`/courses?category=${course.category}`);
-                      } else {
-                        navigate("/courses");
-                      }
-                    }}
-                  >
-                    View Similar Courses
-                  </Button>
-                </div>
-                
-                <div className="border-t border-gray-200 pt-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 flex items-center">
-                      <Clock className="h-5 w-5 mr-2" /> Course Duration
-                    </span>
-                    <span className="font-medium">{course.duration}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 flex items-center">
-                      <Video className="h-5 w-5 mr-2" /> Total Lessons
-                    </span>
-                    <span className="font-medium">
-                      {course.curriculum && course.curriculum.length > 0
-                        ? course.curriculum[0].lessons.length
-                        : 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 flex items-center">
-                      <File className="h-5 w-5 mr-2" /> Certificate
-                    </span>
-                    <span className="font-medium">{course.certificate_enabled ? "Yes" : "No"}</span>
-                  </div>
-                  {course.access_duration && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 flex items-center">
-                        <Calendar className="h-5 w-5 mr-2" /> Access Duration
-                      </span>
-                      <span className="font-medium">{course.access_duration}</span>
-                    </div>
-                  )}
-                  {course.course_start_date && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 flex items-center">
-                        <Calendar className="h-5 w-5 mr-2" /> Start Date
-                      </span>
-                      <span className="font-medium">
-                        {new Date(course.course_start_date).toLocaleDateString()}
-                      </span>
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="h-16 w-16 text-gray-400" />
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
+
+                <div className="p-6">
+                  {/* Price */}
+                  <div className="text-center mb-6">
+                    <div className="text-3xl font-bold text-brand-600">
+                      {course.price === 0 ? "FREE" : `$${course.price}`}
+                    </div>
+                    {course.discounted_price && (
+                      <div className="text-sm text-gray-500 line-through">
+                        ${course.discounted_price}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Enrollment/Preview Actions */}
+                  <div className="space-y-3">
+                    {isOwnCourse ? (
+                      <div className="text-center py-4">
+                        <Badge variant="secondary" className="mb-2">
+                          Your Course
+                        </Badge>
+                        <p className="text-sm text-gray-600">
+                          This is your course. Students will see the enrollment options here.
+                        </p>
+                      </div>
+                    ) : isInstructorPreview ? (
+                      <div className="text-center py-4">
+                        <Badge variant="outline" className="mb-2">
+                          Instructor Preview
+                        </Badge>
+                        <p className="text-sm text-gray-600">
+                          You're viewing this as an instructor. Students will see enrollment options here.
+                        </p>
+                      </div>
+                    ) : (
+                      <CourseEnrollButton
+                        courseId={courseId!}
+                        courseTitle={course.title}
+                        courseThumbnail={course.image_url}
+                        isEnrolled={!!enrollment}
+                        className="w-full"
+                      />
+                    )}
+                  </div>
+
+                  {/* Course Features */}
+                  <div className="mt-6 space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Duration</span>
+                      <span className="font-medium">{course.duration_hours} hours</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Students</span>
+                      <span className="font-medium">{course.enrolledStudents}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Language</span>
+                      <span className="font-medium">{course.language}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Certificate</span>
+                      <span className="font-medium flex items-center">
+                        {course.certificate_enabled ? (
+                          <>
+                            <Award className="h-4 w-4 mr-1" />
+                            Yes
+                          </>
+                        ) : (
+                          "No"
+                        )}
+                      </span>
+                    </div>
+                    {course.course_start_date && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Starts</span>
+                        <span className="font-medium flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {new Date(course.course_start_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Preview Lessons Section */}
-        {course.previewLessons && course.previewLessons.length > 0 && (
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">Get a taste of this course</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {course.previewLessons.map((lesson, index) => (
-                <div key={lesson.id} className="bg-white border rounded-lg p-6 shadow-sm">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Play className="h-5 w-5 text-blue-600" />
-                      <Badge variant="secondary">Preview {index + 1}</Badge>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {lesson.duration_minutes} min
-                    </span>
-                  </div>
-                  <h3 className="font-semibold mb-2">{lesson.title}</h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    {lesson.content ? lesson.content.substring(0, 100) + "..." : "Preview this lesson to get started with the course content."}
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => handlePreviewLesson(lesson)}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Watch Preview
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid grid-cols-4 mb-8">
+        {/* Course Content Tabs */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
             <TabsTrigger value="instructor">Instructor</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">Course Description</h3>
-              <p className="text-gray-700">
-                {course.description}
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-bold mb-4">What You'll Learn</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {course.curriculum && course.curriculum.length > 0 && course.curriculum[0].lessons.length > 0 ? (
-                  course.curriculum[0].lessons.slice(0, 6).map((lesson, i) => (
-                    <div key={lesson.id} className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <span>{lesson.title}</span>
+          <TabsContent value="overview" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">What you'll learn</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Master the fundamentals of the subject</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500">Course lessons will be revealed soon.</div>
-                )}
-              </div>
-            </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Build practical projects</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Understand best practices</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Prepare for real-world applications</span>
+                    </div>
+                  </div>
+                </div>
 
-            <div>
-              <h3 className="text-xl font-bold mb-4">Requirements</h3>
-              <ul className="list-disc pl-5 space-y-2">
-                {requirements.map((req, i) => (
-                  <li key={i} className="text-gray-700">{req}</li>
-                ))}
-              </ul>
-            </div>
+                <Separator />
 
-            <div>
-              <h3 className="text-xl font-bold mb-4">Who This Course is For</h3>
-              <ul className="list-disc pl-5 space-y-2">
-                <li className="text-gray-700">
-                  {course.level === "beginner"
-                    ? "Complete beginners with no prior experience"
-                    : "Individuals with some background knowledge seeking to advance their skills"}
-                </li>
-                <li className="text-gray-700">Professionals looking to transition into a tech career</li>
-                <li className="text-gray-700">Students who want to supplement their academic learning with practical skills</li>
-                <li className="text-gray-700">Tech enthusiasts who want to expand their knowledge base</li>
-              </ul>
-            </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Requirements</h3>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li>• Basic computer skills</li>
+                    <li>• Willingness to learn</li>
+                    <li>• No prior experience required</li>
+                  </ul>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Description</h3>
+                  <div className="prose prose-sm max-w-none">
+                    <p>{course.description}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="curriculum">
-            <div>
-              <h3 className="text-xl font-bold mb-4">Course Content</h3>
-              <div className="mb-4 flex flex-wrap gap-3 text-sm text-gray-600">
-                <div>
-                  {course.curriculum && course.curriculum.length > 0 ? course.curriculum[0].lessons.length : 0} lessons
-                </div>
-                <div>•</div>
-                <div>{course.duration} total length</div>
-                <div>•</div>
-                <div>{course.curriculum ? course.curriculum.length : 1} sections</div>
-              </div>
-              {course.curriculum && course.curriculum.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full">
-                  {course.curriculum.map((section, idx) => (
-                    <AccordionItem key={section.id} value={section.id}>
-                      <AccordionTrigger className="hover:bg-gray-50 px-4">
-                        <div className="flex justify-between w-full pr-4">
-                          <div className="font-medium">
-                            Section {idx + 1}: {section.title}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {section.lessons.length} lessons
-                          </div>
+          <TabsContent value="curriculum" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Curriculum</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="h-5 w-5" />
+                        <div>
+                          <h4 className="font-medium">Introduction</h4>
+                          <p className="text-sm text-gray-600">3 lessons • 45 minutes</p>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-2 px-4">
-                          {section.lessons.map((lesson) => (
-                            <div
-                              key={lesson.id}
-                              className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-md"
-                            >
-                              <div className="flex items-center">
-                                <Play className="h-4 w-4 text-brand-600 mr-3" />
-                                <span>{lesson.title}</span>
-                                {lesson.isPreview && (
-                                  <Badge variant="outline" className="ml-2 text-xs">
-                                    Preview
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {lesson.duration}
-                              </div>
-                            </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="h-5 w-5" />
+                        <div>
+                          <h4 className="font-medium">Fundamentals</h4>
+                          <p className="text-sm text-gray-600">5 lessons • 1 hour 30 minutes</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="h-5 w-5" />
+                        <div>
+                          <h4 className="font-medium">Advanced Topics</h4>
+                          <p className="text-sm text-gray-600">7 lessons • 2 hours 15 minutes</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="instructor" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>About the Instructor</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                    {course.user_profiles?.avatar_url ? (
+                      <img 
+                        src={course.user_profiles.avatar_url} 
+                        alt={instructorName}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl font-medium">
+                        {instructorName.substring(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">{instructorName}</h3>
+                    <p className="text-gray-600 mb-4">Expert Instructor</p>
+                    <p className="text-sm text-gray-600">
+                      An experienced professional with years of expertise in the field.
+                      Passionate about teaching and helping students achieve their goals.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reviews" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Student Reviews</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="text-4xl font-bold">4.8</div>
+                    <div>
+                      <div className="flex items-center gap-1 mb-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-600">Based on 124 reviews</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="border-b pb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           ))}
                         </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              ) : (
-                <div className="text-gray-500">Curriculum will be updated soon.</div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="instructor">
-            <div className="space-y-6">
-              <div className="flex items-center">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={course.instructor?.avatar || undefined} />
-                  <AvatarFallback>
-                    {course.instructor?.name?.substring(0, 2).toUpperCase() || "IN"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="ml-6">
-                  <h3 className="text-2xl font-bold">{course.instructor?.name || "Instructor"}</h3>
-                  <p className="text-gray-600">Senior {course.category_name} Expert</p>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-xl font-bold mb-3">About the Instructor</h4>
-                <p className="text-gray-700 mb-4">
-                  {course.instructor?.bio || 
-                    `With years of experience, ${course.instructor?.name || "the instructor"} is a leading expert in ${course.category_name}.`}
-                </p>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="reviews">
-            <div className="space-y-8">
-              <div className="flex flex-col md:flex-row gap-8">
-                <div className="md:w-1/3 bg-gray-50 p-6 rounded-lg text-center">
-                  <p className="text-5xl font-bold text-brand-600 mb-2">{averageRating.toFixed(1)}</p>
-                  <div className="flex justify-center mb-2">
-                    {Array(5).fill(0).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-5 w-5 ${i < Math.floor(averageRating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-gray-600">{reviews.length} reviews</p>
-                </div>
-
-                <div className="md:w-2/3 space-y-6">
-                  {reviews.length > 0 ? (
-                    reviews.map((review) => (
-                      <div key={review.id} className="border-b border-gray-200 pb-4">
-                        <div className="flex items-center mb-2">
-                          <div className="flex">
-                            {Array(5).fill(0).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
-                              />
-                            ))}
-                          </div>
-                          <span className="ml-2 font-medium">{review.user_name}</span>
-                          <span className="ml-2 text-sm text-gray-500">
-                            {new Date(review.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-gray-700">{review.comment}</p>
+                        <span className="text-sm font-medium">John D.</span>
+                        <span className="text-xs text-gray-500">2 weeks ago</span>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-gray-500">
-                      No reviews yet. Be the first to review this course!
+                      <p className="text-sm text-gray-600">
+                        Excellent course! The instructor explains everything clearly and the content is very practical.
+                      </p>
                     </div>
-                  )}
+                    
+                    <div className="border-b pb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">Sarah M.</span>
+                        <span className="text-xs text-gray-500">1 month ago</span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Great learning experience. I was able to apply what I learned immediately in my work.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-16 bg-gray-50 rounded-lg p-8 border border-gray-200">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div>
-              <h3 className="text-2xl font-bold mb-2">Ready to start learning?</h3>
-              <p className="text-gray-600 mb-4 md:mb-0">Enroll now to get access to all course materials and instructor support.</p>
-            </div>
-            <div className="flex gap-4">
-              {enrollment ? (
-                <Button size="lg" onClick={() => navigate(`/dashboard/courses/${course.id}`)}>
-                  Continue Learning
-                </Button>
-              ) : (
-                (userRole === undefined || userRole === 'student') && (
-                  <Button size="lg" onClick={() => navigate(`/enroll/${course.id}`)}>
-                    Enroll Now
-                  </Button>
-                )
-              )}
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => {
-                  if (course.category) {
-                    navigate(`/courses?category=${course.category}`);
-                  } else {
-                    navigate("/courses");
-                  }
-                }}
-              >
-                View Similar Courses
-              </Button>
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* Preview Modal */}
-      <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedPreviewLesson?.title}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="aspect-video">
-            {selectedPreviewLesson?.video_url ? (
-              renderVideo(selectedPreviewLesson.video_url)
-            ) : (
-              <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded-lg">
-                <div className="text-center">
-                  <Play className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Video preview not available</p>
-                </div>
-              </div>
-            )}
-          </div>
-          {selectedPreviewLesson?.content && (
-            <div className="mt-4">
-              <h4 className="font-semibold mb-2">Lesson Overview</h4>
-              <p className="text-gray-700">{selectedPreviewLesson.content}</p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 };
