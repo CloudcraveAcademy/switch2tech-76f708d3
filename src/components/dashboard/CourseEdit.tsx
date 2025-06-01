@@ -52,7 +52,7 @@ const CourseEdit = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("basic");
   const [isPublishing, setIsPublishing] = useState(false);
   const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
@@ -90,47 +90,69 @@ const CourseEdit = () => {
     }
   });
 
-  // Check if user is authenticated
+  // Enhanced authentication check with better error handling
   useEffect(() => {
+    console.log('CourseEdit: Auth state check', { user, authLoading, courseId });
+    
+    if (authLoading) {
+      console.log('CourseEdit: Auth still loading, waiting...');
+      return;
+    }
+    
     if (!user) {
-      console.log('User not authenticated, redirecting to login');
+      console.log('CourseEdit: No user found, redirecting to login');
       navigate('/login');
       return;
     }
-  }, [user, navigate]);
+    
+    console.log('CourseEdit: User authenticated:', user.id);
+  }, [user, authLoading, navigate, courseId]);
 
-  // Fetch course data
+  // Fetch course data with improved error handling
   const { data: course, isLoading, error } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
-      if (!courseId || !user) {
-        throw new Error("Course ID or user not available");
+      console.log('CourseEdit: Fetching course data', { courseId, userId: user?.id });
+      
+      if (!courseId) {
+        throw new Error("Course ID not provided");
       }
       
-      console.log('Fetching course with ID:', courseId);
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
       
       const { data, error } = await supabase
         .from("courses")
         .select("*")
         .eq("id", courseId)
-        .eq("instructor_id", user.id)
         .single();
 
       if (error) {
-        console.error('Error fetching course:', error);
+        console.error('CourseEdit: Error fetching course:', error);
         throw error;
       }
       
-      console.log('Course data fetched:', data);
+      if (!data) {
+        throw new Error("Course not found");
+      }
+      
+      // Check if user is the instructor for this course
+      if (data.instructor_id !== user.id) {
+        throw new Error("You don't have permission to edit this course");
+      }
+      
+      console.log('CourseEdit: Course data fetched successfully:', data);
       return data;
     },
-    enabled: !!courseId && !!user,
+    enabled: !!courseId && !!user && !authLoading,
+    retry: 1,
   });
 
   // Update form when course data is loaded
   useEffect(() => {
     if (course) {
-      console.log('Setting up form with course data:', course);
+      console.log('CourseEdit: Setting up form with course data:', course);
       
       const formData = {
         title: course.title || "",
@@ -163,6 +185,8 @@ const CourseEdit = () => {
   // Save course mutation
   const saveMutation = useMutation({
     mutationFn: async (formData: any) => {
+      console.log('CourseEdit: Saving course data:', formData);
+      
       if (!courseId || !user) throw new Error("Course ID or user not available");
       
       let imageUrl = course?.image_url || '';
@@ -219,13 +243,20 @@ const CourseEdit = () => {
         updated_at: new Date().toISOString(),
       };
 
+      console.log('CourseEdit: Updating course with data:', updateData);
+
       const { error } = await supabase
         .from("courses")
         .update(updateData)
         .eq("id", courseId)
         .eq("instructor_id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('CourseEdit: Error updating course:', error);
+        throw error;
+      }
+      
+      console.log('CourseEdit: Course updated successfully');
     },
     onSuccess: () => {
       toast({
@@ -235,6 +266,7 @@ const CourseEdit = () => {
       queryClient.invalidateQueries({ queryKey: ["course", courseId] });
     },
     onError: (error: any) => {
+      console.error('CourseEdit: Save mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to update course",
@@ -246,6 +278,8 @@ const CourseEdit = () => {
   // Publish/Unpublish course
   const togglePublishMutation = useMutation({
     mutationFn: async (published: boolean) => {
+      console.log('CourseEdit: Toggling publish status to:', published);
+      
       if (!courseId || !user) throw new Error("Course ID or user not available");
       
       const { error } = await supabase
@@ -254,7 +288,12 @@ const CourseEdit = () => {
         .eq("id", courseId)
         .eq("instructor_id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('CourseEdit: Error toggling publish status:', error);
+        throw error;
+      }
+      
+      console.log('CourseEdit: Publish status updated successfully');
       return published;
     },
     onSuccess: (published) => {
@@ -265,6 +304,7 @@ const CourseEdit = () => {
       queryClient.invalidateQueries({ queryKey: ["course", courseId] });
     },
     onError: (error: any) => {
+      console.error('CourseEdit: Publish toggle error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to update course status",
@@ -275,7 +315,7 @@ const CourseEdit = () => {
 
   const handleSave = () => {
     const formData = form.getValues();
-    console.log('Saving course with data:', formData);
+    console.log('CourseEdit: Saving course with data:', formData);
     saveMutation.mutate(formData);
   };
 
@@ -358,7 +398,22 @@ const CourseEdit = () => {
     setMaterialUploads(prev => prev.filter(item => item.url !== urlToRemove));
   };
 
-  // Show loading state
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading...</span>
+      </div>
+    );
+  }
+
+  // Don't render anything if user is not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
+
+  // Show loading state while course is loading
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -370,6 +425,7 @@ const CourseEdit = () => {
 
   // Show error state
   if (error || !course) {
+    console.error('CourseEdit: Error state or no course:', { error, course });
     return (
       <div className="text-center py-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Course not found</h2>
