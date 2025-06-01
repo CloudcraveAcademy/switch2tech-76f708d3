@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -10,7 +10,6 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
@@ -36,6 +35,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Enrollment form schema
 const enrollmentSchema = z.object({
@@ -44,10 +50,33 @@ const enrollmentSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   country: z.string().min(2, "Please select your country"),
+  currency: z.string().min(3, "Please select your currency"),
   motivation: z.string().min(20, "Please tell us why you want to take this course (minimum 20 characters)"),
 });
 
 type EnrollmentFormData = z.infer<typeof enrollmentSchema>;
+
+// Currency configuration
+const SUPPORTED_CURRENCIES = [
+  { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
+  { code: 'USD', name: 'US Dollar', symbol: '$' },
+  { code: 'GBP', name: 'British Pound', symbol: '£' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
+];
+
+// Exchange rates (in production, fetch from real-time API)
+const EXCHANGE_RATES = {
+  NGN: 1,
+  USD: 0.0012,
+  GBP: 0.00095,
+  EUR: 0.0011,
+};
+
+declare global {
+  interface Window {
+    FlutterwaveCheckout: any;
+  }
+}
 
 const EnrollmentPage = () => {
   const { id: courseId } = useParams();
@@ -55,6 +84,7 @@ const EnrollmentPage = () => {
   const navigate = useNavigate();
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [flutterwaveLoaded, setFlutterwaveLoaded] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -64,9 +94,34 @@ const EnrollmentPage = () => {
       email: user?.email || "",
       phone: "",
       country: "",
+      currency: "NGN",
       motivation: "",
     },
   });
+
+  // Load Flutterwave script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.flutterwave.com/v3.js';
+    script.async = true;
+    script.onload = () => {
+      setFlutterwaveLoaded(true);
+      console.log('Flutterwave script loaded successfully');
+    };
+    script.onerror = () => {
+      console.error('Failed to load Flutterwave script');
+      toast({
+        title: "Payment Error",
+        description: "Failed to load payment system. Please refresh the page.",
+        variant: "destructive",
+      });
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["course-enrollment", courseId],
@@ -127,24 +182,49 @@ const EnrollmentPage = () => {
     enabled: !!courseId && !!user?.id,
   });
 
-  const initializeFlutterwavePayment = async (enrollmentData: EnrollmentFormData) => {
-    if (!course || !user) return;
+  const convertPrice = (priceInNGN: number, toCurrency: string): number => {
+    const rate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES];
+    return Math.round(priceInNGN * rate * 100) / 100;
+  };
 
-    const amount = course.price || 0;
-    const isFree = amount === 0;
+  const formatPrice = (price: number, currency: string) => {
+    const currencyInfo = SUPPORTED_CURRENCIES.find(c => c.code === currency);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: currency === 'NGN' ? 0 : 2,
+      maximumFractionDigits: currency === 'NGN' ? 0 : 2
+    }).format(price);
+  };
+
+  const initializeFlutterwavePayment = async (enrollmentData: EnrollmentFormData) => {
+    if (!course || !user || !flutterwaveLoaded) {
+      toast({
+        title: "Payment Error",
+        description: "Payment system is not ready. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const basePriceNGN = course.price || 0;
+    const isFree = basePriceNGN === 0;
 
     if (isFree) {
-      // For free courses, skip payment and enroll directly
       return enrollDirectly(enrollmentData);
     }
 
-    // Initialize Flutterwave payment
+    // Convert price to selected currency
+    const convertedPrice = enrollmentData.currency === 'NGN' 
+      ? basePriceNGN 
+      : convertPrice(basePriceNGN, enrollmentData.currency);
+
     const flutterwaveConfig = {
-      public_key: "FLWPUBK-********************-X", // Replace with your Flutterwave public key
-      tx_ref: `course-${courseId}-${Date.now()}`,
-      amount: amount,
-      currency: "NGN",
-      country: "NG",
+      public_key: "FLWPUBK_TEST-8b2ff8de6b9c25e7f52b41de74f45afa-X", // Replace with your test public key
+      tx_ref: `course-${courseId}-${user.id}-${Date.now()}`,
+      amount: convertedPrice,
+      currency: enrollmentData.currency,
+      country: enrollmentData.country === 'Nigeria' ? 'NG' : 'US',
       payment_options: "card,mobilemoney,ussd",
       customer: {
         email: enrollmentData.email,
@@ -156,32 +236,37 @@ const EnrollmentPage = () => {
         description: `Payment for course enrollment`,
         logo: "/favicon.ico",
       },
+      callback: function (response: any) {
+        console.log('Flutterwave callback:', response);
+        if (response.status === "successful") {
+          handleSuccessfulPayment(response, enrollmentData);
+        } else {
+          setIsProcessingPayment(false);
+          toast({
+            title: "Payment Failed",
+            description: "Your payment was not successful. Please try again.",
+            variant: "destructive",
+          });
+        }
+      },
+      onclose: function () {
+        console.log('Flutterwave modal closed');
+        setIsProcessingPayment(false);
+      },
     };
 
-    // @ts-ignore - Flutterwave global object
-    if (typeof window !== 'undefined' && window.FlutterwaveCheckout) {
-      // @ts-ignore
-      window.FlutterwaveCheckout({
-        ...flutterwaveConfig,
-        callback: function (response: any) {
-          if (response.status === "successful") {
-            handleSuccessfulPayment(response, enrollmentData);
-          } else {
-            toast({
-              title: "Payment Failed",
-              description: "Your payment was not successful. Please try again.",
-              variant: "destructive",
-            });
-          }
-        },
-        onclose: function () {
-          setIsProcessingPayment(false);
-        },
-      });
-    } else {
+    try {
+      if (window.FlutterwaveCheckout) {
+        window.FlutterwaveCheckout(flutterwaveConfig);
+      } else {
+        throw new Error('Flutterwave checkout not available');
+      }
+    } catch (error) {
+      console.error('Flutterwave initialization error:', error);
+      setIsProcessingPayment(false);
       toast({
         title: "Payment Error",
-        description: "Payment system is not available. Please try again later.",
+        description: "Failed to initialize payment. Please try again.",
         variant: "destructive",
       });
     }
@@ -189,25 +274,30 @@ const EnrollmentPage = () => {
 
   const handleSuccessfulPayment = async (paymentResponse: any, enrollmentData: EnrollmentFormData) => {
     try {
+      console.log('Processing successful payment:', paymentResponse);
+      
       // Save payment transaction
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
           user_id: user!.id,
           course_id: courseId,
-          amount: course!.price || 0,
-          currency: "NGN",
+          amount: paymentResponse.amount || course!.price || 0,
+          currency: paymentResponse.currency || enrollmentData.currency,
           payment_reference: paymentResponse.tx_ref,
           paystack_reference: paymentResponse.transaction_id,
           status: "successful",
-          payment_method: paymentResponse.payment_type,
+          payment_method: paymentResponse.payment_type || "card",
           metadata: {
             flutterwave_response: paymentResponse,
             enrollment_data: enrollmentData
           }
         }]);
 
-      if (paymentError) throw paymentError;
+      if (paymentError) {
+        console.error('Payment transaction save error:', paymentError);
+        throw paymentError;
+      }
 
       // Enroll the student
       await enrollDirectly(enrollmentData);
@@ -218,17 +308,22 @@ const EnrollmentPage = () => {
       });
 
     } catch (error: any) {
+      console.error('Post-payment processing error:', error);
       toast({
         title: "Enrollment Error",
         description: error.message || "Something went wrong after payment. Please contact support.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
   const enrollDirectly = async (enrollmentData: EnrollmentFormData) => {
     try {
-      // Update user profile with enrollment data (excluding id)
+      console.log('Starting direct enrollment:', enrollmentData);
+      
+      // Update user profile with enrollment data
       const { error: profileError } = await supabase
         .from("user_profiles")
         .update({
@@ -239,7 +334,10 @@ const EnrollmentPage = () => {
         })
         .eq('id', user!.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        throw profileError;
+      }
 
       // Create enrollment
       const { error: enrollmentError } = await supabase
@@ -251,24 +349,30 @@ const EnrollmentPage = () => {
           completed: false
         }]);
 
-      if (enrollmentError) throw enrollmentError;
+      if (enrollmentError) {
+        console.error('Enrollment creation error:', enrollmentError);
+        throw enrollmentError;
+      }
 
       toast({
         title: "Enrollment Successful!",
         description: "You have been successfully enrolled in this course.",
       });
 
-      // Redirect to course
+      // Redirect to course after short delay
       setTimeout(() => {
         navigate(`/dashboard/courses/${courseId}`);
       }, 2000);
 
     } catch (error: any) {
+      console.error('Direct enrollment error:', error);
       throw error;
     }
   };
 
   const onSubmit = async (data: EnrollmentFormData) => {
+    console.log('Form submitted with data:', data);
+    
     if (!user) {
       toast({
         title: "Please Login",
@@ -290,16 +394,14 @@ const EnrollmentPage = () => {
     try {
       await initializeFlutterwavePayment(data);
     } catch (error: any) {
+      console.error('Enrollment submission error:', error);
       toast({
         title: "Enrollment Failed",
         description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsEnrolling(false);
-      if (course?.price === 0) {
-        setIsProcessingPayment(false);
-      }
+      setIsProcessingPayment(false);
     }
   };
 
@@ -344,7 +446,10 @@ const EnrollmentPage = () => {
     ? `${course.user_profiles.first_name || ""} ${course.user_profiles.last_name || ""}`.trim()
     : "Instructor";
 
-  const isFree = (course.price || 0) === 0;
+  const selectedCurrency = form.watch("currency");
+  const basePriceNGN = course.price || 0;
+  const isFree = basePriceNGN === 0;
+  const displayPrice = isFree ? 0 : (selectedCurrency === 'NGN' ? basePriceNGN : convertPrice(basePriceNGN, selectedCurrency));
 
   return (
     <Layout>
@@ -475,22 +580,49 @@ const EnrollmentPage = () => {
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="country"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              Country
-                            </FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter your country" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="country"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                Country
+                              </FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter your country" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Preferred Currency</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select currency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {SUPPORTED_CURRENCIES.map((currency) => (
+                                    <SelectItem key={currency.code} value={currency.code}>
+                                      {currency.symbol} {currency.name} ({currency.code})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
                       <FormField
                         control={form.control}
@@ -514,12 +646,14 @@ const EnrollmentPage = () => {
                         type="submit" 
                         className="w-full" 
                         size="lg"
-                        disabled={isEnrolling || isProcessingPayment}
+                        disabled={isEnrolling || isProcessingPayment || !flutterwaveLoaded}
                       >
                         {isProcessingPayment ? (
                           "Processing Payment..."
                         ) : isEnrolling ? (
                           "Enrolling..."
+                        ) : !flutterwaveLoaded ? (
+                          "Loading Payment System..."
                         ) : (
                           <>
                             {isFree ? (
@@ -527,7 +661,7 @@ const EnrollmentPage = () => {
                             ) : (
                               <>
                                 <CreditCard className="h-4 w-4 mr-2" />
-                                Enroll & Pay {formatPrice(course.price || 0)}
+                                Enroll & Pay {formatPrice(displayPrice, selectedCurrency)}
                               </>
                             )}
                           </>
@@ -580,11 +714,11 @@ const EnrollmentPage = () => {
 
                     <div className="text-center py-4 border-y">
                       <div className="text-3xl font-bold text-brand-600 mb-1">
-                        {isFree ? "FREE" : formatPrice(course.price || 0)}
+                        {isFree ? "FREE" : formatPrice(displayPrice, selectedCurrency)}
                       </div>
-                      {course.discounted_price && (
-                        <div className="text-lg text-gray-500 line-through">
-                          {formatPrice(course.discounted_price)}
+                      {basePriceNGN > 0 && selectedCurrency !== 'NGN' && (
+                        <div className="text-sm text-gray-500">
+                          ≈ {formatPrice(basePriceNGN, 'NGN')} (Original price)
                         </div>
                       )}
                     </div>
