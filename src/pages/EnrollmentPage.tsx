@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -229,16 +228,16 @@ const EnrollmentPage = () => {
 
   const enrollDirectly = async (enrollmentData: EnrollmentFormData) => {
     try {
-      // Update user profile with enrollment data
+      // Update user profile with enrollment data (excluding id)
       const { error: profileError } = await supabase
         .from("user_profiles")
-        .upsert({
-          id: user!.id,
+        .update({
           first_name: enrollmentData.firstName,
           last_name: enrollmentData.lastName,
           phone: enrollmentData.phone,
           country: enrollmentData.country,
-        });
+        })
+        .eq('id', user!.id);
 
       if (profileError) throw profileError;
 
