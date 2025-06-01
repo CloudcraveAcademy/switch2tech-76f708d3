@@ -203,11 +203,12 @@ const EnrollmentPage = () => {
     }).format(price);
   };
 
-  const registerUser = async (enrollmentData: EnrollmentFormData) => {
+  const registerOrLoginUser = async (enrollmentData: EnrollmentFormData) => {
     try {
-      console.log('Registering new user:', enrollmentData.email);
+      console.log('Attempting to register or login user:', enrollmentData.email);
       
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      // First, try to sign up the user
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: enrollmentData.email,
         password: enrollmentData.password!,
         options: {
@@ -219,15 +220,33 @@ const EnrollmentPage = () => {
         },
       });
 
+      // If user already exists, try to sign them in
+      if (signUpError && signUpError.message.includes('already registered')) {
+        console.log('User already exists, attempting to sign them in');
+        
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: enrollmentData.email,
+          password: enrollmentData.password!,
+        });
+
+        if (signInError) {
+          console.error('Sign in error:', signInError);
+          throw new Error("User already exists but password is incorrect. Please use the correct password or try the login page.");
+        }
+
+        console.log('User signed in successfully:', signInData.user?.id);
+        return signInData.user;
+      }
+
       if (signUpError) {
         console.error('Registration error:', signUpError);
         throw signUpError;
       }
 
-      console.log('User registration successful:', authData.user?.id);
-      return authData.user;
+      console.log('User registration successful:', signUpData.user?.id);
+      return signUpData.user;
     } catch (error: any) {
-      console.error('Registration failed:', error);
+      console.error('Registration/Login failed:', error);
       throw error;
     }
   };
@@ -355,7 +374,7 @@ const EnrollmentPage = () => {
         
         // Check if this is a new user payment
         if (!user && enrollmentData.password) {
-          console.log('New user payment detected, registering user first');
+          console.log('New user payment detected, processing authentication and enrollment');
           handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
         } else {
           // Existing user payment
@@ -387,53 +406,28 @@ const EnrollmentPage = () => {
     try {
       console.log('Handling new user payment verification');
       
-      // First register the user
-      const newUser = await registerUser(enrollmentData);
-      if (!newUser) {
-        throw new Error("Failed to create user account during payment verification");
+      // Try to register or login the user
+      const authUser = await registerOrLoginUser(enrollmentData);
+      if (!authUser) {
+        throw new Error("Failed to authenticate user during payment verification");
       }
 
-      console.log('New user registered successfully, waiting for auth to settle...');
+      console.log('User authenticated successfully, proceeding with enrollment');
       
-      // Set up a listener for auth state change to continue the process
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log('Auth state change during payment verification:', event);
-          
-          if (event === 'SIGNED_IN' && session?.user?.id === newUser.id) {
-            console.log('User successfully authenticated, proceeding with enrollment');
-            
-            // Clean up the listener
-            subscription.unsubscribe();
-            
-            // Now complete the payment verification and enrollment
-            try {
-              await completePaymentAndEnrollment(session.user.id, transactionId, enrollmentData);
-            } catch (error) {
-              console.error('Error completing payment and enrollment:', error);
-              toast({
-                title: "Enrollment Error",
-                description: "There was an issue completing your enrollment. Please contact support.",
-                variant: "destructive",
-              });
-            }
-          }
-        }
-      );
-
-      // Set a timeout to clean up if auth doesn't happen
-      setTimeout(() => {
-        subscription.unsubscribe();
-        console.log('Auth state listener timeout');
-      }, 10000);
+      // Complete the payment verification and enrollment
+      await completePaymentAndEnrollment(authUser.id, transactionId, enrollmentData);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('New user payment verification error:', error);
       toast({
-        title: "Registration Error",
-        description: "There was an issue creating your account. Please try again.",
+        title: "Authentication Error", 
+        description: error.message || "There was an issue with your account. Please try logging in manually.",
         variant: "destructive",
       });
+      // Redirect to login page with the email pre-filled
+      setTimeout(() => {
+        navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}`);
+      }, 3000);
     }
   };
 
@@ -471,7 +465,7 @@ const EnrollmentPage = () => {
       await enrollDirectly(enrollmentData, userId);
 
       toast({
-        title: "Payment Verified!",
+        title: "Enrollment Successful!",
         description: "Your payment has been confirmed and you've been enrolled!",
       });
 
@@ -663,7 +657,7 @@ const EnrollmentPage = () => {
           return;
         }
 
-        const newUser = await registerUser(data);
+        const newUser = await registerOrLoginUser(data);
         if (!newUser) {
           throw new Error("Failed to create user account");
         }
