@@ -345,13 +345,24 @@ const EnrollmentPage = () => {
     const transactionId = urlParams.get('transaction_id');
     
     if (paymentStatus === 'success') {
-      // Get enrollment data from localStorage if available
+      console.log('Payment success detected in URL');
+      // Get enrollment data from localStorage
       const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
+      
       if (storedEnrollmentData) {
         const enrollmentData = JSON.parse(storedEnrollmentData);
-        verifyPaymentAndEnroll(transactionId || 'redirect_success', enrollmentData);
+        console.log('Found stored enrollment data:', enrollmentData);
+        
+        // Check if this is a new user payment
+        if (!user && enrollmentData.password) {
+          console.log('New user payment detected, registering user first');
+          handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
+        } else {
+          // Existing user payment
+          verifyPaymentAndEnroll(transactionId || 'redirect_success', enrollmentData);
+        }
       } else {
-        // Fallback: just show success and redirect
+        console.log('No stored enrollment data found');
         toast({
           title: "Payment Successful!",
           description: "Your payment has been processed. Redirecting to course...",
@@ -370,34 +381,118 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate]);
+  }, [courseId, navigate, user]);
+
+  const handleNewUserPaymentVerification = async (enrollmentData: EnrollmentFormData, transactionId: string) => {
+    try {
+      console.log('Handling new user payment verification');
+      
+      // First register the user
+      const newUser = await registerUser(enrollmentData);
+      if (!newUser) {
+        throw new Error("Failed to create user account during payment verification");
+      }
+
+      console.log('New user registered successfully, waiting for auth to settle...');
+      
+      // Set up a listener for auth state change to continue the process
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('Auth state change during payment verification:', event);
+          
+          if (event === 'SIGNED_IN' && session?.user?.id === newUser.id) {
+            console.log('User successfully authenticated, proceeding with enrollment');
+            
+            // Clean up the listener
+            subscription.unsubscribe();
+            
+            // Now complete the payment verification and enrollment
+            try {
+              await completePaymentAndEnrollment(session.user.id, transactionId, enrollmentData);
+            } catch (error) {
+              console.error('Error completing payment and enrollment:', error);
+              toast({
+                title: "Enrollment Error",
+                description: "There was an issue completing your enrollment. Please contact support.",
+                variant: "destructive",
+              });
+            }
+          }
+        }
+      );
+
+      // Set a timeout to clean up if auth doesn't happen
+      setTimeout(() => {
+        subscription.unsubscribe();
+        console.log('Auth state listener timeout');
+      }, 10000);
+      
+    } catch (error) {
+      console.error('New user payment verification error:', error);
+      toast({
+        title: "Registration Error",
+        description: "There was an issue creating your account. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const completePaymentAndEnrollment = async (userId: string, transactionId: string, enrollmentData: EnrollmentFormData) => {
+    try {
+      console.log('Completing payment and enrollment for user:', userId);
+      
+      // Save payment transaction record for the specific course
+      const { error: paymentError } = await supabase
+        .from("payment_transactions")
+        .insert([{
+          user_id: userId,
+          course_id: courseId,
+          amount: course?.price || 0,
+          currency: enrollmentData.currency || 'USD',
+          payment_reference: transactionId,
+          paystack_reference: transactionId,
+          status: "successful",
+          payment_method: "card",
+          metadata: {
+            flutterwave_redirect: true,
+            enrollment_data: enrollmentData,
+            verified_course_id: courseId
+          }
+        }]);
+
+      if (paymentError) {
+        console.error('Payment transaction save error:', paymentError);
+        throw paymentError;
+      }
+
+      console.log('Payment transaction saved successfully');
+
+      // Complete enrollment for the specific course
+      await enrollDirectly(enrollmentData, userId);
+
+      toast({
+        title: "Payment Verified!",
+        description: "Your payment has been confirmed and you've been enrolled!",
+      });
+
+      // Clean up stored data
+      localStorage.removeItem(`enrollment_${courseId}`);
+
+      setTimeout(() => {
+        navigate(`/dashboard/courses/${courseId}`);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error completing payment and enrollment:', error);
+      throw error;
+    }
+  };
 
   const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: EnrollmentFormData) => {
     try {
-      console.log('Verifying payment with transaction ID:', transactionId);
+      console.log('Verifying payment for existing user:', user?.id);
       
-      let currentUserId = user?.id;
-
-      // Handle new user registration if needed
-      if (!currentUserId && enrollmentData && enrollmentData.password) {
-        console.log('New user payment verification - registering user first');
-        
-        const newUser = await registerUser(enrollmentData);
-        if (!newUser) {
-          throw new Error("Failed to create user account during payment verification");
-        }
-        currentUserId = newUser.id;
-        
-        // Wait for auth to settle
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Refresh the page to get the new auth state
-        console.log('User registered successfully, refreshing page...');
-        window.location.reload();
-        return;
-      }
-
-      if (!currentUserId) {
+      if (!user?.id) {
         toast({
           title: "Authentication Error",
           description: "Please log in to complete your enrollment.",
@@ -407,55 +502,15 @@ const EnrollmentPage = () => {
         return;
       }
 
-      // Save payment transaction record - ONLY for the specific course
-      const { error: paymentError } = await supabase
-        .from("payment_transactions")
-        .insert([{
-          user_id: currentUserId,
-          course_id: courseId, // This ensures payment is tied to specific course
-          amount: course?.price || 0,
-          currency: enrollmentData?.currency || 'USD',
-          payment_reference: transactionId,
-          paystack_reference: transactionId,
-          status: "successful",
-          payment_method: "card",
-          metadata: {
-            flutterwave_redirect: true,
-            enrollment_data: enrollmentData,
-            verified_course_id: courseId // Extra verification
-          }
-        }]);
-
-      if (paymentError) {
-        console.error('Payment transaction save error:', paymentError);
-        throw paymentError;
-      }
-
-      // Complete enrollment ONLY for the paid course
-      if (enrollmentData) {
-        await enrollDirectly(enrollmentData, currentUserId);
-      } else {
-        await enrollDirectly({
-          firstName: user?.user_metadata?.first_name || "",
-          lastName: user?.user_metadata?.last_name || "",
-          email: user?.email || "",
-          phone: "",
-          country: "",
-          currency: "USD",
-          motivation: "Payment completed via redirect"
-        }, currentUserId);
-      }
-
-      toast({
-        title: "Payment Verified!",
-        description: "Your payment has been confirmed and you've been enrolled!",
+      await completePaymentAndEnrollment(user.id, transactionId, enrollmentData || {
+        firstName: user?.user_metadata?.first_name || "",
+        lastName: user?.user_metadata?.last_name || "",
+        email: user?.email || "",
+        phone: "",
+        country: "",
+        currency: "USD",
+        motivation: "Payment completed via redirect"
       });
-
-      localStorage.removeItem(`enrollment_${courseId}`);
-
-      setTimeout(() => {
-        navigate(`/dashboard/courses/${courseId}`);
-      }, 2000);
 
     } catch (error) {
       console.error('Payment verification error:', error);
