@@ -59,8 +59,8 @@ const DashboardRoutes = () => {
       <Route path="/students" element={<MyStudents />} />
       <Route path="/revenue" element={<MyRevenue />} />
       <Route path="/create-course" element={<CreateCourse />} />
-      <Route path="/courses/:id/edit" element={<CourseEdit />} />
-      <Route path="/courses/:id/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
+      <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
+      <Route path="/courses/:courseId/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
     </>
   );
 
