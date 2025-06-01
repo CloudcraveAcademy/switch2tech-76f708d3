@@ -188,7 +188,6 @@ const EnrollmentPage = () => {
   };
 
   const formatPrice = (price: number, currency: string) => {
-    const currencyInfo = SUPPORTED_CURRENCIES.find(c => c.code === currency);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
@@ -453,9 +452,6 @@ const EnrollmentPage = () => {
 
   return (
     <Layout>
-      {/* Add Flutterwave script */}
-      <script src="https://checkout.flutterwave.com/v3.js"></script>
-      
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Back Button */}
         <Button 
