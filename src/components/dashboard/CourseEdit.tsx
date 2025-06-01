@@ -55,7 +55,6 @@ const CourseEdit = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("basic");
   const [isPublishing, setIsPublishing] = useState(false);
-  const [courseData, setCourseData] = useState<CourseData | null>(null);
   const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
   const [materialUploads, setMaterialUploads] = useState<{
     file: File;
@@ -91,24 +90,30 @@ const CourseEdit = () => {
     }
   });
 
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!user) {
+      console.log('User not authenticated, redirecting to login');
+      navigate('/login');
+      return;
+    }
+  }, [user, navigate]);
+
   // Fetch course data
   const { data: course, isLoading, error } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
-      if (!courseId) return null;
+      if (!courseId || !user) {
+        throw new Error("Course ID or user not available");
+      }
       
       console.log('Fetching course with ID:', courseId);
       
       const { data, error } = await supabase
         .from("courses")
-        .select(`
-          *,
-          course_categories (
-            id,
-            name
-          )
-        `)
+        .select("*")
         .eq("id", courseId)
+        .eq("instructor_id", user.id)
         .single();
 
       if (error) {
@@ -119,9 +124,10 @@ const CourseEdit = () => {
       console.log('Course data fetched:', data);
       return data;
     },
-    enabled: !!courseId,
+    enabled: !!courseId && !!user,
   });
 
+  // Update form when course data is loaded
   useEffect(() => {
     if (course) {
       console.log('Setting up form with course data:', course);
@@ -151,49 +157,19 @@ const CourseEdit = () => {
       };
 
       form.reset(formData);
-
-      setCourseData({
-        id: course.id,
-        title: course.title || "",
-        description: course.description || "",
-        price: course.price || 0,
-        discounted_price: course.discounted_price || undefined,
-        duration_hours: course.duration_hours || 0,
-        level: course.level || "beginner",
-        category: course.category || "",
-        language: course.language || "English",
-        mode: (course.mode as "self-paced" | "virtual-live") || "self-paced",
-        multi_language_support: course.multi_language_support || false,
-        additional_languages: course.additional_languages || [],
-        certificate_enabled: course.certificate_enabled || false,
-        registration_deadline: course.registration_deadline || "",
-        course_start_date: course.course_start_date || "",
-        replay_access: course.replay_access || false,
-        preview_video: course.preview_video || "",
-        course_materials: course.course_materials || [],
-        access_duration: course.access_duration || "",
-        class_days: course.class_days || [],
-        class_time: course.class_time || "",
-        timezone: course.timezone || "",
-        is_published: course.is_published || false,
-        image_url: course.image_url || "",
-        instructor_id: course.instructor_id,
-        created_at: course.created_at,
-        updated_at: course.updated_at,
-      });
     }
   }, [course, form]);
 
   // Save course mutation
   const saveMutation = useMutation({
     mutationFn: async (formData: any) => {
-      if (!courseId) throw new Error("Course ID is required");
+      if (!courseId || !user) throw new Error("Course ID or user not available");
       
-      let imageUrl = courseData?.image_url || '';
+      let imageUrl = course?.image_url || '';
       
       // Upload new image if selected
       if (courseImageFile) {
-        const imagePath = `course-images/${user?.id}/${Date.now()}_${courseImageFile.name}`;
+        const imagePath = `course-images/${user.id}/${Date.now()}_${courseImageFile.name}`;
         const { error: uploadError } = await supabase.storage
           .from('course-materials')
           .upload(imagePath, courseImageFile);
@@ -214,7 +190,7 @@ const CourseEdit = () => {
         .filter(upload => upload.status === 'success' && upload.url)
         .map(upload => upload.url!);
       
-      const existingMaterials = courseData?.course_materials || [];
+      const existingMaterials = course?.course_materials || [];
       const courseMaterialUrls = [...existingMaterials, ...newMaterialUrls];
       
       const updateData = {
@@ -246,7 +222,8 @@ const CourseEdit = () => {
       const { error } = await supabase
         .from("courses")
         .update(updateData)
-        .eq("id", courseId);
+        .eq("id", courseId)
+        .eq("instructor_id", user.id);
 
       if (error) throw error;
     },
@@ -269,22 +246,23 @@ const CourseEdit = () => {
   // Publish/Unpublish course
   const togglePublishMutation = useMutation({
     mutationFn: async (published: boolean) => {
-      if (!courseId) throw new Error("Course ID is required");
+      if (!courseId || !user) throw new Error("Course ID or user not available");
       
       const { error } = await supabase
         .from("courses")
         .update({ is_published: published })
-        .eq("id", courseId);
+        .eq("id", courseId)
+        .eq("instructor_id", user.id);
 
       if (error) throw error;
+      return published;
     },
-    onSuccess: (_, published) => {
+    onSuccess: (published) => {
       toast({
         title: "Success",
         description: `Course ${published ? "published" : "unpublished"} successfully`,
       });
       queryClient.invalidateQueries({ queryKey: ["course", courseId] });
-      setCourseData(prev => prev ? { ...prev, is_published: published } : null);
     },
     onError: (error: any) => {
       toast({
@@ -302,10 +280,10 @@ const CourseEdit = () => {
   };
 
   const handlePublishToggle = () => {
-    if (!courseData) return;
+    if (!course) return;
     
     setIsPublishing(true);
-    togglePublishMutation.mutate(!courseData.is_published, {
+    togglePublishMutation.mutate(!course.is_published, {
       onSettled: () => setIsPublishing(false),
     });
   };
@@ -373,26 +351,31 @@ const CourseEdit = () => {
   };
 
   const handleRemoveMaterial = (urlToRemove: string) => {
-    if (courseData) {
-      const updatedMaterials = courseData.course_materials.filter(url => url !== urlToRemove);
-      setCourseData({ ...courseData, course_materials: updatedMaterials });
+    if (course) {
+      const updatedMaterials = course.course_materials.filter(url => url !== urlToRemove);
+      queryClient.setQueryData(["course", courseId], { ...course, course_materials: updatedMaterials });
     }
     setMaterialUploads(prev => prev.filter(item => item.url !== urlToRemove));
   };
 
+  // Show loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading course...</span>
       </div>
     );
   }
 
-  if (error || !courseData) {
+  // Show error state
+  if (error || !course) {
     return (
       <div className="text-center py-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Course not found</h2>
-        <p className="text-gray-600 mb-4">The course you're looking for doesn't exist or you don't have permission to edit it.</p>
+        <p className="text-gray-600 mb-4">
+          {error?.message || "The course you're looking for doesn't exist or you don't have permission to edit it."}
+        </p>
         <Button onClick={() => navigate("/dashboard/my-courses")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to My Courses
@@ -416,7 +399,7 @@ const CourseEdit = () => {
             </Button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Edit Course</h1>
-          <p className="text-gray-600">{courseData.title}</p>
+          <p className="text-gray-600">{course.title}</p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -426,12 +409,12 @@ const CourseEdit = () => {
           >
             {isPublishing ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : courseData.is_published ? (
+            ) : course.is_published ? (
               <EyeOff className="h-4 w-4 mr-2" />
             ) : (
               <Eye className="h-4 w-4 mr-2" />
             )}
-            {courseData.is_published ? "Unpublish" : "Publish"}
+            {course.is_published ? "Unpublish" : "Publish"}
           </Button>
           <Button 
             onClick={handleSave} 
@@ -489,9 +472,9 @@ const CourseEdit = () => {
               <CourseMediaUpload
                 onCoverImageChange={handleCoverImageChange}
                 onMaterialsChange={handleMaterialsChange}
-                imageUrl={courseData.image_url}
-                previewVideoUrl={courseData.preview_video}
-                existingMaterials={courseData.course_materials}
+                imageUrl={course.image_url}
+                previewVideoUrl={course.preview_video}
+                existingMaterials={course.course_materials}
                 materialUploads={materialUploads}
                 imageError={imageError}
                 form={form}
