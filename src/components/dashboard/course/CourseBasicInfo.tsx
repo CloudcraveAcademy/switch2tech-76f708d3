@@ -149,7 +149,7 @@ export const CourseBasicInfo = ({ form }: { form: any }) => {
                   type="number" 
                   placeholder="Enter duration in hours" 
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value)}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <FormDescription>Total hours of course content</FormDescription>

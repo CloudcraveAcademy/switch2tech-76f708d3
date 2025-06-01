@@ -21,35 +21,24 @@ export const courseSchema = z.object({
   title: z.string().min(5, 'Title is required and should be at least 5 characters'),
   description: z.string().min(10, 'Description is required and should be at least 10 characters'),
   price: z.number().min(0, 'Price is required'),
+  discountEnabled: z.boolean().default(false),
   discountedPrice: z.number().min(0).optional(),
-  duration_hours: z.number().min(1, 'Duration is required'),
+  duration: z.number().min(1, 'Duration is required'),
   level: z.string().min(1, 'Level is required'),
   category: z.string().min(1, 'Category is required'),
   language: z.string().default('English'),
   mode: z.enum(['virtual-live', 'self-paced']).default('self-paced'),
-  multi_language_support: z.boolean().default(false),
-  additional_languages: z.array(z.string()).default([]),
-  image_url: z.string().optional(),
+  multiLanguageSupport: z.boolean().default(false),
+  additionalLanguages: z.array(z.string()).default([]),
   preview_video: z.string().optional(),
-  course_materials: z.array(z.string()).default([]),
-  is_published: z.boolean().default(false),
   certificateEnabled: z.boolean().default(false),
   accessDuration: z.string().optional(),
-  // Updated to handle date objects properly
   registrationDeadline: z.date().optional().nullable(), 
   courseStartDate: z.date().optional().nullable(),
   classDays: z.array(z.string()).optional(),
   class_time: z.string().optional(),
   timezone: z.string().optional(),
   replayAccess: z.boolean().default(false),
-  enrollment_limit: z.number().min(0).default(0),
-  tags: z.array(z.string()).default([]),
-  prerequisites: z.array(z.string()).default([]),
-  objectives: z.array(z.string()).default([]),
-  target_audience: z.string().optional(),
-  promotion_enabled: z.boolean().default(false),
-  promotionEndDate: z.date().optional(),
-  autoEnrollAfterPurchase: z.boolean().default(true),
 });
 
 const CreateCourse = () => {
@@ -67,6 +56,7 @@ const CreateCourse = () => {
     url?: string;
   }[]>([]);
   const [imageError, setImageError] = useState(false);
+  const [courseImagePreview, setCourseImagePreview] = useState<string>('');
 
   // Initialize form
   const methods = useForm({
@@ -75,18 +65,16 @@ const CreateCourse = () => {
       title: '',
       description: '',
       price: 0,
+      discountEnabled: false,
       discountedPrice: 0,
-      duration_hours: 0,
+      duration: 0,
       level: '',
       category: '',
       language: 'English',
       mode: 'self-paced' as const,
-      multi_language_support: false,
-      additional_languages: [],
-      image_url: '',
+      multiLanguageSupport: false,
+      additionalLanguages: [],
       preview_video: '',
-      course_materials: [],
-      is_published: false,
       certificateEnabled: false,
       accessDuration: '',
       registrationDeadline: null as unknown as Date,
@@ -95,16 +83,17 @@ const CreateCourse = () => {
       class_time: '',
       timezone: '',
       replayAccess: false,
-      enrollment_limit: 0,
-      tags: [],
-      prerequisites: [],
-      objectives: [],
-      target_audience: '',
-      promotion_enabled: false,
-      promotionEndDate: undefined,
-      autoEnrollAfterPurchase: true,
     }
   });
+
+  const handleCoverImageChange = (file: File) => {
+    setCourseImageFile(file);
+    setImageError(false);
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setCourseImagePreview(previewUrl);
+  };
 
   const handleMaterialUpload = async (files: FileList) => {
     if (!user || files.length === 0) return;
@@ -123,14 +112,12 @@ const CreateCourse = () => {
     setMaterialUploads(prev => [...prev, ...newUploads]);
     
     // Process each file upload
-    const updatedMaterialUrls = [...methods.getValues('course_materials')];
-    
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i];
       
       try {
         // Upload to Supabase Storage
-        const filePath = `${user.id}/${Date.now()}_${file.name}`;
+        const filePath = `course-materials/${user.id}/${Date.now()}_${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from('course-materials')
           .upload(filePath, file);
@@ -144,9 +131,6 @@ const CreateCourse = () => {
           .from('course-materials')
           .getPublicUrl(filePath);
           
-        // Add URL to course materials
-        updatedMaterialUrls.push(publicUrlData.publicUrl);
-        
         // Update status to success
         setMaterialUploads(prev => 
           prev.map(item => 
@@ -168,22 +152,17 @@ const CreateCourse = () => {
         );
       }
     }
-    
-    // Update form with new URLs
-    methods.setValue('course_materials', updatedMaterialUrls);
   };
 
   const handleRemoveMaterial = (urlToRemove: string) => {
-    const currentMaterials = methods.getValues('course_materials') || [];
-    const updatedMaterials = currentMaterials.filter(url => url !== urlToRemove);
-    methods.setValue('course_materials', updatedMaterials);
+    setMaterialUploads(prev => prev.filter(item => item.url !== urlToRemove));
   };
 
   const onSubmit = async (data: z.infer<typeof courseSchema>) => {
     if (!user) return;
     
     // Validate that image is provided
-    if (!courseImageFile && !data.image_url) {
+    if (!courseImageFile) {
       setImageError(true);
       toast({
         variant: "destructive",
@@ -196,10 +175,10 @@ const CreateCourse = () => {
     setSubmitting(true);
     
     try {
-      // Upload course image if selected
+      // Upload course image
       let imageUrl = '';
       if (courseImageFile) {
-        const imagePath = `${user.id}/${Date.now()}_${courseImageFile.name}`;
+        const imagePath = `course-images/${user.id}/${Date.now()}_${courseImageFile.name}`;
         const { error: uploadError } = await supabase.storage
           .from('course-materials')
           .upload(imagePath, courseImageFile);
@@ -215,29 +194,30 @@ const CreateCourse = () => {
         imageUrl = publicUrlData.publicUrl;
       }
       
-      // Get course materials from the form
-      const courseMaterialUrls = data.course_materials || [];
+      // Get course materials URLs from successful uploads
+      const courseMaterialUrls = materialUploads
+        .filter(upload => upload.status === 'success' && upload.url)
+        .map(upload => upload.url!);
       
       // Convert form data to match the database schema
       const courseData = {
         title: data.title,
         description: data.description,
         price: data.price,
-        discounted_price: data.discountedPrice,
-        duration_hours: data.duration_hours,
+        discounted_price: data.discountEnabled ? data.discountedPrice : null,
+        duration_hours: data.duration,
         instructor_id: user.id,
         level: data.level,
         category: data.category,
         mode: data.mode,
         language: data.language,
-        multi_language_support: data.multi_language_support,
-        additional_languages: data.additional_languages,
-        is_published: data.is_published,
+        multi_language_support: data.multiLanguageSupport,
+        additional_languages: data.additionalLanguages,
+        is_published: false,
         certificate_enabled: data.certificateEnabled,
         image_url: imageUrl,
         preview_video: data.preview_video,
         course_materials: courseMaterialUrls,
-        // Convert Date objects to ISO strings for the database
         registration_deadline: data.registrationDeadline ? data.registrationDeadline.toISOString() : null,
         course_start_date: data.courseStartDate ? data.courseStartDate.toISOString() : null,
         class_days: data.classDays,
@@ -245,15 +225,6 @@ const CreateCourse = () => {
         timezone: data.timezone,
         access_duration: data.accessDuration,
         replay_access: data.replayAccess,
-        // Additional fields
-        enrollment_limit: data.enrollment_limit,
-        tags: data.tags,
-        prerequisites: data.prerequisites,
-        objectives: data.objectives,
-        target_audience: data.target_audience,
-        promotion_enabled: data.promotion_enabled,
-        promotion_end_date: data.promotionEndDate ? data.promotionEndDate.toISOString() : null,
-        auto_enroll_after_purchase: data.autoEnrollAfterPurchase,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -327,14 +298,11 @@ const CreateCourse = () => {
 
                 <TabsContent value="media">
                   <CourseMediaUpload 
-                    onCoverImageChange={(file) => {
-                      setCourseImageFile(file);
-                      setImageError(false);
-                    }}
-                    onMaterialsChange={(files) => handleMaterialUpload(files)}
-                    imageUrl={methods.watch('image_url')}
+                    onCoverImageChange={handleCoverImageChange}
+                    onMaterialsChange={handleMaterialUpload}
+                    imageUrl={courseImagePreview}
                     previewVideoUrl={methods.watch('preview_video')}
-                    existingMaterials={methods.watch('course_materials')}
+                    existingMaterials={materialUploads.filter(u => u.status === 'success').map(u => u.url!)}
                     materialUploads={materialUploads}
                     imageError={imageError}
                     form={methods}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import { CourseSettings } from "./course/CourseSettings";
 import CurriculumManager from "./course/CurriculumManager";
 import { CourseAnnouncements } from "./course/CourseAnnouncements";
 import { useForm } from "react-hook-form";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CourseData {
   id: string;
@@ -50,9 +52,18 @@ const CourseEdit = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("basic");
   const [isPublishing, setIsPublishing] = useState(false);
   const [courseData, setCourseData] = useState<CourseData | null>(null);
+  const [courseImageFile, setCourseImageFile] = useState<File | null>(null);
+  const [materialUploads, setMaterialUploads] = useState<{
+    file: File;
+    name: string;
+    status: 'idle' | 'uploading' | 'success' | 'error';
+    url?: string;
+  }[]>([]);
+  const [imageError, setImageError] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -76,7 +87,7 @@ const CourseEdit = () => {
       classDays: [],
       class_time: "",
       timezone: "",
-      duration_hours: 0,
+      duration: 0,
     }
   });
 
@@ -127,7 +138,7 @@ const CourseEdit = () => {
         classDays: course.class_days || [],
         class_time: course.class_time || "",
         timezone: course.timezone || "",
-        duration_hours: course.duration_hours || 0,
+        duration: course.duration_hours || 0,
       };
 
       form.reset(formData);
@@ -169,6 +180,34 @@ const CourseEdit = () => {
     mutationFn: async (formData: any) => {
       if (!courseId) throw new Error("Course ID is required");
       
+      let imageUrl = courseData?.image_url || '';
+      
+      // Upload new image if selected
+      if (courseImageFile) {
+        const imagePath = `course-images/${user?.id}/${Date.now()}_${courseImageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(imagePath, courseImageFile);
+
+        if (uploadError) {
+          throw new Error(`Error uploading course image: ${uploadError.message}`);
+        }
+        
+        const { data: publicUrlData } = supabase.storage
+          .from('course-materials')
+          .getPublicUrl(imagePath);
+          
+        imageUrl = publicUrlData.publicUrl;
+      }
+      
+      // Get course materials URLs from successful uploads
+      const newMaterialUrls = materialUploads
+        .filter(upload => upload.status === 'success' && upload.url)
+        .map(upload => upload.url!);
+      
+      const existingMaterials = courseData?.course_materials || [];
+      const courseMaterialUrls = [...existingMaterials, ...newMaterialUrls];
+      
       const updateData = {
         title: formData.title,
         description: formData.description,
@@ -189,7 +228,10 @@ const CourseEdit = () => {
         class_days: formData.classDays,
         class_time: formData.class_time,
         timezone: formData.timezone,
-        duration_hours: Number(formData.duration_hours),
+        duration_hours: Number(formData.duration),
+        image_url: imageUrl,
+        course_materials: courseMaterialUrls,
+        updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase
@@ -259,13 +301,73 @@ const CourseEdit = () => {
   };
 
   const handleCoverImageChange = async (file: File) => {
-    console.log("Cover image changed:", file);
-    // Handle image upload logic here
+    setCourseImageFile(file);
+    setImageError(false);
   };
 
-  const handleMaterialsChange = (files: FileList) => {
-    console.log("Materials changed:", files);
-    // Handle materials upload logic here
+  const handleMaterialsChange = async (files: FileList) => {
+    if (!user || files.length === 0) return;
+    
+    const fileArray = Array.from(files);
+    
+    // Add files to material uploads state with 'uploading' status
+    const newUploads = fileArray.map(file => ({
+      file,
+      name: file.name,
+      status: 'uploading' as const
+    }));
+    
+    setMaterialUploads(prev => [...prev, ...newUploads]);
+    
+    // Process each file upload
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      
+      try {
+        // Upload to Supabase Storage
+        const filePath = `course-materials/${user.id}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('course-materials')
+          .upload(filePath, file);
+          
+        if (uploadError) {
+          throw new Error(`Error uploading file: ${uploadError.message}`);
+        }
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('course-materials')
+          .getPublicUrl(filePath);
+          
+        // Update status to success
+        setMaterialUploads(prev => 
+          prev.map(item => 
+            item.name === file.name 
+              ? { ...item, status: 'success' as const, url: publicUrlData.publicUrl } 
+              : item
+          )
+        );
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        
+        // Update status to error
+        setMaterialUploads(prev => 
+          prev.map(item => 
+            item.name === file.name 
+              ? { ...item, status: 'error' as const } 
+              : item
+          )
+        );
+      }
+    }
+  };
+
+  const handleRemoveMaterial = (urlToRemove: string) => {
+    if (courseData) {
+      const updatedMaterials = courseData.course_materials.filter(url => url !== urlToRemove);
+      setCourseData({ ...courseData, course_materials: updatedMaterials });
+    }
+    setMaterialUploads(prev => prev.filter(item => item.url !== urlToRemove));
   };
 
   if (isLoading) {
@@ -280,8 +382,8 @@ const CourseEdit = () => {
     return (
       <div className="text-center py-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Course not found</h2>
-        <Button onClick={() => navigate("/dashboard/courses")}>
-          Back to Courses
+        <Button onClick={() => navigate("/dashboard/my-courses")}>
+          Back to My Courses
         </Button>
       </div>
     );
@@ -368,7 +470,10 @@ const CourseEdit = () => {
                 imageUrl={courseData.image_url}
                 previewVideoUrl={courseData.preview_video}
                 existingMaterials={courseData.course_materials}
+                materialUploads={materialUploads}
+                imageError={imageError}
                 form={form}
+                onMaterialRemove={handleRemoveMaterial}
               />
             </CardContent>
           </Card>

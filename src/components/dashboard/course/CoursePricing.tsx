@@ -28,6 +28,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
                   type="number" 
                   className="pl-9"
                   placeholder="e.g. 10000"
+                  onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </div>
             </FormControl>
@@ -74,6 +75,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
                     type="number" 
                     className="pl-9"
                     placeholder="e.g. 8000"
+                    onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 </div>
               </FormControl>
