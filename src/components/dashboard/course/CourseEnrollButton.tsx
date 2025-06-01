@@ -29,12 +29,8 @@ const CourseEnrollButton = ({
 
   const handleEnroll = async () => {
     if (!user) {
-      toast({
-        title: "Please Login",
-        description: "You need to be logged in to enroll in courses",
-        variant: "destructive",
-      });
-      navigate("/login", { state: { from: `/courses/${courseId}` } });
+      // Redirect to enrollment page instead of login page
+      navigate(`/enroll/${courseId}`);
       return;
     }
 
