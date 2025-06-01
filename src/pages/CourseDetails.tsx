@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -6,18 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle, Clock, File, Play, Star, Users, Video } from "lucide-react";
+import { CheckCircle, Clock, File, Play, Star, Users, Video, BookOpen, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 
 const CourseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   // Figure out user role
@@ -49,6 +47,7 @@ const CourseDetails = () => {
           `
         )
         .eq("id", id)
+        .eq("is_published", true)
         .maybeSingle();
 
       if (error || !courseData) return null;
@@ -60,16 +59,21 @@ const CourseDetails = () => {
         .order("order_number", { ascending: true });
 
       let curriculum = [];
+      let previewLessons = [];
       if (lessonRows && lessonRows.length) {
+        // Get first two lessons as teasers
+        previewLessons = lessonRows.slice(0, 2);
+        
         curriculum = [
           {
             id: "section-main",
-            title: "Full Curriculum",
+            title: "Course Content",
             lessons: lessonRows.map(l => ({
               id: l.id,
               title: l.title,
               duration: l.duration_minutes ? `${l.duration_minutes} min` : "N/A",
-              type: "video"
+              type: "video",
+              isPreview: lessonRows.indexOf(l) < 2 // First two are preview
             }))
           }
         ];
@@ -88,11 +92,32 @@ const CourseDetails = () => {
         instructor: courseData.user_profiles && {
           name: `${courseData.user_profiles.first_name || ""} ${courseData.user_profiles.last_name || ""}`.trim(),
           avatar: courseData.user_profiles.avatar_url || "",
+          bio: courseData.user_profiles.bio || "",
         },
-        curriculum
+        curriculum,
+        previewLessons
       };
     },
     enabled: !!id,
+  });
+
+  // Check enrollment status
+  const { data: enrollment } = useQuery({
+    queryKey: ["enrollment-status", id, user?.id],
+    queryFn: async () => {
+      if (!id || !user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select("id, progress")
+        .eq("course_id", id)
+        .eq("student_id", user.id)
+        .maybeSingle();
+
+      if (error) return null;
+      return data;
+    },
+    enabled: !!id && !!user?.id,
   });
 
   if (isLoading) {
@@ -242,62 +267,31 @@ const CourseDetails = () => {
                   <p className="text-3xl font-bold text-brand-600 mb-4">
                     {formatPrice(course.price || 0)}
                   </p>
-                  {/* Enroll Now button: visible ONLY for students (role 'student') or unauthenticated users */}
-                  {(userRole === undefined || userRole === 'student') && (
-                    <Button className="w-full mb-4"
-                      onClick={async () => {
-                        if (!user) {
-                          toast({
-                            title: "Please login to enroll",
-                            description: "You need to sign in before enrolling in a course.",
-                            variant: "destructive",
-                          });
-                          navigate("/login?redirect=" + window.location.pathname);
-                          return;
-                        }
-                        // Attempt enrollment
-                        try {
-                          const { data: existing, error: existErr } = await supabase
-                            .from("enrollments")
-                            .select("id")
-                            .eq("course_id", course.id)
-                            .eq("student_id", user.id)
-                            .maybeSingle();
-
-                          if (existErr) throw existErr;
-                          if (existing) {
-                            toast({
-                              title: "Already enrolled",
-                              description: "You are already enrolled in this course.",
-                              variant: "default"
-                            });
-                            navigate("/dashboard/my-courses");
-                            return;
-                          }
-
-                          const { error } = await supabase
-                            .from("enrollments")
-                            .insert([{ course_id: course.id, student_id: user.id }]);
-                          if (error) throw error;
-                          toast({
-                            title: "Enrollment successful!",
-                            description: "You have been enrolled in this course.",
-                            variant: "default"
-                          });
-                          navigate("/dashboard/my-courses");
-                        } catch (err: any) {
-                          toast({
-                            title: "Could not enroll",
-                            description: err?.message || "Something went wrong.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      Enroll Now
-                    </Button>
+                  {course.discounted_price && (
+                    <p className="text-lg text-gray-500 line-through mb-2">
+                      {formatPrice(course.discounted_price)}
+                    </p>
                   )}
-                  <Button variant="outline" className="w-full"
+                  
+                  {enrollment ? (
+                    <Button className="w-full mb-4" onClick={() => navigate(`/dashboard/courses/${course.id}`)}>
+                      Continue Learning
+                    </Button>
+                  ) : (
+                    // Enroll Now button: visible ONLY for students (role 'student') or unauthenticated users
+                    (userRole === undefined || userRole === 'student') && (
+                      <Button 
+                        className="w-full mb-4"
+                        onClick={() => navigate(`/enroll/${course.id}`)}
+                      >
+                        Enroll Now
+                      </Button>
+                    )
+                  )}
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
                     onClick={() => {
                       if (course.category) {
                         navigate(`/courses?category=${course.category}`);
@@ -309,6 +303,7 @@ const CourseDetails = () => {
                     View Similar Courses
                   </Button>
                 </div>
+                
                 <div className="border-t border-gray-200 pt-4 space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600 flex items-center">
@@ -332,6 +327,24 @@ const CourseDetails = () => {
                     </span>
                     <span className="font-medium">{course.certificate_enabled ? "Yes" : "No"}</span>
                   </div>
+                  {course.access_duration && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 flex items-center">
+                        <Calendar className="h-5 w-5 mr-2" /> Access Duration
+                      </span>
+                      <span className="font-medium">{course.access_duration}</span>
+                    </div>
+                  )}
+                  {course.course_start_date && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 flex items-center">
+                        <Calendar className="h-5 w-5 mr-2" /> Start Date
+                      </span>
+                      <span className="font-medium">
+                        {new Date(course.course_start_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -340,6 +353,36 @@ const CourseDetails = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Preview Lessons Section */}
+        {course.previewLessons && course.previewLessons.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">Get a taste of this course</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {course.previewLessons.map((lesson, index) => (
+                <div key={lesson.id} className="bg-white border rounded-lg p-6 shadow-sm">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Play className="h-5 w-5 text-blue-600" />
+                      <Badge variant="secondary">Preview {index + 1}</Badge>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {lesson.duration_minutes} min
+                    </span>
+                  </div>
+                  <h3 className="font-semibold mb-2">{lesson.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    {lesson.content ? lesson.content.substring(0, 100) + "..." : "Preview this lesson to get started with the course content."}
+                  </p>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Play className="h-4 w-4 mr-2" />
+                    Watch Preview
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="grid grid-cols-4 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -432,6 +475,11 @@ const CourseDetails = () => {
                               <div className="flex items-center">
                                 <Play className="h-4 w-4 text-brand-600 mr-3" />
                                 <span>{lesson.title}</span>
+                                {lesson.isPreview && (
+                                  <Badge variant="outline" className="ml-2 text-xs">
+                                    Preview
+                                  </Badge>
+                                )}
                               </div>
                               <div className="text-sm text-gray-500">
                                 {lesson.duration}
@@ -466,9 +514,8 @@ const CourseDetails = () => {
               <div>
                 <h4 className="text-xl font-bold mb-3">About the Instructor</h4>
                 <p className="text-gray-700 mb-4">
-                  {"bio" in (course.user_profiles || {}) && course.user_profiles.bio
-                    ? course.user_profiles.bio
-                    : `With years of experience, ${course.instructor?.name || "the instructor"} is a leading expert in ${course.category_name}.`}
+                  {course.instructor?.bio || 
+                    `With years of experience, ${course.instructor?.name || "the instructor"} is a leading expert in ${course.category_name}.`}
                 </p>
               </div>
             </div>
@@ -507,59 +554,15 @@ const CourseDetails = () => {
               <p className="text-gray-600 mb-4 md:mb-0">Enroll now to get access to all course materials and instructor support.</p>
             </div>
             <div className="flex gap-4">
-              <Button
-                size="lg"
-                onClick={async () => {
-                  if (!user) {
-                    toast({
-                      title: "Please login to enroll",
-                      description: "You need to sign in before enrolling in a course.",
-                      variant: "destructive",
-                    });
-                    navigate("/login?redirect=" + window.location.pathname);
-                    return;
-                  }
-                  // Attempt enrollment
-                  try {
-                    const { data: existing, error: existErr } = await supabase
-                      .from("enrollments")
-                      .select("id")
-                      .eq("course_id", course.id)
-                      .eq("student_id", user.id)
-                      .maybeSingle();
-
-                    if (existErr) throw existErr;
-                    if (existing) {
-                      toast({
-                        title: "Already enrolled",
-                        description: "You are already enrolled in this course.",
-                        variant: "default"
-                      });
-                      navigate("/dashboard/my-courses");
-                      return;
-                    }
-
-                    const { error } = await supabase
-                      .from("enrollments")
-                      .insert([{ course_id: course.id, student_id: user.id }]);
-                    if (error) throw error;
-                    toast({
-                      title: "Enrollment successful!",
-                      description: "You have been enrolled in this course.",
-                      variant: "default"
-                    });
-                    navigate("/dashboard/my-courses");
-                  } catch (err: any) {
-                    toast({
-                      title: "Could not enroll",
-                      description: err?.message || "Something went wrong.",
-                      variant: "destructive"
-                    });
-                  }
-                }}
-              >
-                Enroll Now
-              </Button>
+              {enrollment ? (
+                <Button size="lg" onClick={() => navigate(`/dashboard/courses/${course.id}`)}>
+                  Continue Learning
+                </Button>
+              ) : (
+                <Button size="lg" onClick={() => navigate(`/enroll/${course.id}`)}>
+                  Enroll Now
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="lg"

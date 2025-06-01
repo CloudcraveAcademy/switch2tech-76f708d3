@@ -59,29 +59,47 @@ export const CourseMediaUpload = ({
   return (
     <div className="space-y-6">
       {/* Course Preview Video - URL Only */}
-      <FormField
-        control={form?.control}
-        name="preview_video"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Course Preview Video</FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input
-                  {...field}
-                  placeholder="YouTube or Vimeo URL"
-                  className="pl-9"
-                />
-              </div>
-            </FormControl>
-            <FormDescription>
-              Add a preview video to showcase your course (YouTube or Vimeo URL)
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {form ? (
+        <FormField
+          control={form.control}
+          name="preview_video"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Course Preview Video</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  <Input
+                    {...field}
+                    placeholder="YouTube or Vimeo URL"
+                    className="pl-9"
+                  />
+                </div>
+              </FormControl>
+              <FormDescription>
+                Add a preview video to showcase your course (YouTube or Vimeo URL)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ) : (
+        <div>
+          <Label htmlFor="preview_video">Course Preview Video</Label>
+          <div className="relative mt-1">
+            <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              id="preview_video"
+              placeholder="YouTube or Vimeo URL"
+              className="pl-9"
+              defaultValue={previewVideoUrl}
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Add a preview video to showcase your course (YouTube or Vimeo URL)
+          </p>
+        </div>
+      )}
 
       {/* Course Image - Required */}
       <div>
@@ -138,7 +156,7 @@ export const CourseMediaUpload = ({
 
       {/* Course Materials Upload */}
       <div>
-        <FormLabel>Course Materials</FormLabel>
+        <Label>Course Materials</Label>
         <div className="mt-2 p-4 border-2 border-dashed rounded-md">
           <div className="flex flex-col items-center">
             <FileText className="h-8 w-8 text-gray-400 mb-2" />

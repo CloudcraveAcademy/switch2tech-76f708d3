@@ -47,7 +47,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
   }, []);
 
   // Fetch announcements using the query key that includes the courseId
-  const { data: announcements, isLoading, refetch } = useQuery<Announcement[]>({
+  const { data: announcements, isLoading, refetch } = useQuery({
     queryKey: ['course-announcements', courseId, refreshTrigger],
     queryFn: async () => {
       try {
@@ -61,7 +61,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
           throw error;
         }
         
-        return data as Announcement[] || [];
+        return (data as Announcement[]) || [];
       } catch (e) {
         console.error("Error in query:", e);
         throw e;
@@ -69,7 +69,7 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
     },
     enabled: !!courseId && isMounted,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0  // Don't cache results
+    gcTime: 0  // Don't cache results
   });
 
   // Force refetch announcements when courseId changes
