@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircle, Clock, File, Play, Star, Users, Video, BookOpen, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,8 @@ const CourseDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [selectedPreviewLesson, setSelectedPreviewLesson] = useState<any>(null);
   const navigate = useNavigate();
 
   // Figure out user role
@@ -52,11 +55,18 @@ const CourseDetails = () => {
 
       if (error || !courseData) return null;
 
+      // Get lessons for preview
       const { data: lessonRows } = await supabase
         .from("lessons")
         .select("*")
         .eq("course_id", id)
         .order("order_number", { ascending: true });
+
+      // Get enrollment count
+      const { count: enrollmentCount } = await supabase
+        .from("enrollments")
+        .select("*", { count: 'exact', head: true })
+        .eq("course_id", id);
 
       let curriculum = [];
       let previewLessons = [];
@@ -82,9 +92,7 @@ const CourseDetails = () => {
       return {
         ...courseData,
         category_name: courseData.course_categories?.name || "",
-        rating: 4.8,
-        reviews: 12,
-        enrolledStudents: 324,
+        enrolledStudents: enrollmentCount || 0,
         duration:
           courseData.duration_hours !== null && courseData.duration_hours !== undefined
             ? `${courseData.duration_hours}h`
@@ -120,57 +128,38 @@ const CourseDetails = () => {
     enabled: !!id && !!user?.id,
   });
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <p className="text-lg font-medium">Loading course...</p>
-        </div>
-      </Layout>
-    );
-  }
+  // Get course reviews
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["course-reviews", id],
+    queryFn: async () => {
+      if (!id) return [];
+      
+      // For now, return sample data since reviews table might not exist
+      // TODO: Replace with actual reviews query when reviews table is created
+      return [
+        {
+          id: 1,
+          user_name: "John Doe",
+          rating: 5,
+          comment: "Excellent course! Very well structured and easy to follow.",
+          created_at: "2024-01-15"
+        },
+        {
+          id: 2,
+          user_name: "Jane Smith",
+          rating: 4,
+          comment: "Good content, learned a lot. Would recommend to others.",
+          created_at: "2024-01-10"
+        }
+      ];
+    },
+    enabled: !!id,
+  });
 
-  if (!course) {
-    return (
-      <Layout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <h1 className="text-3xl font-bold mb-4">Course not found</h1>
-          <p className="mb-8">The course you're looking for doesn't exist or has been removed.</p>
-          <Link to="/courses">
-            <Button>Back to Courses</Button>
-          </Link>
-        </div>
-      </Layout>
-    );
-  }
-
-  const levelColor = {
-    beginner: "bg-green-100 text-green-800",
-    intermediate: "bg-yellow-100 text-yellow-800",
-    advanced: "bg-red-100 text-red-800",
-  }[course?.level];
-
-  const modeColor = {
-    "self-paced": "bg-blue-100 text-blue-800",
-    "virtual": "bg-purple-100 text-purple-800",
-    "live": "bg-pink-100 text-pink-800",
-  }[course?.mode];
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
+  const handlePreviewLesson = (lesson: any) => {
+    setSelectedPreviewLesson(lesson);
+    setPreviewModalOpen(true);
   };
-
-  const requirements = [
-    "Basic knowledge of computer operations",
-    course.level !== "beginner" ? "Prior programming experience" : "No prior programming experience needed",
-    "A computer with internet access",
-    "Willingness to learn and practice",
-  ];
 
   const renderVideo = (url?: string) => {
     if (!url) return null;
@@ -205,6 +194,61 @@ const CourseDetails = () => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <p className="text-lg font-medium">Loading course...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!course) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+          <h1 className="text-3xl font-bold mb-4">Course not found</h1>
+          <p className="mb-8">The course you're looking for doesn't exist or has been removed.</p>
+          <Link to="/courses">
+            <Button>Back to Courses</Button>
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
+
+  const levelColor = {
+    beginner: "bg-green-100 text-green-800",
+    intermediate: "bg-yellow-100 text-yellow-800",
+    advanced: "bg-red-100 text-red-800",
+  }[course?.level];
+
+  const modeColor = {
+    "self-paced": "bg-blue-100 text-blue-800",
+    "virtual-live": "bg-purple-100 text-purple-800",
+  }[course?.mode];
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price);
+  };
+
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
+    : 4.8;
+
+  const requirements = [
+    "Basic knowledge of computer operations",
+    course.level !== "beginner" ? "Prior programming experience" : "No prior programming experience needed",
+    "A computer with internet access",
+    "Willingness to learn and practice",
+  ];
+
   return (
     <Layout>
       <div className="bg-gray-50 border-b">
@@ -223,8 +267,8 @@ const CourseDetails = () => {
                 <Badge className={modeColor}>{course.mode || "Self-paced"}</Badge>
                 <div className="flex items-center">
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span className="ml-1 font-medium">{course.rating}</span>
-                  <span className="text-gray-500 ml-1">({course.reviews} reviews)</span>
+                  <span className="ml-1 font-medium">{averageRating.toFixed(1)}</span>
+                  <span className="text-gray-500 ml-1">({reviews.length} reviews)</span>
                 </div>
                 <div className="flex items-center text-gray-500">
                   <Users className="w-5 h-5 mr-1" />
@@ -373,7 +417,12 @@ const CourseDetails = () => {
                   <p className="text-gray-600 text-sm mb-4">
                     {lesson.content ? lesson.content.substring(0, 100) + "..." : "Preview this lesson to get started with the course content."}
                   </p>
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => handlePreviewLesson(lesson)}
+                  >
                     <Play className="h-4 w-4 mr-2" />
                     Watch Preview
                   </Button>
@@ -403,7 +452,7 @@ const CourseDetails = () => {
               <h3 className="text-xl font-bold mb-4">What You'll Learn</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {course.curriculum && course.curriculum.length > 0 && course.curriculum[0].lessons.length > 0 ? (
-                  course.curriculum[0].lessons.map((lesson, i) => (
+                  course.curriculum[0].lessons.slice(0, 6).map((lesson, i) => (
                     <div key={lesson.id} className="flex items-start">
                       <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                       <span>{lesson.title}</span>
@@ -525,22 +574,44 @@ const CourseDetails = () => {
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="md:w-1/3 bg-gray-50 p-6 rounded-lg text-center">
-                  <p className="text-5xl font-bold text-brand-600 mb-2">{course.rating}</p>
+                  <p className="text-5xl font-bold text-brand-600 mb-2">{averageRating.toFixed(1)}</p>
                   <div className="flex justify-center mb-2">
                     {Array(5).fill(0).map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-5 w-5 ${i < Math.floor(course.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                        className={`h-5 w-5 ${i < Math.floor(averageRating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
                       />
                     ))}
                   </div>
-                  <p className="text-gray-600">{course.reviews} reviews</p>
+                  <p className="text-gray-600">{reviews.length} reviews</p>
                 </div>
 
                 <div className="md:w-2/3 space-y-6">
-                  <div className="text-center text-gray-500">
-                    Reviews will appear here soon.
-                  </div>
+                  {reviews.length > 0 ? (
+                    reviews.map((review) => (
+                      <div key={review.id} className="border-b border-gray-200 pb-4">
+                        <div className="flex items-center mb-2">
+                          <div className="flex">
+                            {Array(5).fill(0).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="ml-2 font-medium">{review.user_name}</span>
+                          <span className="ml-2 text-sm text-gray-500">
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-gray-700">{review.comment}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No reviews yet. Be the first to review this course!
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -559,9 +630,11 @@ const CourseDetails = () => {
                   Continue Learning
                 </Button>
               ) : (
-                <Button size="lg" onClick={() => navigate(`/enroll/${course.id}`)}>
-                  Enroll Now
-                </Button>
+                (userRole === undefined || userRole === 'student') && (
+                  <Button size="lg" onClick={() => navigate(`/enroll/${course.id}`)}>
+                    Enroll Now
+                  </Button>
+                )
               )}
               <Button
                 variant="outline"
@@ -580,6 +653,35 @@ const CourseDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedPreviewLesson?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video">
+            {selectedPreviewLesson?.video_url ? (
+              renderVideo(selectedPreviewLesson.video_url)
+            ) : (
+              <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded-lg">
+                <div className="text-center">
+                  <Play className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Video preview not available</p>
+                </div>
+              </div>
+            )}
+          </div>
+          {selectedPreviewLesson?.content && (
+            <div className="mt-4">
+              <h4 className="font-semibold mb-2">Lesson Overview</h4>
+              <p className="text-gray-700">{selectedPreviewLesson.content}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

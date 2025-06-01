@@ -16,9 +16,9 @@ import {
   Users, 
   Star, 
   Calendar,
-  BookOpen,
-  Play,
-  CreditCard 
+  CreditCard,
+  ArrowLeft,
+  Play
 } from "lucide-react";
 
 const EnrollmentPage = () => {
@@ -52,7 +52,17 @@ const EnrollmentPage = () => {
         .single();
 
       if (error) throw error;
-      return courseData;
+
+      // Get enrollment count
+      const { count: enrollmentCount } = await supabase
+        .from("enrollments")
+        .select("*", { count: 'exact', head: true })
+        .eq("course_id", courseId);
+
+      return {
+        ...courseData,
+        enrolledStudents: enrollmentCount || 0
+      };
     },
     enabled: !!courseId,
   });
@@ -170,51 +180,42 @@ const EnrollmentPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Back Button */}
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate(`/courses/${courseId}`)}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Course Details
+        </Button>
+
         {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Badge variant="secondary">
-              {course.course_categories?.name || "Course"}
-            </Badge>
-            <Badge variant="outline">{course.level}</Badge>
-            <Badge variant="outline">{course.mode}</Badge>
-          </div>
-          
-          <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
-          <p className="text-xl text-gray-600 mb-6">{course.description}</p>
-          
-          <div className="flex items-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 text-yellow-500" />
-              <span>4.8 (124 reviews)</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>1,234 students</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span>{course.duration_hours} hours</span>
-            </div>
-          </div>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-4">
+            {enrollment ? "You're Already Enrolled!" : "Enroll in Course"}
+          </h1>
+          <p className="text-gray-600">
+            {enrollment 
+              ? "Continue your learning journey" 
+              : "Complete your enrollment to start learning"
+            }
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Course Preview Video */}
-            {course.preview_video && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Play className="h-5 w-5" />
-                    Course Preview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                    {course.preview_video.includes('youtube.com') || course.preview_video.includes('youtu.be') ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Course Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Course Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Course Image/Video */}
+                <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                  {course.preview_video ? (
+                    course.preview_video.includes('youtube.com') || course.preview_video.includes('youtu.be') ? (
                       <iframe
                         src={course.preview_video.replace('watch?v=', 'embed/')}
                         title="Course Preview"
@@ -232,135 +233,107 @@ const EnrollmentPage = () => {
                       <div className="w-full h-full flex items-center justify-center">
                         <Play className="h-16 w-16 text-gray-400" />
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    )
+                  ) : course.image_url ? (
+                    <img
+                      src={course.image_url}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="h-16 w-16 text-gray-400" />
+                    </div>
+                  )}
+                </div>
 
-            {/* What You'll Learn */}
-            <Card>
-              <CardHeader>
-                <CardTitle>What You'll Learn</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Master the fundamentals of {course.course_categories?.name}</span>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">{course.title}</h3>
+                  <p className="text-gray-600 mb-4">{course.description}</p>
+                  
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Badge variant="secondary">
+                      {course.course_categories?.name || "Course"}
+                    </Badge>
+                    <Badge variant="outline">{course.level}</Badge>
+                    <Badge variant="outline">{course.mode}</Badge>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Build real-world projects</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Get industry-ready skills</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Receive a completion certificate</span>
+
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <span>4.8 (124 reviews)</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>{course.enrolledStudents} students</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{course.duration_hours} hours</span>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Course Content Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Content Preview</CardTitle>
-                <p className="text-sm text-gray-600">
-                  Get a taste of what's inside this course
-                </p>
-              </CardHeader>
-              <CardContent>
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold mb-2">Instructor</h4>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                      {course.user_profiles?.avatar_url ? (
+                        <img 
+                          src={course.user_profiles.avatar_url} 
+                          alt={instructorName}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium">
+                          {instructorName.substring(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">{instructorName}</p>
+                      <p className="text-sm text-gray-500">Course Instructor</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Enrollment Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {enrollment ? "Your Progress" : "Course Enrollment"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {enrollment ? (
                 <div className="space-y-4">
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Play className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <h4 className="font-medium">Introduction to the Course</h4>
-                          <p className="text-sm text-gray-500">5 minutes • Free preview</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        Preview
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Play className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <h4 className="font-medium">Setting Up Your Environment</h4>
-                          <p className="text-sm text-gray-500">12 minutes • Free preview</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        Preview
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <h4 className="font-medium text-gray-600">Core Concepts and Theory</h4>
-                        <p className="text-sm text-gray-500">25 minutes • Locked</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <p className="text-sm text-gray-500 mt-4">
-                  + 15 more lessons available after enrollment
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Instructor Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Meet Your Instructor</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                    {course.user_profiles?.avatar_url ? (
-                      <img 
-                        src={course.user_profiles.avatar_url} 
-                        alt={instructorName}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-medium">
-                        {instructorName.substring(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-lg">{instructorName}</h4>
-                    <p className="text-gray-600">Senior {course.course_categories?.name} Expert</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Expert instructor with years of industry experience in {course.course_categories?.name}.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              <Card>
-                <CardHeader>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-brand-600 mb-2">
+                    <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-green-600 mb-2">
+                      You're enrolled in this course!
+                    </h3>
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-2">Your progress</p>
+                      <Progress value={enrollment.progress} className="h-3" />
+                      <p className="text-sm text-gray-500 mt-1">{enrollment.progress}% complete</p>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    size="lg"
+                    onClick={() => navigate(`/dashboard/courses/${courseId}`)}
+                  >
+                    Continue Learning
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-brand-600 mb-2">
                       {formatPrice(course.price || 0)}
                     </div>
                     {course.discounted_price && (
@@ -369,44 +342,7 @@ const EnrollmentPage = () => {
                       </div>
                     )}
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {enrollment ? (
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-2" />
-                        <p className="text-green-600 font-medium">You're enrolled!</p>
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-600 mb-2">Your progress</p>
-                          <Progress value={enrollment.progress} className="h-2" />
-                          <p className="text-sm text-gray-500 mt-1">{enrollment.progress}% complete</p>
-                        </div>
-                      </div>
-                      <Button 
-                        className="w-full" 
-                        onClick={() => navigate(`/dashboard/courses/${courseId}`)}
-                      >
-                        Continue Learning
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button 
-                      className="w-full" 
-                      size="lg"
-                      onClick={handleEnrollment}
-                      disabled={isEnrolling}
-                    >
-                      {isEnrolling ? (
-                        <>Enrolling...</>
-                      ) : (
-                        <>
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          Enroll Now
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  
+
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Duration:</span>
@@ -445,11 +381,74 @@ const EnrollmentPage = () => {
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+
+                  <Button 
+                    className="w-full" 
+                    size="lg"
+                    onClick={handleEnrollment}
+                    disabled={isEnrolling}
+                  >
+                    {isEnrolling ? (
+                      <>Enrolling...</>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Enroll Now
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500">
+                      By enrolling, you agree to our terms of service
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
+
+        {/* What's Included Section */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>What's Included</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Lifetime Access</p>
+                  <p className="text-sm text-gray-600">Access to all course materials forever</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Video Lessons</p>
+                  <p className="text-sm text-gray-600">High-quality video content</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Instructor Support</p>
+                  <p className="text-sm text-gray-600">Get help when you need it</p>
+                </div>
+              </div>
+              {course.certificate_enabled && (
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Certificate of Completion</p>
+                    <p className="text-sm text-gray-600">Earn a certificate upon completion</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
