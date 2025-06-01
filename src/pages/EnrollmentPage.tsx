@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -376,7 +375,24 @@ const EnrollmentPage = () => {
     try {
       console.log('Verifying payment with transaction ID:', transactionId);
       
-      if (!user?.id) {
+      let currentUserId = user?.id;
+
+      // If no user is logged in but we have enrollment data, this is a new user payment
+      if (!currentUserId && enrollmentData && enrollmentData.password) {
+        console.log('New user payment verification - registering user first');
+        
+        // Register the new user
+        const newUser = await registerUser(enrollmentData);
+        if (!newUser) {
+          throw new Error("Failed to create user account during payment verification");
+        }
+        currentUserId = newUser.id;
+        
+        // Wait a moment for auth to settle
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (!currentUserId) {
         toast({
           title: "Authentication Error",
           description: "Please log in to complete your enrollment.",
@@ -390,7 +406,7 @@ const EnrollmentPage = () => {
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
-          user_id: user.id,
+          user_id: currentUserId,
           course_id: courseId,
           amount: course?.price || 0,
           currency: enrollmentData?.currency || 'USD',
@@ -410,18 +426,18 @@ const EnrollmentPage = () => {
 
       // Complete enrollment
       if (enrollmentData) {
-        await enrollDirectly(enrollmentData, user.id);
+        await enrollDirectly(enrollmentData, currentUserId);
       } else {
         // Fallback enrollment for existing users
         await enrollDirectly({
-          firstName: user.user_metadata?.first_name || "",
-          lastName: user.user_metadata?.last_name || "",
-          email: user.email || "",
+          firstName: user?.user_metadata?.first_name || "",
+          lastName: user?.user_metadata?.last_name || "",
+          email: user?.email || "",
           phone: "",
           country: "",
           currency: "USD",
           motivation: "Payment completed via redirect"
-        }, user.id);
+        }, currentUserId);
       }
 
       toast({
