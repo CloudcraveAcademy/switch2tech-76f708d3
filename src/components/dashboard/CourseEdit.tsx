@@ -14,7 +14,7 @@ import { CourseMode } from "./course/CourseMode";
 import { CourseSettings } from "./course/CourseSettings";
 import CurriculumManager from "./course/CurriculumManager";
 import { CourseAnnouncements } from "./course/CourseAnnouncements";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CourseData {
@@ -446,139 +446,141 @@ const CourseEdit = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
+    <FormProvider {...form}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/dashboard/my-courses")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to My Courses
+              </Button>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Course</h1>
+            <p className="text-gray-600">{course.title}</p>
+          </div>
+          <div className="flex gap-3">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/dashboard/my-courses")}
+              variant="outline"
+              onClick={handlePublishToggle}
+              disabled={isPublishing}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to My Courses
+              {isPublishing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : course.is_published ? (
+                <EyeOff className="h-4 w-4 mr-2" />
+              ) : (
+                <Eye className="h-4 w-4 mr-2" />
+              )}
+              {course.is_published ? "Unpublish" : "Publish"}
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
             </Button>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Course</h1>
-          <p className="text-gray-600">{course.title}</p>
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={handlePublishToggle}
-            disabled={isPublishing}
-          >
-            {isPublishing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : course.is_published ? (
-              <EyeOff className="h-4 w-4 mr-2" />
-            ) : (
-              <Eye className="h-4 w-4 mr-2" />
-            )}
-            {course.is_published ? "Unpublish" : "Publish"}
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={saveMutation.isPending}
-          >
-            {saveMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Changes
-          </Button>
-        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="basic">Basic Info</TabsTrigger>
+            <TabsTrigger value="pricing">Pricing</TabsTrigger>
+            <TabsTrigger value="media">Media</TabsTrigger>
+            <TabsTrigger value="mode">Mode</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
+            <TabsTrigger value="announcements">Announcements</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basic">
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CourseBasicInfo form={form} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pricing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CoursePricing form={form} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="media">
+            <Card>
+              <CardHeader>
+                <CardTitle>Media Upload</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CourseMediaUpload
+                  onCoverImageChange={handleCoverImageChange}
+                  onMaterialsChange={handleMaterialsChange}
+                  imageUrl={course.image_url}
+                  previewVideoUrl={course.preview_video}
+                  existingMaterials={course.course_materials}
+                  materialUploads={materialUploads}
+                  imageError={imageError}
+                  form={form}
+                  onMaterialRemove={handleRemoveMaterial}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="mode">
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Mode</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CourseMode form={form} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CourseSettings form={form} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="curriculum">
+            <CurriculumManager 
+              courseId={courseId!} 
+              isActive={(path: string) => activeTab === "curriculum"}
+            />
+          </TabsContent>
+
+          <TabsContent value="announcements">
+            <CourseAnnouncements courseId={courseId!} />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing</TabsTrigger>
-          <TabsTrigger value="media">Media</TabsTrigger>
-          <TabsTrigger value="mode">Mode</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-          <TabsTrigger value="announcements">Announcements</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="basic">
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CourseBasicInfo form={form} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="pricing">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CoursePricing form={form} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="media">
-          <Card>
-            <CardHeader>
-              <CardTitle>Media Upload</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CourseMediaUpload
-                onCoverImageChange={handleCoverImageChange}
-                onMaterialsChange={handleMaterialsChange}
-                imageUrl={course.image_url}
-                previewVideoUrl={course.preview_video}
-                existingMaterials={course.course_materials}
-                materialUploads={materialUploads}
-                imageError={imageError}
-                form={form}
-                onMaterialRemove={handleRemoveMaterial}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="mode">
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Mode</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CourseMode form={form} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CourseSettings form={form} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="curriculum">
-          <CurriculumManager 
-            courseId={courseId!} 
-            isActive={(path: string) => activeTab === "curriculum"}
-          />
-        </TabsContent>
-
-        <TabsContent value="announcements">
-          <CourseAnnouncements courseId={courseId!} />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </FormProvider>
   );
 };
 
