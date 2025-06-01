@@ -360,16 +360,17 @@ const EnrollmentPage = () => {
           navigate(`/dashboard/courses/${courseId}`);
         }, 2000);
       }
+      // Clean up URL immediately
+      window.history.replaceState({}, document.title, window.location.pathname);
     } else if (paymentStatus === 'cancelled') {
       toast({
         title: "Payment Cancelled",
         description: "Your payment was cancelled. You can try enrolling again.",
         variant: "destructive",
       });
-      // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+  }, [courseId, navigate]);
 
   const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: EnrollmentFormData) => {
     try {
@@ -377,19 +378,23 @@ const EnrollmentPage = () => {
       
       let currentUserId = user?.id;
 
-      // If no user is logged in but we have enrollment data, this is a new user payment
+      // Handle new user registration if needed
       if (!currentUserId && enrollmentData && enrollmentData.password) {
         console.log('New user payment verification - registering user first');
         
-        // Register the new user
         const newUser = await registerUser(enrollmentData);
         if (!newUser) {
           throw new Error("Failed to create user account during payment verification");
         }
         currentUserId = newUser.id;
         
-        // Wait a moment for auth to settle
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for auth to settle
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Refresh the page to get the new auth state
+        console.log('User registered successfully, refreshing page...');
+        window.location.reload();
+        return;
       }
 
       if (!currentUserId) {
@@ -402,33 +407,34 @@ const EnrollmentPage = () => {
         return;
       }
 
-      // Save payment transaction record
+      // Save payment transaction record - ONLY for the specific course
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
           user_id: currentUserId,
-          course_id: courseId,
+          course_id: courseId, // This ensures payment is tied to specific course
           amount: course?.price || 0,
           currency: enrollmentData?.currency || 'USD',
           payment_reference: transactionId,
-          paystack_reference: transactionId, // Using same for Flutterwave
+          paystack_reference: transactionId,
           status: "successful",
           payment_method: "card",
           metadata: {
             flutterwave_redirect: true,
-            enrollment_data: enrollmentData
+            enrollment_data: enrollmentData,
+            verified_course_id: courseId // Extra verification
           }
         }]);
 
       if (paymentError) {
         console.error('Payment transaction save error:', paymentError);
+        throw paymentError;
       }
 
-      // Complete enrollment
+      // Complete enrollment ONLY for the paid course
       if (enrollmentData) {
         await enrollDirectly(enrollmentData, currentUserId);
       } else {
-        // Fallback enrollment for existing users
         await enrollDirectly({
           firstName: user?.user_metadata?.first_name || "",
           lastName: user?.user_metadata?.last_name || "",
@@ -445,10 +451,8 @@ const EnrollmentPage = () => {
         description: "Your payment has been confirmed and you've been enrolled!",
       });
 
-      // Clean up stored data
       localStorage.removeItem(`enrollment_${courseId}`);
 
-      // Navigate to course dashboard
       setTimeout(() => {
         navigate(`/dashboard/courses/${courseId}`);
       }, 2000);
@@ -512,9 +516,27 @@ const EnrollmentPage = () => {
 
   const enrollDirectly = async (enrollmentData: EnrollmentFormData, userId: string) => {
     try {
-      console.log('Starting direct enrollment:', enrollmentData);
+      console.log('Starting direct enrollment for course:', courseId, 'user:', userId);
       
-      // Update user profile with enrollment data
+      // Check if already enrolled in THIS specific course
+      const { data: existingEnrollment } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("course_id", courseId)
+        .eq("student_id", userId)
+        .maybeSingle();
+
+      if (existingEnrollment) {
+        console.log('User already enrolled in this course');
+        toast({
+          title: "Already Enrolled",
+          description: "You are already enrolled in this course.",
+        });
+        navigate(`/dashboard/courses/${courseId}`);
+        return;
+      }
+      
+      // Update user profile
       const { error: profileError } = await supabase
         .from("user_profiles")
         .update({
@@ -530,11 +552,11 @@ const EnrollmentPage = () => {
         throw profileError;
       }
 
-      // Create enrollment
+      // Create enrollment for the SPECIFIC course
       const { error: enrollmentError } = await supabase
         .from("enrollments")
         .insert([{
-          course_id: courseId,
+          course_id: courseId, // Only enroll in the course that was paid for
           student_id: userId,
           progress: 0,
           completed: false
@@ -545,12 +567,12 @@ const EnrollmentPage = () => {
         throw enrollmentError;
       }
 
+      console.log('Enrollment successful for course:', courseId);
       toast({
         title: "Enrollment Successful!",
         description: "You have been successfully enrolled in this course.",
       });
 
-      // Redirect to course after short delay
       setTimeout(() => {
         navigate(`/dashboard/courses/${courseId}`);
       }, 2000);

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -25,6 +24,38 @@ export const CourseEnrollmentService = {
           enrollment: existingEnrollment,
           error: "Already enrolled"
         };
+      }
+
+      // Check if course is free first
+      const { data: courseData } = await supabase
+        .from("courses")
+        .select("price")
+        .eq("id", courseId)
+        .single();
+
+      const isFree = !courseData?.price || courseData.price === 0;
+
+      // If course is not free, check for payment
+      if (!isFree) {
+        const { data: paymentRecord } = await supabase
+          .from("payment_transactions")
+          .select("id, status")
+          .eq("course_id", courseId)
+          .eq("user_id", userId)
+          .eq("status", "successful")
+          .maybeSingle();
+
+        if (!paymentRecord) {
+          toast({
+            title: "Payment Required",
+            description: "You need to pay for this course before enrolling.",
+            variant: "destructive",
+          });
+          return {
+            success: false,
+            error: "Payment required"
+          };
+        }
       }
 
       // Create new enrollment record
@@ -72,7 +103,6 @@ export const CourseEnrollmentService = {
 
   async trackLessonProgress(userId: string, courseId: string, lessonId: string): Promise<boolean> {
     try {
-      // Get the current enrollment
       const { data: enrollment } = await supabase
         .from("enrollments")
         .select("id, progress")
@@ -85,7 +115,6 @@ export const CourseEnrollmentService = {
         return false;
       }
 
-      // Get total lessons count
       const { count: totalLessons } = await supabase
         .from("lessons")
         .select("*", { count: 'exact', head: true })
@@ -93,7 +122,6 @@ export const CourseEnrollmentService = {
 
       if (!totalLessons) return false;
 
-      // Track lesson completion by updating student_lesson_progress
       const { data, error } = await supabase
         .from("student_lesson_progress")
         .upsert(
@@ -112,7 +140,6 @@ export const CourseEnrollmentService = {
         return false;
       }
 
-      // Get completed lessons count
       const { count: completedLessons } = await supabase
         .from("student_lesson_progress")
         .select("*", { count: 'exact', head: true })
@@ -122,10 +149,8 @@ export const CourseEnrollmentService = {
 
       if (completedLessons === undefined) return false;
 
-      // Calculate new progress percentage
       const newProgress = Math.round((completedLessons / totalLessons) * 100);
 
-      // Update enrollment progress
       await supabase
         .from("enrollments")
         .update({ progress: newProgress })
