@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -43,11 +44,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Enrollment form schema
+// Enrollment form schema - updated to include password for new users
 const enrollmentSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters").optional(),
   phone: z.string().min(10, "Please enter a valid phone number"),
   country: z.string().min(2, "Please select your country"),
   currency: z.string().min(3, "Please select your currency"),
@@ -89,6 +91,7 @@ const EnrollmentPage = () => {
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [flutterwaveLoaded, setFlutterwaveLoaded] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(!user);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -96,6 +99,7 @@ const EnrollmentPage = () => {
       firstName: "",
       lastName: "",
       email: user?.email || "",
+      password: "",
       phone: "",
       country: "",
       currency: "USD",
@@ -200,8 +204,37 @@ const EnrollmentPage = () => {
     }).format(price);
   };
 
-  const initializeFlutterwavePayment = async (enrollmentData: EnrollmentFormData) => {
-    if (!course || !user || !flutterwaveLoaded) {
+  const registerUser = async (enrollmentData: EnrollmentFormData) => {
+    try {
+      console.log('Registering new user:', enrollmentData.email);
+      
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: enrollmentData.email,
+        password: enrollmentData.password!,
+        options: {
+          data: {
+            first_name: enrollmentData.firstName,
+            last_name: enrollmentData.lastName,
+            role: 'student',
+          },
+        },
+      });
+
+      if (signUpError) {
+        console.error('Registration error:', signUpError);
+        throw signUpError;
+      }
+
+      console.log('User registration successful:', authData.user?.id);
+      return authData.user;
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  };
+
+  const initializeFlutterwavePayment = async (enrollmentData: EnrollmentFormData, userId: string) => {
+    if (!course || !flutterwaveLoaded) {
       toast({
         title: "Payment Error",
         description: "Payment system is not ready. Please try again.",
@@ -214,7 +247,7 @@ const EnrollmentPage = () => {
     const isFree = basePriceUSD === 0;
 
     if (isFree) {
-      return enrollDirectly(enrollmentData);
+      return enrollDirectly(enrollmentData, userId);
     }
 
     // Convert price to selected currency
@@ -226,7 +259,7 @@ const EnrollmentPage = () => {
 
     const flutterwaveConfig = {
       public_key: "FLWPUBK_TEST-92e54f62b62bd51b1c6bc5a6a54eafd2-X",
-      tx_ref: `course-${courseId}-${user.id}-${Date.now()}`,
+      tx_ref: `course-${courseId}-${userId}-${Date.now()}`,
       amount: convertedPrice,
       currency: enrollmentData.currency,
       country: enrollmentData.country === 'Nigeria' ? 'NG' : 'US',
@@ -244,7 +277,7 @@ const EnrollmentPage = () => {
       callback: function (response: any) {
         console.log('Flutterwave callback:', response);
         if (response.status === "successful") {
-          handleSuccessfulPayment(response, enrollmentData);
+          handleSuccessfulPayment(response, enrollmentData, userId);
         } else {
           setIsProcessingPayment(false);
           toast({
@@ -277,7 +310,7 @@ const EnrollmentPage = () => {
     }
   };
 
-  const handleSuccessfulPayment = async (paymentResponse: any, enrollmentData: EnrollmentFormData) => {
+  const handleSuccessfulPayment = async (paymentResponse: any, enrollmentData: EnrollmentFormData, userId: string) => {
     try {
       console.log('Processing successful payment:', paymentResponse);
       
@@ -285,7 +318,7 @@ const EnrollmentPage = () => {
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
-          user_id: user!.id,
+          user_id: userId,
           course_id: courseId,
           amount: paymentResponse.amount || course!.price || 0,
           currency: paymentResponse.currency || enrollmentData.currency,
@@ -305,7 +338,7 @@ const EnrollmentPage = () => {
       }
 
       // Enroll the student
-      await enrollDirectly(enrollmentData);
+      await enrollDirectly(enrollmentData, userId);
 
       toast({
         title: "Payment Successful!",
@@ -324,7 +357,7 @@ const EnrollmentPage = () => {
     }
   };
 
-  const enrollDirectly = async (enrollmentData: EnrollmentFormData) => {
+  const enrollDirectly = async (enrollmentData: EnrollmentFormData, userId: string) => {
     try {
       console.log('Starting direct enrollment:', enrollmentData);
       
@@ -337,7 +370,7 @@ const EnrollmentPage = () => {
           phone: enrollmentData.phone,
           country: enrollmentData.country,
         })
-        .eq('id', user!.id);
+        .eq('id', userId);
 
       if (profileError) {
         console.error('Profile update error:', profileError);
@@ -349,7 +382,7 @@ const EnrollmentPage = () => {
         .from("enrollments")
         .insert([{
           course_id: courseId,
-          student_id: user!.id,
+          student_id: userId,
           progress: 0,
           completed: false
         }]);
@@ -378,26 +411,40 @@ const EnrollmentPage = () => {
   const onSubmit = async (data: EnrollmentFormData) => {
     console.log('Form submitted with data:', data);
     
-    if (!user) {
-      toast({
-        title: "Please Login",
-        description: "You need to be logged in to enroll in courses",
-        variant: "destructive",
-      });
-      navigate("/login", { state: { from: `/enroll/${courseId}` } });
-      return;
-    }
-
-    if (enrollment) {
-      navigate(`/dashboard/courses/${courseId}`);
-      return;
-    }
-
     setIsEnrolling(true);
     setIsProcessingPayment(true);
 
     try {
-      await initializeFlutterwavePayment(data);
+      let currentUserId = user?.id;
+
+      // If user is not logged in, register them first
+      if (!user && isNewUser) {
+        if (!data.password) {
+          toast({
+            title: "Password Required",
+            description: "Please enter a password to create your account.",
+            variant: "destructive",
+          });
+          setIsEnrolling(false);
+          setIsProcessingPayment(false);
+          return;
+        }
+
+        const newUser = await registerUser(data);
+        if (!newUser) {
+          throw new Error("Failed to create user account");
+        }
+        currentUserId = newUser.id;
+      }
+
+      // Check if already enrolled
+      if (enrollment && user) {
+        navigate(`/dashboard/courses/${courseId}`);
+        return;
+      }
+
+      // Proceed with payment/enrollment
+      await initializeFlutterwavePayment(data, currentUserId!);
     } catch (error: any) {
       console.error('Enrollment submission error:', error);
       toast({
@@ -408,15 +455,6 @@ const EnrollmentPage = () => {
       setIsEnrolling(false);
       setIsProcessingPayment(false);
     }
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
   };
 
   if (isLoading) {
@@ -477,7 +515,7 @@ const EnrollmentPage = () => {
           <p className="text-gray-600">
             {enrollment 
               ? "Continue your learning journey" 
-              : "Complete the form below to enroll in this course"
+              : isNewUser ? "Complete the form below to create your account and enroll" : "Complete the form below to enroll in this course"
             }
           </p>
         </div>
@@ -513,7 +551,7 @@ const EnrollmentPage = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5" />
-                    Enrollment Information
+                    {isNewUser ? "Create Account & Enroll" : "Enrollment Information"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -564,6 +602,26 @@ const EnrollmentPage = () => {
                           </FormItem>
                         )}
                       />
+
+                      {isNewUser && (
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="password" 
+                                  placeholder="Enter a secure password (min 6 characters)" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
 
                       <FormField
                         control={form.control}
@@ -653,17 +711,17 @@ const EnrollmentPage = () => {
                         {isProcessingPayment ? (
                           "Processing Payment..."
                         ) : isEnrolling ? (
-                          "Enrolling..."
+                          "Processing..."
                         ) : !flutterwaveLoaded ? (
                           "Loading Payment System..."
                         ) : (
                           <>
                             {isFree ? (
-                              "Enroll for Free"
+                              isNewUser ? "Create Account & Enroll for Free" : "Enroll for Free"
                             ) : (
                               <>
                                 <CreditCard className="h-4 w-4 mr-2" />
-                                Enroll & Pay {formatPrice(displayPrice, selectedCurrency)}
+                                {isNewUser ? "Create Account & Pay" : "Enroll & Pay"} {formatPrice(displayPrice, selectedCurrency)}
                               </>
                             )}
                           </>
@@ -673,6 +731,7 @@ const EnrollmentPage = () => {
                       <div className="text-center">
                         <p className="text-xs text-gray-500">
                           By enrolling, you agree to our terms of service and privacy policy
+                          {isNewUser && ". Creating an account will give you access to your course progress and materials."}
                         </p>
                       </div>
                     </form>
