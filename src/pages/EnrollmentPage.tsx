@@ -219,7 +219,7 @@ const EnrollmentPage = () => {
       : convertPrice(basePriceNGN, enrollmentData.currency);
 
     const flutterwaveConfig = {
-      public_key: "FLWPUBK_TEST-8b2ff8de6b9c25e7f52b41de74f45afa-X", // Replace with your test public key
+      public_key: "FLWPUBK_TEST-92e54f62b62bd51b1c6bc5a6a54eafd2-X",
       tx_ref: `course-${courseId}-${user.id}-${Date.now()}`,
       amount: convertedPrice,
       currency: enrollmentData.currency,
