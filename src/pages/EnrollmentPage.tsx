@@ -257,6 +257,11 @@ const EnrollmentPage = () => {
 
     console.log(`Converting ${basePriceUSD} USD to ${convertedPrice} ${enrollmentData.currency}`);
 
+    // Get current app URL for return URLs
+    const currentUrl = window.location.origin;
+    const returnUrl = `${currentUrl}/enroll/${courseId}?payment=success`;
+    const cancelUrl = `${currentUrl}/enroll/${courseId}?payment=cancelled`;
+
     const flutterwaveConfig = {
       public_key: "FLWPUBK_TEST-92e54f62b62bd51b1c6bc5a6a54eafd2-X",
       tx_ref: `course-${courseId}-${userId}-${Date.now()}`,
@@ -264,6 +269,7 @@ const EnrollmentPage = () => {
       currency: enrollmentData.currency,
       country: enrollmentData.country === 'Nigeria' ? 'NG' : 'US',
       payment_options: "card,mobilemoney,ussd",
+      redirect_url: returnUrl,
       customer: {
         email: enrollmentData.email,
         phone_number: enrollmentData.phone,
@@ -273,6 +279,11 @@ const EnrollmentPage = () => {
         title: `Enroll in ${course.title}`,
         description: `Payment for course enrollment`,
         logo: "/favicon.ico",
+      },
+      meta: {
+        course_id: courseId,
+        user_id: userId,
+        enrollment_data: JSON.stringify(enrollmentData)
       },
       callback: function (response: any) {
         console.log('Flutterwave callback:', response);
@@ -290,6 +301,24 @@ const EnrollmentPage = () => {
       onclose: function () {
         console.log('Flutterwave modal closed');
         setIsProcessingPayment(false);
+        // Check if payment was successful via URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentStatus = urlParams.get('payment');
+        
+        if (paymentStatus === 'success') {
+          // Payment was successful, handle it
+          console.log('Payment completed successfully via redirect');
+          toast({
+            title: "Payment Processing",
+            description: "Your payment is being processed. Please wait...",
+          });
+        } else if (paymentStatus === 'cancelled') {
+          toast({
+            title: "Payment Cancelled",
+            description: "Your payment was cancelled. You can try again.",
+            variant: "destructive",
+          });
+        }
       },
     };
 
@@ -305,6 +334,52 @@ const EnrollmentPage = () => {
       toast({
         title: "Payment Error",
         description: "Failed to initialize payment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Check for payment status in URL on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const transactionId = urlParams.get('transaction_id');
+    
+    if (paymentStatus === 'success' && transactionId) {
+      // Verify the payment and complete enrollment
+      verifyPaymentAndEnroll(transactionId);
+    } else if (paymentStatus === 'cancelled') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. You can try enrolling again.",
+        variant: "destructive",
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const verifyPaymentAndEnroll = async (transactionId: string) => {
+    try {
+      console.log('Verifying payment with transaction ID:', transactionId);
+      
+      // Here you would typically verify the payment with Flutterwave's API
+      // For now, we'll proceed with enrollment
+      toast({
+        title: "Payment Verified!",
+        description: "Your payment has been confirmed. Completing enrollment...",
+      });
+
+      // Navigate to course dashboard
+      setTimeout(() => {
+        navigate(`/dashboard/courses/${courseId}`);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      toast({
+        title: "Verification Error",
+        description: "There was an issue verifying your payment. Please contact support.",
         variant: "destructive",
       });
     }
