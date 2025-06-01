@@ -56,20 +56,24 @@ const enrollmentSchema = z.object({
 
 type EnrollmentFormData = z.infer<typeof enrollmentSchema>;
 
-// Currency configuration
+// Currency configuration with USD as base
 const SUPPORTED_CURRENCIES = [
-  { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
   { code: 'USD', name: 'US Dollar', symbol: '$' },
+  { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
   { code: 'GBP', name: 'British Pound', symbol: '£' },
   { code: 'EUR', name: 'Euro', symbol: '€' },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
 ];
 
-// Exchange rates (in production, fetch from real-time API)
+// Exchange rates with USD as base (1 USD = X in target currency)
 const EXCHANGE_RATES = {
-  NGN: 1,
-  USD: 0.0012,
-  GBP: 0.00095,
-  EUR: 0.0011,
+  USD: 1,
+  NGN: 1650, // 1 USD = 1650 NGN
+  GBP: 0.79, // 1 USD = 0.79 GBP
+  EUR: 0.92, // 1 USD = 0.92 EUR
+  CAD: 1.41, // 1 USD = 1.41 CAD
+  AUD: 1.56, // 1 USD = 1.56 AUD
 };
 
 declare global {
@@ -94,7 +98,7 @@ const EnrollmentPage = () => {
       email: user?.email || "",
       phone: "",
       country: "",
-      currency: "NGN",
+      currency: "USD",
       motivation: "",
     },
   });
@@ -182,9 +186,9 @@ const EnrollmentPage = () => {
     enabled: !!courseId && !!user?.id,
   });
 
-  const convertPrice = (priceInNGN: number, toCurrency: string): number => {
+  const convertPrice = (priceInUSD: number, toCurrency: string): number => {
     const rate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES];
-    return Math.round(priceInNGN * rate * 100) / 100;
+    return Math.round(priceInUSD * rate * 100) / 100;
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -206,17 +210,19 @@ const EnrollmentPage = () => {
       return;
     }
 
-    const basePriceNGN = course.price || 0;
-    const isFree = basePriceNGN === 0;
+    const basePriceUSD = course.price || 0;
+    const isFree = basePriceUSD === 0;
 
     if (isFree) {
       return enrollDirectly(enrollmentData);
     }
 
     // Convert price to selected currency
-    const convertedPrice = enrollmentData.currency === 'NGN' 
-      ? basePriceNGN 
-      : convertPrice(basePriceNGN, enrollmentData.currency);
+    const convertedPrice = enrollmentData.currency === 'USD' 
+      ? basePriceUSD 
+      : convertPrice(basePriceUSD, enrollmentData.currency);
+
+    console.log(`Converting ${basePriceUSD} USD to ${convertedPrice} ${enrollmentData.currency}`);
 
     const flutterwaveConfig = {
       public_key: "FLWPUBK_TEST-92e54f62b62bd51b1c6bc5a6a54eafd2-X",
@@ -446,9 +452,9 @@ const EnrollmentPage = () => {
     : "Instructor";
 
   const selectedCurrency = form.watch("currency");
-  const basePriceNGN = course.price || 0;
-  const isFree = basePriceNGN === 0;
-  const displayPrice = isFree ? 0 : (selectedCurrency === 'NGN' ? basePriceNGN : convertPrice(basePriceNGN, selectedCurrency));
+  const basePriceUSD = course.price || 0;
+  const isFree = basePriceUSD === 0;
+  const displayPrice = isFree ? 0 : (selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency));
 
   return (
     <Layout>
@@ -712,11 +718,14 @@ const EnrollmentPage = () => {
                       <div className="text-3xl font-bold text-brand-600 mb-1">
                         {isFree ? "FREE" : formatPrice(displayPrice, selectedCurrency)}
                       </div>
-                      {basePriceNGN > 0 && selectedCurrency !== 'NGN' && (
+                      {basePriceUSD > 0 && selectedCurrency !== 'USD' && (
                         <div className="text-sm text-gray-500">
-                          ≈ {formatPrice(basePriceNGN, 'NGN')} (Original price)
+                          ≈ {formatPrice(basePriceUSD, 'USD')} (Base price)
                         </div>
                       )}
+                      <div className="text-xs text-gray-400 mt-1">
+                        Exchange rate: 1 USD = {EXCHANGE_RATES[selectedCurrency as keyof typeof EXCHANGE_RATES]} {selectedCurrency}
+                      </div>
                     </div>
 
                     <div className="space-y-3 text-sm mt-4">
