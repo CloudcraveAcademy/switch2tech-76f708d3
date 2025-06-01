@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, EyeOff } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { CourseBasicInfo } from "./course/CourseBasicInfo";
 import { CoursePricing } from "./course/CoursePricing";
 import { CourseMediaUpload } from "./course/CourseMediaUpload";
@@ -97,6 +97,8 @@ const CourseEdit = () => {
     queryFn: async () => {
       if (!courseId) return null;
       
+      console.log('Fetching course with ID:', courseId);
+      
       const { data, error } = await supabase
         .from("courses")
         .select(`
@@ -109,7 +111,12 @@ const CourseEdit = () => {
         .eq("id", courseId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching course:', error);
+        throw error;
+      }
+      
+      console.log('Course data fetched:', data);
       return data;
     },
     enabled: !!courseId,
@@ -117,6 +124,8 @@ const CourseEdit = () => {
 
   useEffect(() => {
     if (course) {
+      console.log('Setting up form with course data:', course);
+      
       const formData = {
         title: course.title || "",
         description: course.description || "",
@@ -288,6 +297,7 @@ const CourseEdit = () => {
 
   const handleSave = () => {
     const formData = form.getValues();
+    console.log('Saving course with data:', formData);
     saveMutation.mutate(formData);
   };
 
@@ -382,7 +392,9 @@ const CourseEdit = () => {
     return (
       <div className="text-center py-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Course not found</h2>
+        <p className="text-gray-600 mb-4">The course you're looking for doesn't exist or you don't have permission to edit it.</p>
         <Button onClick={() => navigate("/dashboard/my-courses")}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Back to My Courses
         </Button>
       </div>
@@ -393,6 +405,16 @@ const CourseEdit = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
+          <div className="flex items-center gap-3 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard/my-courses")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to My Courses
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Edit Course</h1>
           <p className="text-gray-600">{courseData.title}</p>
         </div>

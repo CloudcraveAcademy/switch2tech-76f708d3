@@ -159,7 +159,14 @@ const CreateCourse = () => {
   };
 
   const onSubmit = async (data: z.infer<typeof courseSchema>) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "You must be logged in to create a course",
+      });
+      return;
+    }
     
     // Validate that image is provided
     if (!courseImageFile) {
@@ -175,6 +182,8 @@ const CreateCourse = () => {
     setSubmitting(true);
     
     try {
+      console.log('Starting course creation...');
+      
       // Upload course image
       let imageUrl = '';
       if (courseImageFile) {
@@ -229,6 +238,8 @@ const CreateCourse = () => {
         updated_at: new Date().toISOString(),
       };
       
+      console.log('Course data to insert:', courseData);
+      
       // Create the course
       const { data: newCourse, error } = await supabase
         .from('courses')
@@ -237,23 +248,28 @@ const CreateCourse = () => {
         .single();
         
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
       
+      console.log('Course created successfully:', newCourse);
+      
       toast({
         title: "Course Created",
-        description: "Your course has been created successfully. Now you can add lessons.",
+        description: "Your course has been created successfully.",
       });
       
-      // Navigate to edit page to continue course setup
-      navigate(`/dashboard/courses/${newCourse.id}/edit`);
+      // Navigate to my courses page
+      setTimeout(() => {
+        navigate('/dashboard/my-courses');
+      }, 1000);
       
     } catch (error: any) {
       console.error('Error creating course:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to create course. Please try again later.",
+        description: error.message || "Failed to create course. Please try again.",
       });
     } finally {
       setSubmitting(false);
