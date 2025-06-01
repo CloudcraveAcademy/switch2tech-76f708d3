@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -90,95 +89,116 @@ const CourseEdit = () => {
     }
   });
 
-  // Enhanced authentication check with better error handling
-  useEffect(() => {
-    console.log('CourseEdit: Auth state check', { user, authLoading, courseId });
-    
-    if (authLoading) {
-      console.log('CourseEdit: Auth still loading, waiting...');
-      return;
-    }
-    
-    if (!user) {
-      console.log('CourseEdit: No user found, redirecting to login');
-      navigate('/login');
-      return;
-    }
-    
-    console.log('CourseEdit: User authenticated:', user.id);
-  }, [user, authLoading, navigate, courseId]);
+  console.log('CourseEdit: Component render', { 
+    courseId, 
+    user: user?.id, 
+    authLoading,
+    timestamp: new Date().toISOString()
+  });
 
   // Fetch course data with improved error handling
-  const { data: course, isLoading, error } = useQuery({
+  const { data: course, isLoading, error, isError } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
-      console.log('CourseEdit: Fetching course data', { courseId, userId: user?.id });
+      console.log('CourseEdit: Starting course fetch', { courseId, userId: user?.id });
       
       if (!courseId) {
+        console.error('CourseEdit: No courseId provided');
         throw new Error("Course ID not provided");
       }
       
       if (!user) {
+        console.error('CourseEdit: No user authenticated');
         throw new Error("User not authenticated");
       }
       
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("id", courseId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("courses")
+          .select("*")
+          .eq("id", courseId)
+          .single();
 
-      if (error) {
-        console.error('CourseEdit: Error fetching course:', error);
-        throw error;
+        console.log('CourseEdit: Supabase response', { data, error });
+
+        if (error) {
+          console.error('CourseEdit: Supabase error:', error);
+          throw error;
+        }
+        
+        if (!data) {
+          console.error('CourseEdit: No course data returned');
+          throw new Error("Course not found");
+        }
+        
+        // Check if user is the instructor for this course
+        if (data.instructor_id !== user.id) {
+          console.error('CourseEdit: Permission denied', { 
+            courseInstructorId: data.instructor_id, 
+            currentUserId: user.id 
+          });
+          throw new Error("You don't have permission to edit this course");
+        }
+        
+        console.log('CourseEdit: Course data fetched successfully:', data);
+        return data as CourseData;
+      } catch (fetchError) {
+        console.error('CourseEdit: Fetch error:', fetchError);
+        throw fetchError;
       }
-      
-      if (!data) {
-        throw new Error("Course not found");
-      }
-      
-      // Check if user is the instructor for this course
-      if (data.instructor_id !== user.id) {
-        throw new Error("You don't have permission to edit this course");
-      }
-      
-      console.log('CourseEdit: Course data fetched successfully:', data);
-      return data;
     },
     enabled: !!courseId && !!user && !authLoading,
     retry: 1,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
   });
+
+  // Authentication redirect effect
+  useEffect(() => {
+    console.log('CourseEdit: Auth effect', { user, authLoading, courseId });
+    
+    if (!authLoading && !user) {
+      console.log('CourseEdit: Redirecting to login - no user');
+      navigate('/login');
+      return;
+    }
+  }, [user, authLoading, navigate, courseId]);
 
   // Update form when course data is loaded
   useEffect(() => {
     if (course) {
       console.log('CourseEdit: Setting up form with course data:', course);
       
-      const formData = {
-        title: course.title || "",
-        description: course.description || "",
-        price: course.price || 0,
-        discountEnabled: !!course.discounted_price,
-        discountedPrice: course.discounted_price || 0,
-        level: course.level || "beginner",
-        category: course.category || "",
-        language: course.language || "English",
-        mode: (course.mode as "self-paced" | "virtual-live") || "self-paced",
-        multiLanguageSupport: course.multi_language_support || false,
-        additionalLanguages: course.additional_languages || [],
-        certificateEnabled: course.certificate_enabled || false,
-        registrationDeadline: course.registration_deadline ? new Date(course.registration_deadline) : null,
-        courseStartDate: course.course_start_date ? new Date(course.course_start_date) : null,
-        replayAccess: course.replay_access || false,
-        preview_video: course.preview_video || "",
-        accessDuration: course.access_duration || "",
-        classDays: course.class_days || [],
-        class_time: course.class_time || "",
-        timezone: course.timezone || "",
-        duration: course.duration_hours || 0,
-      };
+      try {
+        const formData = {
+          title: course.title || "",
+          description: course.description || "",
+          price: course.price || 0,
+          discountEnabled: !!course.discounted_price,
+          discountedPrice: course.discounted_price || 0,
+          level: course.level || "beginner",
+          category: course.category || "",
+          language: course.language || "English",
+          mode: (course.mode as "self-paced" | "virtual-live") || "self-paced",
+          multiLanguageSupport: course.multi_language_support || false,
+          additionalLanguages: course.additional_languages || [],
+          certificateEnabled: course.certificate_enabled || false,
+          registrationDeadline: course.registration_deadline ? new Date(course.registration_deadline) : null,
+          courseStartDate: course.course_start_date ? new Date(course.course_start_date) : null,
+          replayAccess: course.replay_access || false,
+          preview_video: course.preview_video || "",
+          accessDuration: course.access_duration || "",
+          classDays: course.class_days || [],
+          class_time: course.class_time || "",
+          timezone: course.timezone || "",
+          duration: course.duration_hours || 0,
+        };
 
-      form.reset(formData);
+        console.log('CourseEdit: Form data prepared:', formData);
+        form.reset(formData);
+      } catch (formError) {
+        console.error('CourseEdit: Error setting up form:', formError);
+      }
     }
   }, [course, form]);
 
@@ -398,8 +418,18 @@ const CourseEdit = () => {
     setMaterialUploads(prev => prev.filter(item => item.url !== urlToRemove));
   };
 
+  console.log('CourseEdit: Render decision', { 
+    authLoading, 
+    user: !!user, 
+    isLoading, 
+    isError, 
+    error: error?.message,
+    course: !!course 
+  });
+
   // Show loading state while auth is loading
   if (authLoading) {
+    console.log('CourseEdit: Showing auth loading');
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -410,11 +440,17 @@ const CourseEdit = () => {
 
   // Don't render anything if user is not authenticated (will redirect)
   if (!user) {
-    return null;
+    console.log('CourseEdit: No user, should redirect');
+    return (
+      <div className="flex justify-center items-center h-64">
+        <span>Redirecting to login...</span>
+      </div>
+    );
   }
 
   // Show loading state while course is loading
   if (isLoading) {
+    console.log('CourseEdit: Showing course loading');
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -424,8 +460,8 @@ const CourseEdit = () => {
   }
 
   // Show error state
-  if (error || !course) {
-    console.error('CourseEdit: Error state or no course:', { error, course });
+  if (isError || error || !course) {
+    console.log('CourseEdit: Showing error state', { isError, error, course: !!course });
     return (
       <div className="text-center py-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Course not found</h2>
@@ -439,6 +475,8 @@ const CourseEdit = () => {
       </div>
     );
   }
+
+  console.log('CourseEdit: Rendering main component');
 
   return (
     <div className="container mx-auto px-4 py-8">
