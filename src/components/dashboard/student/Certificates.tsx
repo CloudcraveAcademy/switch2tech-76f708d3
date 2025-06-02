@@ -5,15 +5,18 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsContent as TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate } from "@/lib/utils";
-import { Award, Download, ExternalLink, Search, Share2 } from "lucide-react";
+import { Award, Download, ExternalLink, Search, Share2, Shield, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import CertificateVerification from "./CertificateVerification";
 
 interface Certificate {
   id: string;
   certificate_number: string;
+  verification_code: string;
   issue_date: string;
   pdf_url: string;
   course: {
@@ -31,6 +34,7 @@ interface Certificate {
 const Certificates = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
   // Fetch certificates from Supabase
   const { data: certificates, isLoading } = useQuery({
@@ -51,7 +55,8 @@ const Certificates = () => {
             )
           )
         `)
-        .eq('student_id', user?.id);
+        .eq('student_id', user?.id)
+        .order('issue_date', { ascending: false });
 
       if (error) {
         console.error('Error fetching certificates:', error);
@@ -79,62 +84,90 @@ const Certificates = () => {
 
   return (
     <div className="p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-1 flex items-center">
-            <Award className="mr-2" /> My Certificates
-          </h1>
-          <p className="text-gray-600">View and manage your earned certificates</p>
-        </div>
+      <Tabs defaultValue="my-certificates" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="my-certificates">My Certificates</TabsTrigger>
+          <TabsTrigger value="verify">Verify Certificate</TabsTrigger>
+        </TabsList>
         
-        <div className="relative mt-4 md:mt-0 w-full md:w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            placeholder="Search certificates..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
+        <TabsContent value="my-certificates" className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold mb-1 flex items-center">
+                <Award className="mr-2" /> My Certificates
+              </h1>
+              <p className="text-gray-600">View and manage your earned certificates</p>
+            </div>
+            
+            <div className="relative mt-4 md:mt-0 w-full md:w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Search certificates..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
 
-      {filteredCertificates?.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-medium mb-2">No certificates yet</h3>
-          <p className="text-gray-500 mb-6">Complete courses to earn your first certificate</p>
-          <Button asChild>
-            <Link to="/courses">Browse Courses</Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCertificates?.map(certificate => (
-            <CertificateCard key={certificate.id} certificate={certificate} />
-          ))}
-        </div>
-      )}
+          {filteredCertificates?.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-medium mb-2">No certificates yet</h3>
+              <p className="text-gray-500 mb-6">Complete courses to earn your first certificate</p>
+              <Button asChild>
+                <Link to="/courses">Browse Courses</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCertificates?.map(certificate => (
+                <CertificateCard key={certificate.id} certificate={certificate} toast={toast} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="verify">
+          <CertificateVerification />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
 
 interface CertificateCardProps {
   certificate: Certificate;
+  toast: any;
 }
 
-const CertificateCard = ({ certificate }: CertificateCardProps) => {
+const CertificateCard = ({ certificate, toast }: CertificateCardProps) => {
   const handleShareCertificate = () => {
-    // In a real app, this would use the Web Share API or copy a link to clipboard
+    const shareUrl = `${window.location.origin}/verify-certificate?cert=${certificate.certificate_number}`;
+    
     if (navigator.share) {
       navigator.share({
         title: `Certificate for ${certificate.course.title}`,
         text: `Check out my certificate for completing ${certificate.course.title}!`,
-        url: window.location.origin + `/certificates/${certificate.id}`,
+        url: shareUrl,
       }).catch(console.error);
     } else {
-      // Fallback for browsers that don't support the Web Share API
-      alert(`Share link: ${window.location.origin}/certificates/${certificate.id}`);
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        toast({
+          title: "Link Copied",
+          description: "Certificate verification link copied to clipboard.",
+        });
+      });
     }
+  };
+
+  const copyVerificationCode = () => {
+    navigator.clipboard.writeText(certificate.verification_code).then(() => {
+      toast({
+        title: "Code Copied",
+        description: "Verification code copied to clipboard.",
+      });
+    });
   };
 
   // Function to determine badge color based on course level
@@ -175,6 +208,21 @@ const CertificateCard = ({ certificate }: CertificateCardProps) => {
           </div>
           
           <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500">Verification Code:</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-mono">{certificate.verification_code}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={copyVerificationCode}
+                className="h-6 w-6 p-0"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500">Issued on:</span>
             <span className="text-sm">{formatDate(certificate.issue_date)}</span>
           </div>
@@ -189,21 +237,29 @@ const CertificateCard = ({ certificate }: CertificateCardProps) => {
       </CardContent>
       
       <CardFooter className="flex flex-col gap-2">
-        <Button className="w-full" asChild>
-          <a href={certificate.pdf_url} download target="_blank" rel="noopener noreferrer">
+        {certificate.pdf_url ? (
+          <Button className="w-full" asChild>
+            <a href={certificate.pdf_url} download target="_blank" rel="noopener noreferrer">
+              <Download className="mr-1 h-4 w-4" />
+              Download Certificate
+            </a>
+          </Button>
+        ) : (
+          <Button className="w-full" disabled>
             <Download className="mr-1 h-4 w-4" />
-            Download Certificate
-          </a>
-        </Button>
+            PDF Generating...
+          </Button>
+        )}
+        
         <div className="flex w-full gap-2">
           <Button variant="outline" className="flex-1" onClick={handleShareCertificate}>
             <Share2 className="mr-1 h-4 w-4" />
             Share
           </Button>
           <Button variant="outline" className="flex-1" asChild>
-            <Link to={`/certificates/${certificate.id}`}>
-              <ExternalLink className="mr-1 h-4 w-4" />
-              View
+            <Link to={`/verify-certificate?cert=${certificate.certificate_number}`}>
+              <Shield className="mr-1 h-4 w-4" />
+              Verify
             </Link>
           </Button>
         </div>

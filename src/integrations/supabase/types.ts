@@ -126,6 +126,8 @@ export type Database = {
           issue_date: string | null
           pdf_url: string | null
           student_id: string
+          updated_at: string | null
+          verification_code: string | null
         }
         Insert: {
           certificate_number?: string | null
@@ -135,6 +137,8 @@ export type Database = {
           issue_date?: string | null
           pdf_url?: string | null
           student_id: string
+          updated_at?: string | null
+          verification_code?: string | null
         }
         Update: {
           certificate_number?: string | null
@@ -144,6 +148,8 @@ export type Database = {
           issue_date?: string | null
           pdf_url?: string | null
           student_id?: string
+          updated_at?: string | null
+          verification_code?: string | null
         }
         Relationships: [
           {
@@ -1294,6 +1300,16 @@ export type Database = {
           content_param: string
         }
         Returns: boolean
+      }
+      verify_certificate: {
+        Args: { cert_number: string }
+        Returns: {
+          certificate_id: string
+          student_name: string
+          course_title: string
+          issue_date: string
+          verification_code: string
+        }[]
       }
     }
     Enums: {

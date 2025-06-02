@@ -18,6 +18,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import InstructorMyCourses from "./MyCourses";
 import LessonForm from "./course/LessonForm";
 
+// Import certificate components
+import InstructorCertificates from "./instructor/Certificates";
+import AdminCertificates from "./admin/Certificates";
+
 // Import admin pages
 import UsersPage from "@/pages/admin/UsersPage";
 import CoursesPage from "@/pages/admin/CoursesPage";
@@ -58,6 +62,7 @@ const DashboardRoutes = () => {
     <>
       <Route path="/students" element={<MyStudents />} />
       <Route path="/revenue" element={<MyRevenue />} />
+      <Route path="/certificates" element={<InstructorCertificates />} />
       <Route path="/create-course" element={<CreateCourse />} />
       <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
       <Route path="/courses/:courseId/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
@@ -68,6 +73,7 @@ const DashboardRoutes = () => {
     <>
       <Route path="/users" element={<UsersPage />} />
       <Route path="/courses" element={<CoursesPage />} />
+      <Route path="/certificates" element={<AdminCertificates />} />
       <Route path="/finance" element={<FinancePage />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/support-tickets" element={<SupportTicketsPage />} />

@@ -1,44 +1,48 @@
 
 import React from 'react';
-import { BookPlus, BookOpen, Users, CircleDollarSign, GraduationCap } from "lucide-react";
+import { Book, Users, DollarSign, PlusCircle, Award } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface InstructorNavigationProps {
   isActive: (path: string) => boolean;
 }
 
-const InstructorNavigation = ({ isActive }: InstructorNavigationProps) => {
+const InstructorNavigation: React.FC<InstructorNavigationProps> = ({ isActive }) => {
   return (
     <>
       <SidebarMenuItem
-        to="/dashboard/create-course"
-        icon={BookPlus}
-        label="Create Course"
-        isActive={isActive("/dashboard/create-course")}
-      />
-      <SidebarMenuItem
         to="/dashboard/my-courses"
-        icon={BookOpen}
+        icon={Book}
         label="My Courses"
         isActive={isActive("/dashboard/my-courses")}
       />
+      
       <SidebarMenuItem
         to="/dashboard/students"
         icon={Users}
-        label="Students"
+        label="My Students"
         isActive={isActive("/dashboard/students")}
       />
+      
+      <SidebarMenuItem
+        to="/dashboard/certificates"
+        icon={Award}
+        label="Certificates"
+        isActive={isActive("/dashboard/certificates")}
+      />
+      
       <SidebarMenuItem
         to="/dashboard/revenue"
-        icon={CircleDollarSign}
+        icon={DollarSign}
         label="Revenue"
         isActive={isActive("/dashboard/revenue")}
       />
+      
       <SidebarMenuItem
-        to="/dashboard/certificates"
-        icon={GraduationCap}
-        label="Certificates"
-        isActive={isActive("/dashboard/certificates")}
+        to="/dashboard/create-course"
+        icon={PlusCircle}
+        label="Create Course"
+        isActive={isActive("/dashboard/create-course")}
       />
     </>
   );
