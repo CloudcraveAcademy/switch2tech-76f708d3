@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Search, Download, Eye, Trash2, FileText, Users, TrendingUp } from "lucide-react";
+import { Award, Search, Download, Eye, Trash2, FileText, Users, TrendingUp, Palette } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import CertificateTemplatePreview from "./CertificateTemplatePreview";
 
 interface Certificate {
   id: string;
@@ -185,6 +185,23 @@ const AdminCertificates = () => {
         </div>
         
         <div className="flex gap-2 mt-4 md:mt-0">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Palette className="mr-2 h-4 w-4" />
+                Preview Template
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-5xl">
+              <DialogHeader>
+                <DialogTitle>Certificate Template Preview</DialogTitle>
+              </DialogHeader>
+              <div className="mt-4">
+                <CertificateTemplatePreview />
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline">
