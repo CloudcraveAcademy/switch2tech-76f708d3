@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,8 +70,8 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
           
           <div className="text-center">
             <div className="w-48 border-t-2 border-gray-400 mb-2"></div>
-            <p className="text-sm text-gray-600 font-semibold">Dr. Sarah Johnson</p>
-            <p className="text-xs text-gray-500">Platform Administrator</p>
+            <p className="text-sm text-gray-600 font-semibold">Mr. Issa Ajao</p>
+            <p className="text-xs text-gray-500">Chief Platform Administrator</p>
           </div>
           
           <div className="text-right">
