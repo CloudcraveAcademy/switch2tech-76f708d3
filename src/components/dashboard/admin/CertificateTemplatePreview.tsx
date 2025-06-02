@@ -29,12 +29,11 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
           <div className="flex justify-center items-center mb-4">
             <img 
               src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" 
-              alt="Switch2Tech Academy" 
+              alt="Switch2Tech" 
               className="h-12 w-auto mr-3" 
             />
             <div className="text-left">
               <span className="text-2xl font-bold text-brand-700">Switch2Tech</span>
-              <p className="text-sm text-gray-600">Academy</p>
             </div>
           </div>
           <div className="flex justify-center mb-4">
@@ -74,7 +73,6 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
             <div className="w-48 border-t-2 border-gray-400 mb-2"></div>
             <p className="text-sm text-gray-600 font-semibold">Dr. Sarah Johnson</p>
             <p className="text-xs text-gray-500">Platform Administrator</p>
-            <p className="text-xs text-gray-500">Switch2Tech Academy</p>
           </div>
           
           <div className="text-right">
