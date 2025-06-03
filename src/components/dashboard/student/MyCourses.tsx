@@ -22,6 +22,7 @@ interface EnrolledCourse {
   progress: number;
   enrollment_date: string;
   last_accessed: string;
+  completed: boolean;
   instructor: {
     first_name: string;
     last_name: string;
@@ -68,6 +69,7 @@ const MyCourses = () => {
         progress: enrollment.progress || 0,
         enrollment_date: enrollment.enrollment_date,
         last_accessed: new Date().toISOString(),
+        completed: enrollment.completed || false,
         instructor: {
           first_name: enrollment.course.instructor.first_name || '',
           last_name: enrollment.course.instructor.last_name || '',
@@ -114,14 +116,19 @@ const MyCourses = () => {
           <p className="text-gray-600">Manage your enrolled courses</p>
         </div>
         
-        <div className="relative mt-4 md:mt-0 w-full md:w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            placeholder="Search courses..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search courses..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button asChild>
+            <Link to="/courses">Browse More Courses</Link>
+          </Button>
         </div>
       </div>
       
@@ -152,12 +159,12 @@ const MyCourses = () => {
         
         <TabsContent value="in-progress" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses?.filter(course => course.progress > 0 && course.progress < 100)
+            {filteredCourses?.filter(course => !course.completed && course.progress < 100)
               .map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
             
-            {filteredCourses?.filter(course => course.progress > 0 && course.progress < 100).length === 0 && (
+            {filteredCourses?.filter(course => !course.completed && course.progress < 100).length === 0 && (
               <div className="col-span-full text-center py-10 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-700">No courses in progress</h3>
                 <p className="text-gray-500 mt-2">Start learning to see courses here</p>
@@ -168,12 +175,12 @@ const MyCourses = () => {
         
         <TabsContent value="completed" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses?.filter(course => course.progress === 100)
+            {filteredCourses?.filter(course => course.completed || course.progress === 100)
               .map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
             
-            {filteredCourses?.filter(course => course.progress === 100).length === 0 && (
+            {filteredCourses?.filter(course => course.completed || course.progress === 100).length === 0 && (
               <div className="col-span-full text-center py-10 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-700">No completed courses yet</h3>
                 <p className="text-gray-500 mt-2">Keep learning to complete your first course</p>
@@ -242,8 +249,8 @@ const CourseCard = ({ course }: CourseCardProps) => {
       
       <CardFooter className="pt-0">
         <Button asChild className="w-full">
-          <Link to={`/courses/${course.id}`}>
-            {course.progress === 100 ? "Review Course" : "Continue Learning"}
+          <Link to={`/dashboard/courses/${course.id}`}>
+            {course.completed || course.progress === 100 ? "Review Course" : "Continue Learning"}
           </Link>
         </Button>
       </CardFooter>

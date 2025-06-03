@@ -1,483 +1,359 @@
 
-import { useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { 
   Clock, 
   Users, 
-  Star, 
-  Globe, 
   Award, 
-  CheckCircle, 
-  Play,
+  PlayCircle, 
+  Calendar,
+  Globe,
   BookOpen,
-  Calendar
+  Star,
+  CheckCircle,
+  User
 } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import CourseEnrollButton from "@/components/dashboard/course/CourseEnrollButton";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface Course {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  price: number;
+  level: string;
+  duration_hours: number;
+  mode: string;
+  language: string;
+  is_published: boolean;
+  certificate_enabled: boolean;
+  instructor: {
+    first_name: string;
+    last_name: string;
+    bio: string;
+    avatar_url: string;
+  };
+  lessons: Array<{
+    id: string;
+    title: string;
+    duration_minutes: number;
+    order_number: number;
+  }>;
+  enrollments_count: number;
+}
 
 const CourseDetails = () => {
-  const { id: courseId } = useParams();
-  const [searchParams] = useSearchParams();
+  const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const isInstructorPreview = searchParams.get('instructor') === 'true';
+  const navigate = useNavigate();
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
 
-  const { data: course, isLoading } = useQuery({
-    queryKey: ["course-details", courseId],
+  // Fetch course details
+  const { data: course, isLoading, error } = useQuery({
+    queryKey: ['course', id],
     queryFn: async () => {
-      if (!courseId) return null;
-      
-      const { data: courseData, error } = await supabase
-        .from("courses")
+      const { data, error } = await supabase
+        .from('courses')
         .select(`
           *,
-          user_profiles (
-            id,
+          instructor:user_profiles!instructor_id (
             first_name,
             last_name,
+            bio,
             avatar_url
           ),
-          course_categories (
+          lessons (
             id,
-            name
+            title,
+            duration_minutes,
+            order_number
           )
         `)
-        .eq("id", courseId)
-        .eq("is_published", true)
+        .eq('id', id)
         .single();
 
       if (error) throw error;
 
       // Get enrollment count
-      const { count: enrollmentCount } = await supabase
-        .from("enrollments")
-        .select("*", { count: 'exact', head: true })
-        .eq("course_id", courseId);
+      const { count } = await supabase
+        .from('enrollments')
+        .select('*', { count: 'exact', head: true })
+        .eq('course_id', id);
 
       return {
-        ...courseData,
-        enrolledStudents: enrollmentCount || 0
-      };
+        ...data,
+        enrollments_count: count || 0
+      } as Course;
     },
-    enabled: !!courseId,
+    enabled: !!id,
   });
 
-  // Check if user is already enrolled
+  // Check if user is enrolled
   const { data: enrollment } = useQuery({
-    queryKey: ["enrollment-status", courseId, user?.id],
+    queryKey: ['enrollment', id, user?.id],
     queryFn: async () => {
-      if (!courseId || !user?.id) return null;
+      if (!user) return null;
       
       const { data, error } = await supabase
-        .from("enrollments")
-        .select("id, progress")
-        .eq("course_id", courseId)
-        .eq("student_id", user.id)
+        .from('enrollments')
+        .select('*')
+        .eq('course_id', id)
+        .eq('student_id', user.id)
         .maybeSingle();
 
       if (error) throw error;
       return data;
     },
-    enabled: !!courseId && !!user?.id,
+    enabled: !!user && !!id,
   });
+
+  useEffect(() => {
+    if (enrollment) {
+      setIsEnrolled(true);
+      setIsCompleted(enrollment.completed || false);
+    }
+  }, [enrollment]);
 
   if (isLoading) {
     return (
       <Layout>
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-48 w-full" />
+            </div>
           </div>
         </div>
       </Layout>
     );
   }
 
-  if (!course) {
+  if (error || !course) {
     return (
       <Layout>
-        <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold mb-4">Course not found</h1>
-          <p className="text-gray-600">The course you're looking for doesn't exist or is not published.</p>
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-700">Course not found</h1>
+          <p className="text-gray-500 mt-2">The course you're looking for doesn't exist.</p>
+          <Button onClick={() => navigate("/courses")} className="mt-4">
+            Back to Courses
+          </Button>
         </div>
       </Layout>
     );
   }
 
-  const instructorName = course.user_profiles 
-    ? `${course.user_profiles.first_name || ""} ${course.user_profiles.last_name || ""}`.trim()
-    : "Instructor";
-
-  const isOwnCourse = user?.id === course.instructor_id;
+  const totalDuration = course.lessons.reduce((total, lesson) => total + (lesson.duration_minutes || 0), 0);
+  const formattedDuration = `${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m`;
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-2">
-            <div className="mb-4 flex flex-wrap gap-2">
-              <Badge variant="secondary">
-                {course.course_categories?.name || "Course"}
-              </Badge>
-              <Badge variant="outline">{course.level}</Badge>
-              <Badge variant="outline">{course.mode}</Badge>
-            </div>
-            
-            <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-            <p className="text-gray-600 text-lg mb-6">{course.description}</p>
-            
-            <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>{course.duration_hours} hours</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>{course.enrolledStudents} students</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4" />
-                <span>4.8 (124 reviews)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Globe className="h-4 w-4" />
-                <span>{course.language}</span>
-              </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Course Image */}
+            <div className="relative">
+              <AspectRatio ratio={16 / 9}>
+                <img
+                  src={course.image_url || '/placeholder.svg'}
+                  alt={course.title}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              </AspectRatio>
+              {course.mode === 'live' && (
+                <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                  Live Course
+                </Badge>
+              )}
             </div>
 
-            {/* Instructor Info */}
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                {course.user_profiles?.avatar_url ? (
-                  <img 
-                    src={course.user_profiles.avatar_url} 
-                    alt={instructorName}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="text-lg font-medium">
-                    {instructorName.substring(0, 2).toUpperCase()}
-                  </span>
+            {/* Course Title and Info */}
+            <div>
+              <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <BookOpen className="h-3 w-3" />
+                  {course.level}
+                </Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formattedDuration}
+                </Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {course.enrollments_count} students
+                </Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Globe className="h-3 w-3" />
+                  {course.language}
+                </Badge>
+                {course.certificate_enabled && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Award className="h-3 w-3" />
+                    Certificate
+                  </Badge>
                 )}
               </div>
-              <div>
-                <p className="font-medium">Instructor: {instructorName}</p>
-                <p className="text-sm text-gray-600">Course Creator</p>
-              </div>
             </div>
-          </div>
 
-          {/* Course Preview/Enrollment Card */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-4">
-              <CardContent className="p-0">
-                {/* Course Image/Video */}
-                <div className="aspect-video rounded-t-lg overflow-hidden bg-gray-100">
-                  {course.image_url ? (
-                    <img
-                      src={course.image_url}
-                      alt={course.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="h-16 w-16 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-6">
-                  {/* Price */}
-                  <div className="text-center mb-6">
-                    <div className="text-3xl font-bold text-brand-600">
-                      {course.price === 0 ? "FREE" : `$${course.price}`}
-                    </div>
-                    {course.discounted_price && (
-                      <div className="text-sm text-gray-500 line-through">
-                        ${course.discounted_price}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Enrollment/Preview Actions */}
-                  <div className="space-y-3">
-                    {isOwnCourse ? (
-                      <div className="text-center py-4">
-                        <Badge variant="secondary" className="mb-2">
-                          Your Course
-                        </Badge>
-                        <p className="text-sm text-gray-600">
-                          This is your course. Students will see the enrollment options here.
-                        </p>
-                      </div>
-                    ) : isInstructorPreview ? (
-                      <div className="text-center py-4">
-                        <Badge variant="outline" className="mb-2">
-                          Instructor Preview
-                        </Badge>
-                        <p className="text-sm text-gray-600">
-                          You're viewing this as an instructor. Students will see enrollment options here.
-                        </p>
-                      </div>
-                    ) : (
-                      <CourseEnrollButton
-                        courseId={courseId!}
-                        courseTitle={course.title}
-                        courseThumbnail={course.image_url}
-                        isEnrolled={!!enrollment}
-                        className="w-full"
-                      />
-                    )}
-                  </div>
-
-                  {/* Course Features */}
-                  <div className="mt-6 space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Duration</span>
-                      <span className="font-medium">{course.duration_hours} hours</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Students</span>
-                      <span className="font-medium">{course.enrolledStudents}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Language</span>
-                      <span className="font-medium">{course.language}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Certificate</span>
-                      <span className="font-medium flex items-center">
-                        {course.certificate_enabled ? (
-                          <>
-                            <Award className="h-4 w-4 mr-1" />
-                            Yes
-                          </>
-                        ) : (
-                          "No"
-                        )}
-                      </span>
-                    </div>
-                    {course.course_start_date && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Starts</span>
-                        <span className="font-medium flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {new Date(course.course_start_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Course Content Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-            <TabsTrigger value="instructor">Instructor</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-6">
+            {/* Course Description */}
             <Card>
               <CardHeader>
-                <CardTitle>Course Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">What you'll learn</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Master the fundamentals of the subject</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Build practical projects</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Understand best practices</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Prepare for real-world applications</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Requirements</h3>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li>• Basic computer skills</li>
-                    <li>• Willingness to learn</li>
-                    <li>• No prior experience required</li>
-                  </ul>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Description</h3>
-                  <div className="prose prose-sm max-w-none">
-                    <p>{course.description}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="curriculum" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Curriculum</CardTitle>
+                <CardTitle>About this course</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5" />
-                        <div>
-                          <h4 className="font-medium">Introduction</h4>
-                          <p className="text-sm text-gray-600">3 lessons • 45 minutes</p>
+                <p className="text-gray-700 leading-relaxed">
+                  {course.description}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Course Curriculum */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PlayCircle className="h-5 w-5" />
+                  Course Content
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  {course.lessons.length} lessons • {formattedDuration} total length
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {course.lessons
+                    .sort((a, b) => a.order_number - b.order_number)
+                    .map((lesson, index) => (
+                      <div key={lesson.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-gray-500">
+                            {index + 1}.
+                          </span>
+                          <div>
+                            <h4 className="font-medium">{lesson.title}</h4>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Clock className="h-3 w-3" />
+                          {lesson.duration_minutes}m
                         </div>
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5" />
-                        <div>
-                          <h4 className="font-medium">Fundamentals</h4>
-                          <p className="text-sm text-gray-600">5 lessons • 1 hour 30 minutes</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5" />
-                        <div>
-                          <h4 className="font-medium">Advanced Topics</h4>
-                          <p className="text-sm text-gray-600">7 lessons • 2 hours 15 minutes</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="instructor" className="mt-6">
+            {/* Instructor */}
             <Card>
               <CardHeader>
-                <CardTitle>About the Instructor</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Instructor
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                    {course.user_profiles?.avatar_url ? (
-                      <img 
-                        src={course.user_profiles.avatar_url} 
-                        alt={instructorName}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xl font-medium">
-                        {instructorName.substring(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
+                  <img
+                    src={course.instructor.avatar_url || '/placeholder.svg'}
+                    alt={`${course.instructor.first_name} ${course.instructor.last_name}`}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
                   <div>
-                    <h3 className="text-xl font-semibold">{instructorName}</h3>
-                    <p className="text-gray-600 mb-4">Expert Instructor</p>
-                    <p className="text-sm text-gray-600">
-                      An experienced professional with years of expertise in the field.
-                      Passionate about teaching and helping students achieve their goals.
+                    <h3 className="font-semibold text-lg">
+                      {course.instructor.first_name} {course.instructor.last_name}
+                    </h3>
+                    <p className="text-gray-600 mt-2">
+                      {course.instructor.bio || "Experienced instructor passionate about teaching."}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="reviews" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Student Reviews</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="text-4xl font-bold">4.8</div>
-                    <div>
-                      <div className="flex items-center gap-1 mb-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        ))}
-                      </div>
-                      <p className="text-sm text-gray-600">Based on 124 reviews</p>
-                    </div>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Enrollment Card */}
+            <Card className="sticky top-4">
+              <CardContent className="p-6">
+                <div className="text-center mb-6">
+                  <div className="text-3xl font-bold mb-2">
+                    {course.price > 0 ? `$${course.price}` : 'Free'}
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div className="border-b pb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
-                        <span className="text-sm font-medium">John D.</span>
-                        <span className="text-xs text-gray-500">2 weeks ago</span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Excellent course! The instructor explains everything clearly and the content is very practical.
-                      </p>
+                  {course.discounted_price && course.discounted_price < course.price && (
+                    <div className="text-lg text-gray-500 line-through">
+                      ${course.discounted_price}
                     </div>
-                    
-                    <div className="border-b pb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
-                        <span className="text-sm font-medium">Sarah M.</span>
-                        <span className="text-xs text-gray-500">1 month ago</span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Great learning experience. I was able to apply what I learned immediately in my work.
-                      </p>
-                    </div>
+                  )}
+                </div>
+
+                <CourseEnrollButton
+                  courseId={course.id}
+                  courseTitle={course.title}
+                  courseThumbnail={course.image_url}
+                  isEnrolled={isEnrolled}
+                  isCompleted={isCompleted}
+                  className="w-full"
+                />
+
+                {!isEnrolled && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" className="w-full" asChild>
+                      <a href="/courses">Browse More Courses</a>
+                    </Button>
                   </div>
+                )}
+
+                <Separator className="my-6" />
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">
+                      {course.duration_hours} hours on-demand video
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Users className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">
+                      {course.enrollments_count} students enrolled
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">
+                      Full lifetime access
+                    </span>
+                  </div>
+                  {course.certificate_enabled && (
+                    <div className="flex items-center gap-3">
+                      <Award className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">
+                        Certificate of completion
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </Layout>
   );

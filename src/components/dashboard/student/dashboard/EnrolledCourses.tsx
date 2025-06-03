@@ -121,15 +121,18 @@ const EnrolledCourses = () => {
     return <div>Loading courses...</div>;
   }
 
+  // Filter only in-progress courses (not completed)
+  const inProgressCourses = enrolledCourses?.filter(course => !course.completed && course.progress < 100) || [];
+
   return (
     <>
       <h2 className="text-xl font-bold mb-4">In Progress Courses</h2>
-      {!enrolledCourses || enrolledCourses.length === 0 ? (
+      {inProgressCourses.length === 0 ? (
         <Card>
           <CardContent className="p-6 flex flex-col items-center justify-center py-10">
             <BookOpen className="h-12 w-12 text-gray-400 mb-3" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">No courses enrolled yet</h3>
-            <p className="text-gray-500 text-center mb-6">Explore our course catalog and start your learning journey</p>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">No courses in progress</h3>
+            <p className="text-gray-500 text-center mb-6">Start learning to see courses here</p>
             <Button asChild>
               <Link to="/courses">Browse Courses</Link>
             </Button>
@@ -137,7 +140,7 @@ const EnrolledCourses = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(enrolledCourses || []).map((course) => (
+          {inProgressCourses.map((course) => (
             <Card key={course.id} className="overflow-hidden">
               <div className="relative">
                 <AspectRatio ratio={16 / 9}>
@@ -189,11 +192,9 @@ const EnrolledCourses = () => {
                 <Button 
                   asChild 
                   className="w-full"
-                  disabled={course.completed}
-                  variant={course.completed ? "secondary" : "default"}
                 >
                   <Link to={`/dashboard/courses/${course.id}`}>
-                    {course.completed ? "Course Completed" : "Continue Learning"}
+                    Continue Learning
                   </Link>
                 </Button>
               </div>

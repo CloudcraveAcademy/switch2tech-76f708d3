@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -188,6 +188,9 @@ const StudentDashboard = () => {
     },
   ];
 
+  // Filter only in-progress courses for the dashboard
+  const inProgressCourses = enrolledCourses?.filter(course => !course.completed && course.progress < 100) || [];
+
   // Stats for dashboard summary
   const stats = [
     {
@@ -284,11 +287,11 @@ const StudentDashboard = () => {
 
       {/* In Progress Courses */}
       <h2 className="text-xl font-bold mb-4">In Progress Courses</h2>
-      {!enrolledCourses || enrolledCourses.length === 0 ? (
+      {inProgressCourses.length === 0 ? (
         <Card className="mb-10">
           <CardContent className="p-6 flex flex-col items-center justify-center py-10">
             <BookOpen className="h-12 w-12 text-gray-400 mb-3" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">No courses enrolled yet</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">No courses in progress</h3>
             <p className="text-gray-500 text-center mb-6">Explore our course catalog and start your learning journey</p>
             <Button asChild>
               <Link to="/courses">Browse Courses</Link>
@@ -297,7 +300,7 @@ const StudentDashboard = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          {(enrolledCourses || []).map((course) => (
+          {inProgressCourses.map((course) => (
             <Card key={course.id} className="overflow-hidden">
               <div className="relative">
                 <AspectRatio ratio={16 / 9}>
@@ -361,6 +364,16 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               </CardContent>
+              <CardFooter className="flex justify-between border-t pt-4">
+                <Button 
+                  asChild 
+                  size="sm"
+                >
+                  <Link to={`/dashboard/courses/${course.id}`}>
+                    Continue
+                  </Link>
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>
