@@ -113,12 +113,12 @@ export const mockCourses: Course[] = [
   {
     id: "1",
     title: "Complete Web Development Bootcamp",
-    description: "Learn HTML, CSS, JavaScript, React, Node and more to become a full stack web developer",
     instructor: {
       name: "Jane Smith",
       avatar: "https://i.pravatar.cc/150?img=2",
     },
     price: 59900,
+    discounted_price: 39900,
     level: "beginner",
     rating: 4.8,
     reviews: 1245,
@@ -134,7 +134,6 @@ export const mockCourses: Course[] = [
   {
     id: "2",
     title: "Advanced React and Redux",
-    description: "Take your React skills to the next level with advanced concepts and Redux state management",
     instructor: {
       name: "Alex Johnson",
       avatar: "https://i.pravatar.cc/150?img=8",
@@ -155,12 +154,12 @@ export const mockCourses: Course[] = [
   {
     id: "3",
     title: "Python for Data Science and Machine Learning",
-    description: "Learn Python programming and how to use it for data analysis, visualization, and machine learning",
     instructor: {
       name: "Sarah Chen",
       avatar: "https://i.pravatar.cc/150?img=5",
     },
     price: 69900,
+    discounted_price: 49900,
     level: "intermediate",
     rating: 4.9,
     reviews: 1567,
@@ -176,7 +175,6 @@ export const mockCourses: Course[] = [
   {
     id: "4",
     title: "Flutter & Firebase: Mobile App Development",
-    description: "Build cross-platform mobile apps for iOS and Android using Flutter and Firebase",
     instructor: {
       name: "Mike Peters",
       avatar: "https://i.pravatar.cc/150?img=9",
@@ -197,7 +195,6 @@ export const mockCourses: Course[] = [
   {
     id: "5",
     title: "UI/UX Design Principles",
-    description: "Master the principles of user interface and user experience design to create stunning applications",
     instructor: {
       name: "Lisa Wang",
       avatar: "https://i.pravatar.cc/150?img=4",
@@ -218,12 +215,12 @@ export const mockCourses: Course[] = [
   {
     id: "6",
     title: "DevOps Engineering & CI/CD",
-    description: "Learn how to implement continuous integration and deployment pipelines for software development",
     instructor: {
       name: "David Kumar",
       avatar: "https://i.pravatar.cc/150?img=12",
     },
     price: 64900,
+    discounted_price: 44900,
     level: "advanced",
     rating: 4.7,
     reviews: 324,

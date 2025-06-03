@@ -224,6 +224,19 @@ const EnrollmentPage = () => {
     }).format(price);
   };
 
+  const getEffectivePrice = () => {
+    if (!course) return 0;
+    
+    // Use discounted price if it exists and is greater than 0
+    if (course.discounted_price !== undefined && 
+        course.discounted_price !== null && 
+        course.discounted_price > 0) {
+      return course.discounted_price;
+    }
+    
+    return course.price || 0;
+  };
+
   const registerOrLoginUser = async (enrollmentData: EnrollmentFormData) => {
     try {
       console.log('Attempting to register or login user:', enrollmentData.email);
@@ -282,7 +295,7 @@ const EnrollmentPage = () => {
       return;
     }
 
-    const basePriceUSD = course.price || 0;
+    const basePriceUSD = getEffectivePrice(); // Use the effective price (discounted if available)
     const isFree = basePriceUSD === 0;
 
     if (isFree) {
@@ -456,7 +469,7 @@ const EnrollmentPage = () => {
     try {
       console.log('Completing payment and enrollment for user:', userId);
       
-      // Save payment transaction record for the specific course
+      // Save payment transaction for the specific course
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
@@ -541,13 +554,13 @@ const EnrollmentPage = () => {
     try {
       console.log('Processing successful payment:', paymentResponse);
       
-      // Save payment transaction
+      // Save payment transaction with the effective price
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
           user_id: userId,
           course_id: courseId,
-          amount: paymentResponse.amount || course!.price || 0,
+          amount: paymentResponse.amount || getEffectivePrice(), // Use effective price
           currency: paymentResponse.currency || enrollmentData.currency,
           payment_reference: paymentResponse.tx_ref,
           paystack_reference: paymentResponse.transaction_id,
@@ -738,9 +751,15 @@ const EnrollmentPage = () => {
     : "Instructor";
 
   const selectedCurrency = form.watch("currency");
-  const basePriceUSD = course.price || 0;
+  const basePriceUSD = getEffectivePrice(); // Use effective price
   const isFree = basePriceUSD === 0;
   const displayPrice = isFree ? 0 : (selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency));
+
+  // Check if there's a discount to show in the course summary
+  const hasDiscount = course.discounted_price !== undefined && 
+                     course.discounted_price !== null &&
+                     course.discounted_price > 0 &&
+                     course.discounted_price < (course.price || 0);
 
   return (
     <Layout>
@@ -1015,7 +1034,69 @@ const EnrollmentPage = () => {
             </div>
 
             {/* Course Summary */}
-            {/* ... keep existing code (Course Summary sidebar) */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-8">
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    <div>
+                      <img 
+                        src={course.image_url || "/placeholder.svg"} 
+                        alt={course.title}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2">{course.title}</h3>
+                      <p className="text-sm text-gray-600 mb-4">by {instructorName}</p>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Clock className="h-4 w-4 mr-2" />
+                          <span>{course.duration_hours || 0} hours</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Users className="h-4 w-4 mr-2" />
+                          <span>{course.enrolledStudents || 0} students enrolled</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Star className="h-4 w-4 mr-2" />
+                          <span>4.8 rating</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span>Lifetime access</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <div className="flex flex-col">
+                        {hasDiscount ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xl text-brand-600">
+                                {formatPrice(displayPrice, selectedCurrency)}
+                              </span>
+                              <Badge className="bg-red-500 text-white text-xs">
+                                {Math.round(((course.price! - course.discounted_price!) / course.price!) * 100)}% OFF
+                              </Badge>
+                            </div>
+                            <span className="text-sm line-through text-gray-500">
+                              {formatPrice(selectedCurrency === 'USD' ? course.price! : convertPrice(course.price!, selectedCurrency), selectedCurrency)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-xl text-brand-600">
+                            {isFree ? "Free" : formatPrice(displayPrice, selectedCurrency)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </div>
