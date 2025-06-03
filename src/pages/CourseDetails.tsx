@@ -18,11 +18,14 @@ import {
   BookOpen,
   Star,
   CheckCircle,
-  User
+  User,
+  MapPin,
+  Video
 } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import CourseEnrollButton from "@/components/dashboard/course/CourseEnrollButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
 interface Course {
   id: string;
@@ -36,6 +39,12 @@ interface Course {
   language: string;
   is_published: boolean;
   certificate_enabled: boolean;
+  course_start_date: string;
+  registration_deadline: string;
+  timezone: string;
+  class_days: string[];
+  class_time: string;
+  replay_access: boolean;
   instructor: {
     first_name: string;
     last_name: string;
@@ -160,6 +169,16 @@ const CourseDetails = () => {
   const totalDuration = course.lessons.reduce((total, lesson) => total + (lesson.duration_minutes || 0), 0);
   const formattedDuration = `${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m`;
 
+  // Parse class times for live courses
+  let parsedClassTimes: Record<string, { startTime: string; endTime: string }> = {};
+  if (course.mode === 'virtual-live' && course.class_time) {
+    try {
+      parsedClassTimes = JSON.parse(course.class_time);
+    } catch (e) {
+      console.error("Error parsing class times:", e);
+    }
+  }
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -175,8 +194,9 @@ const CourseDetails = () => {
                   className="w-full h-full object-cover rounded-lg"
                 />
               </AspectRatio>
-              {course.mode === 'live' && (
+              {course.mode === 'virtual-live' && (
                 <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                  <Video className="h-3 w-3 mr-1" />
                   Live Course
                 </Badge>
               )}
@@ -210,6 +230,84 @@ const CourseDetails = () => {
                 )}
               </div>
             </div>
+
+            {/* Live Course Schedule - Show if mode is virtual-live */}
+            {course.mode === 'virtual-live' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Live Course Schedule
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {course.course_start_date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm font-medium">Course Start Date</p>
+                          <p className="text-sm text-gray-600">
+                            {format(new Date(course.course_start_date), "PPP")}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {course.registration_deadline && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm font-medium">Registration Deadline</p>
+                          <p className="text-sm text-gray-600">
+                            {format(new Date(course.registration_deadline), "PPP")}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {course.timezone && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm font-medium">Timezone</p>
+                          <p className="text-sm text-gray-600">{course.timezone}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {course.replay_access && (
+                      <div className="flex items-center gap-2">
+                        <Video className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm font-medium">Replay Access</p>
+                          <p className="text-sm text-gray-600">Available</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Class Schedule */}
+                  {course.class_days && course.class_days.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">Class Schedule</p>
+                      <div className="space-y-2">
+                        {course.class_days.map((day) => (
+                          <div key={day} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span className="font-medium">{day}</span>
+                            {parsedClassTimes[day] && (
+                              <span className="text-sm text-gray-600">
+                                {parsedClassTimes[day].startTime} - {parsedClassTimes[day].endTime}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Course Description */}
             <Card>
