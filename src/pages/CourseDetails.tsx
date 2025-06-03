@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -37,12 +36,15 @@ interface Course {
   image_url: string;
   intro_video_url?: string;
   price: number;
+  discounted_price?: number;
+  discount_enabled?: boolean;
   level: string;
   duration_hours: number;
   mode: string;
   language: string;
   is_published: boolean;
   certificate_enabled: boolean;
+  lifetime_access?: boolean;
   course_start_date: string;
   registration_deadline: string;
   timezone: string;
@@ -184,6 +186,23 @@ const CourseDetails = () => {
 
   const isYouTubeUrl = (url: string) => {
     return url.includes('youtube.com') || url.includes('youtu.be');
+  };
+
+  const getDisplayPrice = () => {
+    if (course?.discount_enabled && course?.discounted_price !== undefined) {
+      return course.discounted_price;
+    }
+    return course?.price || 0;
+  };
+
+  const getOriginalPrice = () => {
+    return course?.price || 0;
+  };
+
+  const hasDiscount = () => {
+    return course?.discount_enabled && 
+           course?.discounted_price !== undefined && 
+           course?.discounted_price < course?.price;
   };
 
   if (isLoading) {
@@ -415,8 +434,24 @@ const CourseDetails = () => {
               <CardContent className="p-6">
                 <div className="text-center mb-6">
                   <div className="text-3xl font-bold mb-2">
-                    {course.price > 0 ? `$${course.price}` : 'Free'}
+                    {getDisplayPrice() > 0 ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <span>${getDisplayPrice()}</span>
+                        {hasDiscount() && (
+                          <span className="text-lg line-through text-gray-500">
+                            ${getOriginalPrice()}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      'Free'
+                    )}
                   </div>
+                  {hasDiscount() && (
+                    <Badge className="bg-green-500 text-white">
+                      Save ${getOriginalPrice() - getDisplayPrice()}!
+                    </Badge>
+                  )}
                 </div>
 
                 <CourseEnrollButton
@@ -442,7 +477,7 @@ const CourseDetails = () => {
                   <div className="flex items-center gap-3">
                     <Clock className="h-4 w-4 text-gray-500" />
                     <span className="text-sm">
-                      {course.duration_hours} hours on-demand video
+                      {course.duration_hours} hours {course.mode === 'self-paced' ? 'on-demand video' : 'of live classes'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -451,12 +486,14 @@ const CourseDetails = () => {
                       {course.enrollments_count} students enrolled
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">
-                      Full lifetime access
-                    </span>
-                  </div>
+                  {course.lifetime_access && (
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">
+                        Full lifetime access
+                      </span>
+                    </div>
+                  )}
                   {course.certificate_enabled && (
                     <div className="flex items-center gap-3">
                       <Award className="h-4 w-4 text-gray-500" />
