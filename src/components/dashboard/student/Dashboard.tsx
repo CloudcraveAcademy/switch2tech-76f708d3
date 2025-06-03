@@ -17,7 +17,7 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!user) return null;
       
-      const [coursesResponse, completedCoursesResponse, sessionsResponse] = await Promise.all([
+      const [coursesResponse, completedCoursesResponse, sessionsResponse, profileResponse] = await Promise.all([
         // Get total enrolled courses
         supabase
           .from('enrollments')
@@ -35,13 +35,21 @@ const Dashboard = () => {
         supabase
           .from('class_sessions')
           .select('id', { count: 'exact' })
-          .gte('start_time', new Date().toISOString())
+          .gte('start_time', new Date().toISOString()),
+
+        // Get user profile data
+        supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
       ]);
       
       return {
         totalCourses: coursesResponse.count || 0,
         completedCourses: completedCoursesResponse.count || 0,
         upcomingSessions: sessionsResponse.count || 0,
+        userProfile: profileResponse.data,
         // Added average progress calculation
         averageProgress: 0 // Will be calculated below if there are enrolled courses
       };
@@ -76,7 +84,14 @@ const Dashboard = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Student Dashboard</h1>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">
+          Welcome back, {stats?.userProfile?.first_name || user?.name?.split(" ")[0] || "Student"}!
+        </h1>
+        <p className="text-gray-600">
+          Track your progress and continue learning
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-3">

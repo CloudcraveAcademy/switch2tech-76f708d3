@@ -20,6 +20,8 @@ interface EnrolledCourse {
   progress: number;
   level: string;
   mode: string;
+  price?: number;
+  completed: boolean;
   nextLesson: {
     title: string;
     duration: string;
@@ -45,6 +47,7 @@ const EnrolledCourses = () => {
               image_url,
               level,
               mode,
+              price,
               instructor:user_profiles!instructor_id (
                 first_name,
                 last_name
@@ -92,6 +95,8 @@ const EnrolledCourses = () => {
             progress: enrollment.progress || 0,
             level: enrollment.course.level || 'beginner',
             mode: enrollment.course.mode || 'online',
+            price: enrollment.course.price || 0,
+            completed: enrollment.completed || false,
             nextLesson: nextLesson ? {
               title: nextLesson.title,
               duration: `${nextLesson.duration_minutes || 30} minutes`,
@@ -143,15 +148,22 @@ const EnrolledCourses = () => {
                   />
                 </AspectRatio>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                  <Badge className={`${
-                    course.level === "beginner"
-                      ? "bg-green-100 text-green-800"
-                      : course.level === "intermediate"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-800"
-                  }`}>
-                    {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${
+                      course.level === "beginner"
+                        ? "bg-green-100 text-green-800"
+                        : course.level === "intermediate"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                    }`}>
+                      {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
+                    </Badge>
+                    {course.price && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        ${course.price}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="p-4 pb-2">
@@ -174,9 +186,14 @@ const EnrolledCourses = () => {
                 </div>
               </div>
               <div className="p-4 pt-2">
-                <Button asChild className="w-full">
+                <Button 
+                  asChild 
+                  className="w-full"
+                  disabled={course.completed}
+                  variant={course.completed ? "secondary" : "default"}
+                >
                   <Link to={`/dashboard/courses/${course.id}`}>
-                    Continue Learning
+                    {course.completed ? "Course Completed" : "Continue Learning"}
                   </Link>
                 </Button>
               </div>

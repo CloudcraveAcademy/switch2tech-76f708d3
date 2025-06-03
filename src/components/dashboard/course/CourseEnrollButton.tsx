@@ -12,6 +12,7 @@ interface CourseEnrollButtonProps {
   courseTitle: string;
   courseThumbnail?: string;
   isEnrolled?: boolean;
+  isCompleted?: boolean;
   className?: string;
 }
 
@@ -20,6 +21,7 @@ const CourseEnrollButton = ({
   courseTitle,
   courseThumbnail = "/placeholder.svg",
   isEnrolled = false,
+  isCompleted = false,
   className = "",
 }: CourseEnrollButtonProps) => {
   const { user } = useAuth();
@@ -63,8 +65,10 @@ const CourseEnrollButton = ({
         <Button 
           className={className} 
           onClick={() => navigate(`/dashboard/courses/${courseId}`)}
+          disabled={isCompleted}
+          variant={isCompleted ? "secondary" : "default"}
         >
-          Continue Learning
+          {isCompleted ? "Course Completed" : "Continue Learning"}
         </Button>
       ) : (
         <Button 
