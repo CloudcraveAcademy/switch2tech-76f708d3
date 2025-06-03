@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -11,6 +10,8 @@ type Course = {
   title: string;
   description: string | null;
   price: number;
+  discounted_price?: number;
+  discount_enabled?: boolean;
   level: "beginner" | "intermediate" | "advanced";
   rating: number;
   reviews: number;
@@ -62,6 +63,8 @@ const FeaturedCoursesSection = () => {
             title,
             description,
             price,
+            discounted_price,
+            discount_enabled,
             level,
             mode,
             image_url,
@@ -140,6 +143,8 @@ const FeaturedCoursesSection = () => {
             title: course.title || "Untitled Course",
             description: course.description || "",
             price: course.price ? parseFloat(course.price.toString()) : 0,
+            discounted_price: course.discounted_price ? parseFloat(course.discounted_price.toString()) : undefined,
+            discount_enabled: course.discount_enabled || false,
             level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
             rating: randomRating,
             reviews: randomReviews,

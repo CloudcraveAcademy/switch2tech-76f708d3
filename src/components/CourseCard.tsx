@@ -16,6 +16,8 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     title,
     instructor,
     price,
+    discounted_price,
+    discount_enabled,
     level,
     rating,
     reviews,
@@ -48,6 +50,24 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     }).format(price);
   };
 
+  const getDisplayPrice = () => {
+    if (discount_enabled && discounted_price !== undefined && discounted_price !== null) {
+      return discounted_price;
+    }
+    return price;
+  };
+
+  const getOriginalPrice = () => {
+    return price;
+  };
+
+  const hasDiscount = () => {
+    return discount_enabled && 
+           discounted_price !== undefined && 
+           discounted_price !== null &&
+           discounted_price < price;
+  };
+
   return (
     <Card className="overflow-hidden h-full transition-all duration-200 hover:shadow-lg flex flex-col">
       <div className="relative">
@@ -59,6 +79,13 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         {featured && (
           <div className="absolute top-0 right-0 m-2">
             <Badge className="bg-brand-500 text-white">Featured</Badge>
+          </div>
+        )}
+        {hasDiscount() && (
+          <div className="absolute top-0 left-0 m-2">
+            <Badge className="bg-red-500 text-white">
+              {Math.round(((getOriginalPrice() - getDisplayPrice()) / getOriginalPrice()) * 100)}% OFF
+            </Badge>
           </div>
         )}
         <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/70 to-transparent p-3">
@@ -102,7 +129,16 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
       </CardContent>
 
       <CardFooter className="border-t p-5 flex items-center justify-between">
-        <span className="font-bold text-xl text-brand-600">{formatPrice(price)}</span>
+        <div className="flex flex-col">
+          {hasDiscount() ? (
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xl text-brand-600">{formatPrice(getDisplayPrice())}</span>
+              <span className="text-sm line-through text-gray-500">{formatPrice(getOriginalPrice())}</span>
+            </div>
+          ) : (
+            <span className="font-bold text-xl text-brand-600">{formatPrice(getDisplayPrice())}</span>
+          )}
+        </div>
         <Link 
           to={`/courses/${id}`}
           className="px-4 py-2 rounded-md bg-brand-500 text-white hover:bg-brand-600 transition-colors text-sm font-medium"

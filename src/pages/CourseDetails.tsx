@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -443,24 +444,33 @@ const CourseDetails = () => {
             <Card className="sticky top-4">
               <CardContent className="p-6">
                 <div className="text-center mb-6">
-                  <div className="text-3xl font-bold mb-2">
-                    {getDisplayPrice() > 0 ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <span>{formatPrice(getDisplayPrice())}</span>
-                        {hasDiscount() && (
-                          <span className="text-lg line-through text-gray-500">
-                            {formatPrice(getOriginalPrice())}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      'Free'
-                    )}
-                  </div>
-                  {hasDiscount() && (
-                    <Badge className="bg-green-500 text-white">
-                      Save {formatPrice(getOriginalPrice() - getDisplayPrice())}!
-                    </Badge>
+                  {getDisplayPrice() > 0 ? (
+                    <div>
+                      {hasDiscount() ? (
+                        <div className="space-y-2">
+                          <div className="text-3xl font-bold text-brand-600">
+                            {formatPrice(getDisplayPrice())}
+                          </div>
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-lg line-through text-gray-500">
+                              {formatPrice(getOriginalPrice())}
+                            </span>
+                            <Badge className="bg-red-500 text-white">
+                              {Math.round(((getOriginalPrice() - getDisplayPrice()) / getOriginalPrice()) * 100)}% OFF
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-green-600 font-medium">
+                            You save {formatPrice(getOriginalPrice() - getDisplayPrice())}!
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-3xl font-bold text-brand-600">
+                          {formatPrice(getDisplayPrice())}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-3xl font-bold text-brand-600">Free</div>
                   )}
                 </div>
 
