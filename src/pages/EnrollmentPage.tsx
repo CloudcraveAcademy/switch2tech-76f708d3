@@ -796,14 +796,7 @@ const EnrollmentPage = () => {
             {/* Show live course details if it's a live course */}
             {course.mode === 'virtual-live' && (
               <div className="lg:col-span-3 mb-6">
-                <LiveCourseDetails
-                  courseStartDate={course.course_start_date}
-                  registrationDeadline={course.registration_deadline}
-                  timezone={course.timezone}
-                  classDays={course.class_days}
-                  classTime={course.class_time}
-                  replayAccess={course.replay_access}
-                />
+                <LiveCourseDetails course={course} />
               </div>
             )}
 

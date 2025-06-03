@@ -142,19 +142,30 @@ const CourseDetails = () => {
   }, [enrollment]);
 
   const handleVideoPreview = (videoUrl: string) => {
+    console.log('Starting video preview with URL:', videoUrl);
     setCurrentVideoUrl(videoUrl);
     setShowVideoPreview(true);
   };
 
   const getPreviewVideoUrl = () => {
+    // Priority: intro video first, then first lesson with video
     if (course?.intro_video_url) {
+      console.log('Found intro video URL:', course.intro_video_url);
       return course.intro_video_url;
     }
+    
     // Get first lesson with video URL
     const firstLessonWithVideo = course?.lessons
       ?.sort((a, b) => a.order_number - b.order_number)
       ?.find(lesson => lesson.video_url);
-    return firstLessonWithVideo?.video_url;
+    
+    if (firstLessonWithVideo?.video_url) {
+      console.log('Found first lesson video URL:', firstLessonWithVideo.video_url);
+      return firstLessonWithVideo.video_url;
+    }
+    
+    console.log('No video URLs found');
+    return null;
   };
 
   if (isLoading) {
@@ -194,16 +205,6 @@ const CourseDetails = () => {
   const formattedDuration = `${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m`;
   const previewVideoUrl = getPreviewVideoUrl();
 
-  // Parse class times for live courses
-  let parsedClassTimes: Record<string, { startTime: string; endTime: string }> = {};
-  if (course.mode === 'virtual-live' && course.class_time) {
-    try {
-      parsedClassTimes = JSON.parse(course.class_time);
-    } catch (e) {
-      console.error("Error parsing class times:", e);
-    }
-  }
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -217,6 +218,7 @@ const CourseDetails = () => {
                   <video
                     src={currentVideoUrl}
                     controls
+                    autoPlay
                     className="w-full h-full object-cover rounded-lg"
                     onEnded={() => setShowVideoPreview(false)}
                   />
