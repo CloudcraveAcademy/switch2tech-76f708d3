@@ -17,7 +17,6 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     instructor,
     price,
     discounted_price,
-    discount_enabled,
     level,
     rating,
     reviews,
@@ -51,7 +50,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   };
 
   const getDisplayPrice = () => {
-    if (discount_enabled && discounted_price !== undefined && discounted_price !== null) {
+    if (discounted_price !== undefined && discounted_price !== null && discounted_price > 0) {
       return discounted_price;
     }
     return price;
@@ -62,9 +61,9 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   };
 
   const hasDiscount = () => {
-    return discount_enabled && 
-           discounted_price !== undefined && 
+    return discounted_price !== undefined && 
            discounted_price !== null &&
+           discounted_price > 0 &&
            discounted_price < price;
   };
 

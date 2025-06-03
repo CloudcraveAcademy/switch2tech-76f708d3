@@ -38,7 +38,6 @@ interface Course {
   preview_video?: string;
   price: number;
   discounted_price?: number;
-  discount_enabled?: boolean;
   level: string;
   duration_hours: number;
   mode: string;
@@ -190,7 +189,7 @@ const CourseDetails = () => {
   };
 
   const getDisplayPrice = () => {
-    if (course?.discount_enabled && course?.discounted_price !== undefined && course?.discounted_price !== null) {
+    if (course?.discounted_price !== undefined && course?.discounted_price !== null && course?.discounted_price > 0) {
       return course.discounted_price;
     }
     return course?.price || 0;
@@ -201,9 +200,9 @@ const CourseDetails = () => {
   };
 
   const hasDiscount = () => {
-    return course?.discount_enabled && 
-           course?.discounted_price !== undefined && 
+    return course?.discounted_price !== undefined && 
            course?.discounted_price !== null &&
+           course?.discounted_price > 0 &&
            course?.discounted_price < course?.price;
   };
 

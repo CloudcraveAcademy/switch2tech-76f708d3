@@ -33,7 +33,6 @@ interface SupabaseCourse {
   description: string | null;
   price: number | null;
   discounted_price?: number | null;
-  discount_enabled?: boolean;
   level: "beginner" | "intermediate" | "advanced" | null;
   rating?: number;
   reviews?: number;
@@ -350,7 +349,6 @@ const Courses = () => {
                   mode: course.mode || "self-paced",
                   price: typeof course.price === "number" ? course.price : 0,
                   discounted_price: typeof course.discounted_price === "number" ? course.discounted_price : undefined,
-                  discount_enabled: course.discount_enabled || false,
                   level: course.level || "beginner",
                   featured: false,
                   tags: [],
