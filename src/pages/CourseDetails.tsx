@@ -206,6 +206,15 @@ const CourseDetails = () => {
            course?.discounted_price < course?.price;
   };
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -437,10 +446,10 @@ const CourseDetails = () => {
                   <div className="text-3xl font-bold mb-2">
                     {getDisplayPrice() > 0 ? (
                       <div className="flex items-center justify-center gap-2">
-                        <span>${getDisplayPrice()}</span>
+                        <span>{formatPrice(getDisplayPrice())}</span>
                         {hasDiscount() && (
                           <span className="text-lg line-through text-gray-500">
-                            ${getOriginalPrice()}
+                            {formatPrice(getOriginalPrice())}
                           </span>
                         )}
                       </div>
@@ -450,7 +459,7 @@ const CourseDetails = () => {
                   </div>
                   {hasDiscount() && (
                     <Badge className="bg-green-500 text-white">
-                      Save ${getOriginalPrice() - getDisplayPrice()}!
+                      Save {formatPrice(getOriginalPrice() - getDisplayPrice())}!
                     </Badge>
                   )}
                 </div>

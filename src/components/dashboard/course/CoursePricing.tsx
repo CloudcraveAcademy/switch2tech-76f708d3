@@ -19,7 +19,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
         name="price"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Price (₦)*</FormLabel>
+            <FormLabel>Price (USD)*</FormLabel>
             <FormControl>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -27,7 +27,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
                   {...field}
                   type="number" 
                   className="pl-9"
-                  placeholder="e.g. 10000"
+                  placeholder="e.g. 100"
                   onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </div>
@@ -66,7 +66,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
           name="discountedPrice"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Discounted Price (₦)</FormLabel>
+              <FormLabel>Discounted Price (USD)</FormLabel>
               <FormControl>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -74,7 +74,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
                     {...field}
                     type="number" 
                     className="pl-9"
-                    placeholder="e.g. 8000"
+                    placeholder="e.g. 80"
                     onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 </div>
