@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -296,11 +295,6 @@ const CourseDetails = () => {
                   <div className="text-3xl font-bold mb-2">
                     {course.price > 0 ? `$${course.price}` : 'Free'}
                   </div>
-                  {course.discounted_price && course.discounted_price < course.price && (
-                    <div className="text-lg text-gray-500 line-through">
-                      ${course.discounted_price}
-                    </div>
-                  )}
                 </div>
 
                 <CourseEnrollButton
