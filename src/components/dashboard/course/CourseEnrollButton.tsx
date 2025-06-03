@@ -31,7 +31,7 @@ const CourseEnrollButton = ({
 
   const handleEnroll = async () => {
     if (!user) {
-      // Redirect to enrollment page instead of login page
+      // Redirect to enrollment page for guest users
       navigate(`/enroll/${courseId}`);
       return;
     }
@@ -47,9 +47,23 @@ const CourseEnrollButton = ({
         setShowConfirmation(true);
       } else if (result.success && result.error === "Already enrolled") {
         navigate(`/dashboard/courses/${courseId}`);
+      } else if (result.requiresPayment) {
+        // Redirect to enrollment page for payment
+        navigate(`/enroll/${courseId}`);
+      } else {
+        toast({
+          title: "Enrollment Failed",
+          description: result.error || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Enrollment error:", error);
+      toast({
+        title: "Enrollment Failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setEnrolling(false);
     }

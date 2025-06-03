@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -5,6 +6,8 @@ export interface EnrollmentResult {
   success: boolean;
   enrollment?: any;
   error?: string;
+  requiresPayment?: boolean;
+  courseId?: string;
 }
 
 export const CourseEnrollmentService = {
@@ -46,14 +49,11 @@ export const CourseEnrollmentService = {
           .maybeSingle();
 
         if (!paymentRecord) {
-          toast({
-            title: "Payment Required",
-            description: "You need to pay for this course before enrolling.",
-            variant: "destructive",
-          });
           return {
             success: false,
-            error: "Payment required"
+            error: "Payment required",
+            requiresPayment: true,
+            courseId: courseId
           };
         }
       }
