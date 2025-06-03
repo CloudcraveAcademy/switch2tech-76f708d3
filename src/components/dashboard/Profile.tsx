@@ -44,6 +44,35 @@ const Profile = () => {
     fetchProfileData
   } = useProfileData();
 
+  // Fetch student course statistics
+  const { data: studentStats } = useQuery({
+    queryKey: ['student-course-stats', user?.id],
+    queryFn: async () => {
+      if (!user?.id || user.role !== 'student') return { enrolledCourses: 0, completedCourses: 0 };
+      
+      const [enrolledResponse, completedResponse] = await Promise.all([
+        // Get total enrolled courses
+        supabase
+          .from('enrollments')
+          .select('id', { count: 'exact' })
+          .eq('student_id', user.id),
+          
+        // Get completed courses
+        supabase
+          .from('enrollments')
+          .select('id', { count: 'exact' })
+          .eq('student_id', user.id)
+          .eq('completed', true)
+      ]);
+      
+      return {
+        enrolledCourses: enrolledResponse.count || 0,
+        completedCourses: completedResponse.count || 0
+      };
+    },
+    enabled: !!user?.id && user?.role === 'student'
+  });
+
   const [formData, setFormData] = useState({
     // --- PERSONAL ---
     first_name: "",
@@ -375,12 +404,12 @@ const Profile = () => {
                     <>
                       <div className="border-t pt-4 pb-4">
                         <p className="text-sm font-medium text-gray-500">Enrolled Courses</p>
-                        <p>4</p>
+                        <p>{studentStats?.enrolledCourses || 0}</p>
                       </div>
                       
                       <div className="border-t pt-4 pb-4">
                         <p className="text-sm font-medium text-gray-500">Completed Courses</p>
-                        <p>2</p>
+                        <p>{studentStats?.completedCourses || 0}</p>
                       </div>
                     </>
                   )}
@@ -696,17 +725,16 @@ const Profile = () => {
                     
                     <div>
                       <Label htmlFor="profile-picture">Profile Picture</Label>
-                      <div className="flex items-center space-x-4 mt-2">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={user?.avatar} />
-                          <AvatarFallback>
-                            {fullName ? fullName.split(" ").map((n) => n[0]).join("").toUpperCase() : user?.email?.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Button variant="outline" size="sm">
-                          Change Image
-                        </Button>
-                      </div>
+                      <AvatarUploader
+                        profileData={{
+                          id: user?.id!,
+                          first_name: formData.first_name,
+                          last_name: formData.last_name,
+                          avatar_url: profileData?.avatar_url,
+                          email: user?.email,
+                        }}
+                        onUpload={handleAvatarUpload}
+                      />
                     </div>
                     
                     <div className="mt-6 flex justify-end">
