@@ -168,6 +168,24 @@ const CourseDetails = () => {
     return null;
   };
 
+  const convertToEmbedUrl = (url: string) => {
+    // Convert YouTube watch URL to embed URL
+    if (url.includes('youtube.com/watch')) {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    // For other video URLs, return as is
+    return url;
+  };
+
+  const isYouTubeUrl = (url: string) => {
+    return url.includes('youtube.com') || url.includes('youtu.be');
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -215,13 +233,22 @@ const CourseDetails = () => {
             <div className="relative">
               <AspectRatio ratio={16 / 9}>
                 {showVideoPreview && currentVideoUrl ? (
-                  <video
-                    src={currentVideoUrl}
-                    controls
-                    autoPlay
-                    className="w-full h-full object-cover rounded-lg"
-                    onEnded={() => setShowVideoPreview(false)}
-                  />
+                  isYouTubeUrl(currentVideoUrl) ? (
+                    <iframe
+                      src={convertToEmbedUrl(currentVideoUrl)}
+                      className="w-full h-full rounded-lg"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video
+                      src={currentVideoUrl}
+                      controls
+                      autoPlay
+                      className="w-full h-full object-cover rounded-lg"
+                      onEnded={() => setShowVideoPreview(false)}
+                    />
+                  )
                 ) : previewVideoUrl ? (
                   <div className="relative">
                     <img
