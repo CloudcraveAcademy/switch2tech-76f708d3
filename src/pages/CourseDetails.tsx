@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -20,18 +21,21 @@ import {
   CheckCircle,
   User,
   MapPin,
-  Video
+  Video,
+  Play
 } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import CourseEnrollButton from "@/components/dashboard/course/CourseEnrollButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import LiveCourseDetails from "@/components/course/LiveCourseDetails";
 
 interface Course {
   id: string;
   title: string;
   description: string;
   image_url: string;
+  intro_video_url?: string;
   price: number;
   level: string;
   duration_hours: number;
@@ -56,6 +60,7 @@ interface Course {
     title: string;
     duration_minutes: number;
     order_number: number;
+    video_url?: string;
   }>;
   enrollments_count: number;
 }
@@ -66,6 +71,8 @@ const CourseDetails = () => {
   const navigate = useNavigate();
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [showVideoPreview, setShowVideoPreview] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>("");
 
   // Fetch course details
   const { data: course, isLoading, error } = useQuery({
@@ -85,7 +92,8 @@ const CourseDetails = () => {
             id,
             title,
             duration_minutes,
-            order_number
+            order_number,
+            video_url
           )
         `)
         .eq('id', id)
@@ -133,6 +141,22 @@ const CourseDetails = () => {
     }
   }, [enrollment]);
 
+  const handleVideoPreview = (videoUrl: string) => {
+    setCurrentVideoUrl(videoUrl);
+    setShowVideoPreview(true);
+  };
+
+  const getPreviewVideoUrl = () => {
+    if (course?.intro_video_url) {
+      return course.intro_video_url;
+    }
+    // Get first lesson with video URL
+    const firstLessonWithVideo = course?.lessons
+      ?.sort((a, b) => a.order_number - b.order_number)
+      ?.find(lesson => lesson.video_url);
+    return firstLessonWithVideo?.video_url;
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -168,6 +192,7 @@ const CourseDetails = () => {
 
   const totalDuration = course.lessons.reduce((total, lesson) => total + (lesson.duration_minutes || 0), 0);
   const formattedDuration = `${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m`;
+  const previewVideoUrl = getPreviewVideoUrl();
 
   // Parse class times for live courses
   let parsedClassTimes: Record<string, { startTime: string; endTime: string }> = {};
@@ -185,17 +210,49 @@ const CourseDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Course Image */}
+            {/* Course Media Preview */}
             <div className="relative">
               <AspectRatio ratio={16 / 9}>
-                <img
-                  src={course.image_url || '/placeholder.svg'}
-                  alt={course.title}
-                  className="w-full h-full object-cover rounded-lg"
-                />
+                {showVideoPreview && currentVideoUrl ? (
+                  <video
+                    src={currentVideoUrl}
+                    controls
+                    className="w-full h-full object-cover rounded-lg"
+                    onEnded={() => setShowVideoPreview(false)}
+                  />
+                ) : previewVideoUrl ? (
+                  <div className="relative">
+                    <img
+                      src={course.image_url || '/placeholder.svg'}
+                      alt={course.title}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-lg">
+                      <Button
+                        onClick={() => handleVideoPreview(previewVideoUrl)}
+                        className="bg-white bg-opacity-90 hover:bg-opacity-100 text-black rounded-full p-4"
+                        size="lg"
+                      >
+                        <Play className="h-8 w-8" />
+                      </Button>
+                    </div>
+                    <div className="absolute bottom-4 left-4">
+                      <Badge className="bg-blue-600 text-white">
+                        <PlayCircle className="h-3 w-3 mr-1" />
+                        Preview Available
+                      </Badge>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={course.image_url || '/placeholder.svg'}
+                    alt={course.title}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                )}
               </AspectRatio>
               {course.mode === 'virtual-live' && (
-                <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                <Badge className="absolute top-4 right-4 bg-red-500 text-white">
                   <Video className="h-3 w-3 mr-1" />
                   Live Course
                 </Badge>
@@ -231,82 +288,9 @@ const CourseDetails = () => {
               </div>
             </div>
 
-            {/* Live Course Schedule - Show if mode is virtual-live */}
+            {/* Live Course Details - Show if mode is virtual-live */}
             {course.mode === 'virtual-live' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Live Course Schedule
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {course.course_start_date && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium">Course Start Date</p>
-                          <p className="text-sm text-gray-600">
-                            {format(new Date(course.course_start_date), "PPP")}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {course.registration_deadline && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium">Registration Deadline</p>
-                          <p className="text-sm text-gray-600">
-                            {format(new Date(course.registration_deadline), "PPP")}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {course.timezone && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium">Timezone</p>
-                          <p className="text-sm text-gray-600">{course.timezone}</p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {course.replay_access && (
-                      <div className="flex items-center gap-2">
-                        <Video className="h-4 w-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium">Replay Access</p>
-                          <p className="text-sm text-gray-600">Available</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Class Schedule */}
-                  {course.class_days && course.class_days.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Class Schedule</p>
-                      <div className="space-y-2">
-                        {course.class_days.map((day) => (
-                          <div key={day} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="font-medium">{day}</span>
-                            {parsedClassTimes[day] && (
-                              <span className="text-sm text-gray-600">
-                                {parsedClassTimes[day].startTime} - {parsedClassTimes[day].endTime}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <LiveCourseDetails course={course} />
             )}
 
             {/* Course Description */}
@@ -345,6 +329,17 @@ const CourseDetails = () => {
                           <div>
                             <h4 className="font-medium">{lesson.title}</h4>
                           </div>
+                          {lesson.video_url && index === 0 && (
+                            <Button
+                              onClick={() => handleVideoPreview(lesson.video_url!)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Preview
+                            </Button>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <Clock className="h-3 w-3" />
