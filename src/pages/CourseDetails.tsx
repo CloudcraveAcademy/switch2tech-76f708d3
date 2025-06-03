@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -156,7 +157,7 @@ const CourseDetails = () => {
       return course.intro_video_url;
     }
     
-    // Get first lesson with video URL
+    // Get first lesson with video URL as fallback
     const firstLessonWithVideo = course?.lessons
       ?.sort((a, b) => a.order_number - b.order_number)
       ?.find(lesson => lesson.video_url);
@@ -189,7 +190,7 @@ const CourseDetails = () => {
   };
 
   const getDisplayPrice = () => {
-    if (course?.discount_enabled && course?.discounted_price !== undefined) {
+    if (course?.discount_enabled && course?.discounted_price !== undefined && course?.discounted_price !== null) {
       return course.discounted_price;
     }
     return course?.price || 0;
@@ -202,6 +203,7 @@ const CourseDetails = () => {
   const hasDiscount = () => {
     return course?.discount_enabled && 
            course?.discounted_price !== undefined && 
+           course?.discounted_price !== null &&
            course?.discounted_price < course?.price;
   };
 
