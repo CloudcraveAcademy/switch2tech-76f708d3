@@ -1,4 +1,3 @@
-
 import { UserWithProfile, UserRole } from "@/contexts/AuthContext";
 
 // Define Course type
@@ -6,20 +5,21 @@ export interface Course {
   id: string;
   title: string;
   instructor: {
+    id?: string;
     name: string;
     avatar: string;
   };
   price: number;
-  level: 'beginner' | 'intermediate' | 'advanced';
+  discounted_price?: number;
+  level: "beginner" | "intermediate" | "advanced";
   rating: number;
   reviews: number;
   image: string;
-  mode: 'self-paced' | 'virtual' | 'live';
+  mode: "self-paced" | "virtual" | "live";
   enrolledStudents: number;
   lessons: number;
   category: string;
   featured: boolean;
-  description: string;
   tags: string[];
   duration: string;
 }
