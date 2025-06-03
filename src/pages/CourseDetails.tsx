@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -35,7 +34,7 @@ interface Course {
   title: string;
   description: string;
   image_url: string;
-  intro_video_url?: string;
+  preview_video?: string;
   price: number;
   discounted_price?: number;
   discount_enabled?: boolean;
@@ -151,10 +150,10 @@ const CourseDetails = () => {
   };
 
   const getPreviewVideoUrl = () => {
-    // Priority: intro video first, then first lesson with video
-    if (course?.intro_video_url) {
-      console.log('Found intro video URL:', course.intro_video_url);
-      return course.intro_video_url;
+    // Priority: preview_video field first (set by instructor in media upload), then first lesson with video
+    if (course?.preview_video) {
+      console.log('Found preview video URL:', course.preview_video);
+      return course.preview_video;
     }
     
     // Get first lesson with video URL as fallback
