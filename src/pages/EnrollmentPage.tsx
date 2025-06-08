@@ -507,7 +507,7 @@ const EnrollmentPage = () => {
     try {
       console.log('Completing payment and enrollment for user:', userId);
       
-      // Save payment transaction for the specific course
+      // Save payment transaction for the specific course - use "completed" instead of "successful"
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
@@ -517,7 +517,7 @@ const EnrollmentPage = () => {
           currency: enrollmentData.currency || 'USD',
           payment_reference: transactionId,
           paystack_reference: transactionId,
-          status: "successful",
+          status: "completed", // Changed from "successful" to "completed"
           payment_method: "card",
           metadata: {
             flutterwave_redirect: true,
@@ -595,7 +595,7 @@ const EnrollmentPage = () => {
     try {
       console.log('Processing successful payment:', paymentResponse);
       
-      // Save payment transaction with the effective price
+      // Save payment transaction with the effective price - use "completed" instead of "successful"
       const { error: paymentError } = await supabase
         .from("payment_transactions")
         .insert([{
@@ -605,7 +605,7 @@ const EnrollmentPage = () => {
           currency: paymentResponse.currency || enrollmentData.currency,
           payment_reference: paymentResponse.tx_ref,
           paystack_reference: paymentResponse.transaction_id,
-          status: "successful",
+          status: "completed", // Changed from "successful" to "completed"
           payment_method: paymentResponse.payment_type || "card",
           metadata: {
             flutterwave_response: paymentResponse,
