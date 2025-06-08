@@ -113,6 +113,105 @@ const EnrollmentPage = () => {
     },
   });
 
+  // Move the query hooks before any useMemo that depends on them
+  const { data: course, isLoading } = useQuery({
+    queryKey: ["course-enrollment", courseId],
+    queryFn: async () => {
+      if (!courseId) return null;
+      
+      const { data: courseData, error } = await supabase
+        .from("courses")
+        .select(`
+          *,
+          user_profiles (
+            id,
+            first_name,
+            last_name,
+            avatar_url
+          ),
+          course_categories (
+            id,
+            name
+          )
+        `)
+        .eq("id", courseId)
+        .eq("is_published", true)
+        .single();
+
+      if (error) throw error;
+
+      // Get enrollment count
+      const { count: enrollmentCount } = await supabase
+        .from("enrollments")
+        .select("*", { count: 'exact', head: true })
+        .eq("course_id", courseId);
+
+      return {
+        ...courseData,
+        enrolledStudents: enrollmentCount || 0
+      };
+    },
+    enabled: !!courseId,
+  });
+
+  // Check if user is already enrolled
+  const { data: enrollment } = useQuery({
+    queryKey: ["enrollment-status", courseId, user?.id],
+    queryFn: async () => {
+      if (!courseId || !user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select("id, progress")
+        .eq("course_id", courseId)
+        .eq("student_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!courseId && !!user?.id,
+  });
+
+  // Move all utility functions before useMemo
+  const convertPrice = (priceInUSD: number, toCurrency: string): number => {
+    const rate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES];
+    return Math.round(priceInUSD * rate * 100) / 100;
+  };
+
+  const formatPrice = (price: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: currency === 'NGN' ? 0 : 2,
+      maximumFractionDigits: currency === 'NGN' ? 0 : 2
+    }).format(price);
+  };
+
+  const getEffectivePrice = () => {
+    if (!course) return 0;
+    
+    // Use discounted price if it exists and is greater than 0
+    if (course.discounted_price !== undefined && 
+        course.discounted_price !== null && 
+        course.discounted_price > 0) {
+      return course.discounted_price;
+    }
+    
+    return course.price || 0;
+  };
+
+  // Watch currency selection early and make displayPrice reactive
+  const selectedCurrency = form.watch("currency");
+  const basePriceUSD = getEffectivePrice();
+  const isFree = basePriceUSD === 0;
+  
+  // Move displayPrice useMemo here, right after the dependencies are defined
+  const displayPrice = React.useMemo(() => {
+    if (isFree) return 0;
+    return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
+  }, [basePriceUSD, selectedCurrency, isFree]);
+
   // Pre-fill form with user profile data when available
   useEffect(() => {
     if (profileData && user) {
@@ -229,536 +328,6 @@ const EnrollmentPage = () => {
     }
   }, [courseId, navigate, user, authCheckComplete]);
 
-  const { data: course, isLoading } = useQuery({
-    queryKey: ["course-enrollment", courseId],
-    queryFn: async () => {
-      if (!courseId) return null;
-      
-      const { data: courseData, error } = await supabase
-        .from("courses")
-        .select(`
-          *,
-          user_profiles (
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          ),
-          course_categories (
-            id,
-            name
-          )
-        `)
-        .eq("id", courseId)
-        .eq("is_published", true)
-        .single();
-
-      if (error) throw error;
-
-      // Get enrollment count
-      const { count: enrollmentCount } = await supabase
-        .from("enrollments")
-        .select("*", { count: 'exact', head: true })
-        .eq("course_id", courseId);
-
-      return {
-        ...courseData,
-        enrolledStudents: enrollmentCount || 0
-      };
-    },
-    enabled: !!courseId,
-  });
-
-  // Check if user is already enrolled
-  const { data: enrollment } = useQuery({
-    queryKey: ["enrollment-status", courseId, user?.id],
-    queryFn: async () => {
-      if (!courseId || !user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("id, progress")
-        .eq("course_id", courseId)
-        .eq("student_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!courseId && !!user?.id,
-  });
-
-  const convertPrice = (priceInUSD: number, toCurrency: string): number => {
-    const rate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES];
-    return Math.round(priceInUSD * rate * 100) / 100;
-  };
-
-  const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: currency === 'NGN' ? 0 : 2,
-      maximumFractionDigits: currency === 'NGN' ? 0 : 2
-    }).format(price);
-  };
-
-  const getEffectivePrice = () => {
-    if (!course) return 0;
-    
-    // Use discounted price if it exists and is greater than 0
-    if (course.discounted_price !== undefined && 
-        course.discounted_price !== null && 
-        course.discounted_price > 0) {
-      return course.discounted_price;
-    }
-    
-    return course.price || 0;
-  };
-
-  const registerOrLoginUser = async (enrollmentData: EnrollmentFormData) => {
-    try {
-      console.log('Attempting to register or login user:', enrollmentData.email);
-      
-      // First, try to sign up the user
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: enrollmentData.email,
-        password: enrollmentData.password!,
-        options: {
-          data: {
-            first_name: enrollmentData.firstName,
-            last_name: enrollmentData.lastName,
-            role: 'student',
-          },
-        },
-      });
-
-      // If user already exists, try to sign them in
-      if (signUpError && signUpError.message.includes('already registered')) {
-        console.log('User already exists, attempting to sign them in');
-        
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: enrollmentData.email,
-          password: enrollmentData.password!,
-        });
-
-        if (signInError) {
-          console.error('Sign in error:', signInError);
-          throw new Error("User already exists but password is incorrect. Please use the correct password or try the login page.");
-        }
-
-        console.log('User signed in successfully:', signInData.user?.id);
-        return signInData.user;
-      }
-
-      if (signUpError) {
-        console.error('Registration error:', signUpError);
-        throw signUpError;
-      }
-
-      console.log('User registration successful:', signUpData.user?.id);
-      return signUpData.user;
-    } catch (error: any) {
-      console.error('Registration/Login failed:', error);
-      throw error;
-    }
-  };
-
-  const initializeFlutterwavePayment = async (enrollmentData: EnrollmentFormData, userId: string) => {
-    if (!course || !flutterwaveLoaded) {
-      toast({
-        title: "Payment Error",
-        description: "Payment system is not ready. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const basePriceUSD = getEffectivePrice();
-    const isFree = basePriceUSD === 0;
-
-    if (isFree) {
-      return enrollDirectly(enrollmentData, userId);
-    }
-
-    // Convert price to selected currency
-    const convertedPrice = enrollmentData.currency === 'USD' 
-      ? basePriceUSD 
-      : convertPrice(basePriceUSD, enrollmentData.currency);
-
-    console.log(`Converting ${basePriceUSD} USD to ${convertedPrice} ${enrollmentData.currency}`);
-
-    // Get current app URL for return URLs
-    const currentUrl = window.location.origin;
-    const returnUrl = `${currentUrl}/enroll/${courseId}?payment=success`;
-    const cancelUrl = `${currentUrl}/enroll/${courseId}?payment=cancelled`;
-
-    const flutterwaveConfig = {
-      public_key: "FLWPUBK_TEST-92e54f62b62bd51b1c6bc5a6a54eafd2-X",
-      tx_ref: `course-${courseId}-${userId}-${Date.now()}`,
-      amount: convertedPrice,
-      currency: enrollmentData.currency,
-      country: enrollmentData.country === 'Nigeria' ? 'NG' : 'US',
-      payment_options: "card,mobilemoney,ussd",
-      redirect_url: returnUrl,
-      customer: {
-        email: enrollmentData.email,
-        phone_number: enrollmentData.phone,
-        name: `${enrollmentData.firstName} ${enrollmentData.lastName}`,
-      },
-      customizations: {
-        title: `Enroll in ${course.title}`,
-        description: `Payment for course enrollment`,
-        logo: "/favicon.ico",
-      },
-      meta: {
-        course_id: courseId,
-        user_id: userId,
-        enrollment_data: JSON.stringify(enrollmentData)
-      },
-      callback: function (response: any) {
-        console.log('Flutterwave callback:', response);
-        if (response.status === "successful") {
-          handleSuccessfulPayment(response, enrollmentData, userId);
-        } else {
-          setIsProcessingPayment(false);
-          toast({
-            title: "Payment Failed",
-            description: "Your payment was not successful. Please try again.",
-            variant: "destructive",
-          });
-        }
-      },
-      onclose: function () {
-        console.log('Flutterwave modal closed');
-        setIsProcessingPayment(false);
-        // Check if payment was successful via URL params
-        const urlParams = new URLSearchParams(window.location.search);
-        const paymentStatus = urlParams.get('payment');
-        
-        if (paymentStatus === 'success') {
-          // Payment was successful, handle it
-          console.log('Payment completed successfully via redirect');
-          toast({
-            title: "Payment Processing",
-            description: "Your payment is being processed. Please wait...",
-          });
-        } else if (paymentStatus === 'cancelled') {
-          toast({
-            title: "Payment Cancelled",
-            description: "Your payment was cancelled. You can try again.",
-            variant: "destructive",
-          });
-        }
-      },
-    };
-
-    try {
-      if (window.FlutterwaveCheckout) {
-        window.FlutterwaveCheckout(flutterwaveConfig);
-      } else {
-        throw new Error('Flutterwave checkout not available');
-      }
-    } catch (error) {
-      console.error('Flutterwave initialization error:', error);
-      setIsProcessingPayment(false);
-      toast({
-        title: "Payment Error",
-        description: "Failed to initialize payment. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleNewUserPaymentVerification = async (enrollmentData: EnrollmentFormData, transactionId: string) => {
-    try {
-      console.log('Handling new user payment verification');
-      
-      // Try to register or login the user
-      const authUser = await registerOrLoginUser(enrollmentData);
-      if (!authUser) {
-        throw new Error("Failed to authenticate user during payment verification");
-      }
-
-      console.log('User authenticated successfully, proceeding with enrollment');
-      
-      // Wait a moment for auth state to update
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Complete the payment verification and enrollment
-      await completePaymentAndEnrollment(authUser.id, transactionId, enrollmentData);
-      
-    } catch (error: any) {
-      console.error('New user payment verification error:', error);
-      toast({
-        title: "Authentication Error", 
-        description: error.message || "There was an issue with your account. Please try logging in manually.",
-        variant: "destructive",
-      });
-      // Redirect to login page with the email pre-filled
-      setTimeout(() => {
-        navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}&redirect=/enroll/${courseId}`);
-      }, 3000);
-    } finally {
-      setPaymentProcessing(false);
-    }
-  };
-
-  const completePaymentAndEnrollment = async (userId: string, transactionId: string, enrollmentData: EnrollmentFormData) => {
-    try {
-      console.log('Completing payment and enrollment for user:', userId);
-      
-      // Save payment transaction for the specific course - use "completed" instead of "successful"
-      const { error: paymentError } = await supabase
-        .from("payment_transactions")
-        .insert([{
-          user_id: userId,
-          course_id: courseId,
-          amount: getEffectivePrice(),
-          currency: enrollmentData.currency || 'USD',
-          payment_reference: transactionId,
-          paystack_reference: transactionId,
-          status: "completed", // Changed from "successful" to "completed"
-          payment_method: "card",
-          metadata: {
-            flutterwave_redirect: true,
-            enrollment_data: enrollmentData,
-            verified_course_id: courseId
-          }
-        }]);
-
-      if (paymentError) {
-        console.error('Payment transaction save error:', paymentError);
-        throw paymentError;
-      }
-
-      console.log('Payment transaction saved successfully');
-
-      // Complete enrollment for the specific course
-      await enrollDirectly(enrollmentData, userId);
-
-      toast({
-        title: "Enrollment Successful!",
-        description: "Your payment has been confirmed and you've been enrolled!",
-      });
-
-      // Clean up stored data
-      localStorage.removeItem(`enrollment_${courseId}`);
-
-      setTimeout(() => {
-        navigate(`/dashboard/courses/${courseId}`);
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error completing payment and enrollment:', error);
-      throw error;
-    }
-  };
-
-  const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: EnrollmentFormData) => {
-    try {
-      console.log('Verifying payment for user:', user?.id);
-      
-      if (!user?.id) {
-        console.log('No user found during payment verification');
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to complete your enrollment.",
-          variant: "destructive",
-        });
-        navigate('/login');
-        return;
-      }
-      
-      await completePaymentAndEnrollment(user.id, transactionId, enrollmentData || {
-        firstName: user?.user_metadata?.first_name || "",
-        lastName: user?.user_metadata?.last_name || "",
-        email: user?.email || "",
-        phone: "",
-        country: "",
-        currency: "USD",
-        motivation: "Payment completed via redirect"
-      });
-
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      toast({
-        title: "Verification Error",
-        description: "There was an issue verifying your payment. Please contact support.",
-        variant: "destructive",
-      });
-    } finally {
-      setPaymentProcessing(false);
-    }
-  };
-
-  const handleSuccessfulPayment = async (paymentResponse: any, enrollmentData: EnrollmentFormData, userId: string) => {
-    try {
-      console.log('Processing successful payment:', paymentResponse);
-      
-      // Save payment transaction with the effective price - use "completed" instead of "successful"
-      const { error: paymentError } = await supabase
-        .from("payment_transactions")
-        .insert([{
-          user_id: userId,
-          course_id: courseId,
-          amount: paymentResponse.amount || getEffectivePrice(),
-          currency: paymentResponse.currency || enrollmentData.currency,
-          payment_reference: paymentResponse.tx_ref,
-          paystack_reference: paymentResponse.transaction_id,
-          status: "completed", // Changed from "successful" to "completed"
-          payment_method: paymentResponse.payment_type || "card",
-          metadata: {
-            flutterwave_response: paymentResponse,
-            enrollment_data: enrollmentData
-          }
-        }]);
-
-      if (paymentError) {
-        console.error('Payment transaction save error:', paymentError);
-        throw paymentError;
-      }
-
-      // Enroll the student
-      await enrollDirectly(enrollmentData, userId);
-
-      toast({
-        title: "Payment Successful!",
-        description: "Your payment has been processed and you've been enrolled in the course.",
-      });
-
-    } catch (error: any) {
-      console.error('Post-payment processing error:', error);
-      toast({
-        title: "Enrollment Error",
-        description: error.message || "Something went wrong after payment. Please contact support.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessingPayment(false);
-    }
-  };
-
-  const enrollDirectly = async (enrollmentData: EnrollmentFormData, userId: string) => {
-    try {
-      console.log('Starting direct enrollment for course:', courseId, 'user:', userId);
-      
-      // Check if already enrolled in THIS specific course
-      const { data: existingEnrollment } = await supabase
-        .from("enrollments")
-        .select("id")
-        .eq("course_id", courseId)
-        .eq("student_id", userId)
-        .maybeSingle();
-
-      if (existingEnrollment) {
-        console.log('User already enrolled in this course');
-        toast({
-          title: "Already Enrolled",
-          description: "You are already enrolled in this course.",
-        });
-        navigate(`/dashboard/courses/${courseId}`);
-        return;
-      }
-      
-      // Update user profile
-      const { error: profileError } = await supabase
-        .from("user_profiles")
-        .update({
-          first_name: enrollmentData.firstName,
-          last_name: enrollmentData.lastName,
-          phone: enrollmentData.phone,
-          country: enrollmentData.country,
-        })
-        .eq('id', userId);
-
-      if (profileError) {
-        console.error('Profile update error:', profileError);
-        throw profileError;
-      }
-
-      // Create enrollment for the SPECIFIC course
-      const { error: enrollmentError } = await supabase
-        .from("enrollments")
-        .insert([{
-          course_id: courseId,
-          student_id: userId,
-          progress: 0,
-          completed: false
-        }]);
-
-      if (enrollmentError) {
-        console.error('Enrollment creation error:', enrollmentError);
-        throw enrollmentError;
-      }
-
-      console.log('Enrollment successful for course:', courseId);
-      toast({
-        title: "Enrollment Successful!",
-        description: "You have been successfully enrolled in this course.",
-      });
-
-      setTimeout(() => {
-        navigate(`/dashboard/courses/${courseId}`);
-      }, 2000);
-
-    } catch (error: any) {
-      console.error('Direct enrollment error:', error);
-      throw error;
-    }
-  };
-
-  const onSubmit = async (data: EnrollmentFormData) => {
-    console.log('Form submitted with data:', data);
-    
-    setIsEnrolling(true);
-    setIsProcessingPayment(true);
-
-    try {
-      let currentUserId = user?.id;
-
-      // Store enrollment data for payment redirect scenario
-      localStorage.setItem(`enrollment_${courseId}`, JSON.stringify(data));
-
-      // If user is not logged in, register them first
-      if (!user && isNewUser) {
-        if (!data.password) {
-          toast({
-            title: "Password Required",
-            description: "Please enter a password to create your account.",
-            variant: "destructive",
-          });
-          setIsEnrolling(false);
-          setIsProcessingPayment(false);
-          return;
-        }
-
-        const newUser = await registerOrLoginUser(data);
-        if (!newUser) {
-          throw new Error("Failed to create user account");
-        }
-        currentUserId = newUser.id;
-      }
-
-      // Check if already enrolled
-      if (enrollment && user) {
-        navigate(`/dashboard/courses/${courseId}`);
-        return;
-      }
-
-      // Proceed with payment/enrollment
-      await initializeFlutterwavePayment(data, currentUserId!);
-    } catch (error: any) {
-      console.error('Enrollment submission error:', error);
-      toast({
-        title: "Enrollment Failed",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-      setIsEnrolling(false);
-      setIsProcessingPayment(false);
-    }
-  };
-
   // Show processing message if payment is being verified
   if (paymentProcessing) {
     return (
@@ -805,16 +374,6 @@ const EnrollmentPage = () => {
   const instructorName = course.user_profiles 
     ? `${course.user_profiles.first_name || ""} ${course.user_profiles.last_name || ""}`.trim()
     : "Instructor";
-
-  const selectedCurrency = form.watch("currency");
-  const basePriceUSD = getEffectivePrice();
-  const isFree = basePriceUSD === 0;
-  
-  // Make displayPrice reactive to currency changes
-  const displayPrice = React.useMemo(() => {
-    if (isFree) return 0;
-    return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
-  }, [basePriceUSD, selectedCurrency, isFree]);
 
   // Check if there's a discount to show in the course summary
   const hasDiscount = course.discounted_price !== undefined && 
