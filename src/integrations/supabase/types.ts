@@ -861,6 +861,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_gateways: {
+        Row: {
+          configuration: Json | null
+          created_at: string
+          gateway_name: string
+          id: string
+          is_active: boolean
+          public_key: string | null
+          secret_key: string | null
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string
+          gateway_name: string
+          id?: string
+          is_active?: boolean
+          public_key?: string | null
+          secret_key?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string
+          gateway_name?: string
+          id?: string
+          is_active?: boolean
+          public_key?: string | null
+          secret_key?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount: number
@@ -1271,6 +1307,14 @@ export type Database = {
           id: string
           title: string
           updated_at: string | null
+        }[]
+      }
+      get_payment_gateway_config: {
+        Args: { gateway_name_param: string }
+        Returns: {
+          public_key: string
+          is_active: boolean
+          configuration: Json
         }[]
       }
       get_user_role: {

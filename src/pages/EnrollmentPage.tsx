@@ -114,6 +114,28 @@ const EnrollmentPage = () => {
     },
   });
 
+  // Query to get Flutterwave configuration
+  const { data: flutterwaveConfig, isLoading: isLoadingPaymentConfig } = useQuery({
+    queryKey: ["payment-gateway-config", "flutterwave"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_payment_gateway_config', {
+        gateway_name_param: 'flutterwave'
+      });
+
+      if (error) {
+        console.error('Error fetching payment gateway config:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('Flutterwave payment gateway not configured');
+      }
+
+      return data[0];
+    },
+    retry: 3,
+  });
+
   // Move the query hooks before any useMemo that depends on them
   const { data: course, isLoading } = useQuery({
     queryKey: ["course-enrollment", courseId],
@@ -376,7 +398,16 @@ const EnrollmentPage = () => {
         return;
       }
 
-      // Handle paid course - store enrollment data and proceed to payment
+      // Handle paid course - validate payment gateway configuration first
+      if (!flutterwaveConfig) {
+        throw new Error('Payment system not configured. Please contact support.');
+      }
+
+      if (!flutterwaveConfig.public_key) {
+        throw new Error('Payment gateway not properly configured. Please contact support.');
+      }
+
+      // Store enrollment data and proceed to payment
       localStorage.setItem(`enrollment_${courseId}`, JSON.stringify(data));
 
       if (!flutterwaveLoaded || !window.FlutterwaveCheckout) {
@@ -385,9 +416,9 @@ const EnrollmentPage = () => {
 
       setIsProcessingPayment(true);
 
-      // Configure Flutterwave payment
+      // Configure Flutterwave payment with dynamic public key
       const config = {
-        public_key: "FLWPUBK_TEST-7c7bfcd4d2bb6c8e3b9b8de5d3d3b6a8-X",
+        public_key: flutterwaveConfig.public_key,
         tx_ref: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         amount: displayPrice,
         currency: selectedCurrency,
@@ -568,7 +599,7 @@ const EnrollmentPage = () => {
     );
   }
 
-  if (isLoading || !authCheckComplete) {
+  if (isLoading || !authCheckComplete || isLoadingPaymentConfig) {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -676,103 +707,150 @@ const EnrollmentPage = () => {
                 <CardContent>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="firstName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>First Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter your first name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="lastName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Last Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter your last name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      {/* Pre-filled fields for logged-in users */}
+                      {user && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="firstName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>First Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter your first name" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="lastName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Last Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter your last name" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Mail className="h-4 w-4" />
-                              Email Address
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter your email address" 
-                                {...field} 
-                                disabled={!!user}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4" />
+                                  Email Address
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Enter your email address" 
+                                    {...field} 
+                                    disabled={!!user}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
 
+                      {/* New user fields */}
                       {isNewUser && (
-                        <FormField
-                          control={form.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="password" 
-                                  placeholder="Enter a secure password (min 6 characters)" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="firstName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>First Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter your first name" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="lastName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Last Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter your last name" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
-                      {/* Only show phone and country for new users or if not in profile */}
-                      {(isNewUser || !profileData?.phone) && (
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                Phone Number {!isNewUser && <span className="text-sm text-gray-500">(optional)</span>}
-                              </FormLabel>
-                              <FormControl>
-                                <PhoneInput
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  placeholder="Enter phone number"
-                                  defaultCountry={profileData?.country ? COUNTRIES.find(c => c.name.toLowerCase() === profileData.country?.toLowerCase())?.code || "US" : "US"}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4" />
+                                  Email Address
+                                </FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Enter your email address" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(isNewUser || !profileData?.country) && (
+                          <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="password" 
+                                    placeholder="Enter a secure password (min 6 characters)" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4" />
+                                  Phone Number
+                                </FormLabel>
+                                <FormControl>
+                                  <PhoneInput
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    placeholder="Enter phone number"
+                                    defaultCountry="US"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
                           <FormField
                             control={form.control}
                             name="country"
@@ -780,7 +858,7 @@ const EnrollmentPage = () => {
                               <FormItem>
                                 <FormLabel className="flex items-center gap-2">
                                   <MapPin className="h-4 w-4" />
-                                  Country {!isNewUser && <span className="text-sm text-gray-500">(optional)</span>}
+                                  Country
                                 </FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value || ""}>
                                   <FormControl>
@@ -803,33 +881,33 @@ const EnrollmentPage = () => {
                               </FormItem>
                             )}
                           />
-                        )}
+                        </div>
+                      )}
 
-                        <FormField
-                          control={form.control}
-                          name="currency"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Preferred Currency</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select currency" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {SUPPORTED_CURRENCIES.map((currency) => (
-                                    <SelectItem key={currency.code} value={currency.code}>
-                                      {currency.symbol} {currency.name} ({currency.code})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <FormField
+                        control={form.control}
+                        name="currency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Preferred Currency</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {SUPPORTED_CURRENCIES.map((currency) => (
+                                  <SelectItem key={currency.code} value={currency.code}>
+                                    {currency.symbol} {currency.name} ({currency.code})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
                       <FormField
                         control={form.control}
@@ -853,7 +931,7 @@ const EnrollmentPage = () => {
                         type="submit" 
                         className="w-full" 
                         size="lg"
-                        disabled={isEnrolling || isProcessingPayment || !flutterwaveLoaded}
+                        disabled={isEnrolling || isProcessingPayment || !flutterwaveLoaded || (!isFree && !flutterwaveConfig)}
                       >
                         {isProcessingPayment ? (
                           "Processing Payment..."
@@ -861,6 +939,8 @@ const EnrollmentPage = () => {
                           "Processing..."
                         ) : !flutterwaveLoaded ? (
                           "Loading Payment System..."
+                        ) : !flutterwaveConfig && !isFree ? (
+                          "Payment System Unavailable"
                         ) : (
                           <>
                             {isFree ? (
