@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, React } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -809,7 +809,12 @@ const EnrollmentPage = () => {
   const selectedCurrency = form.watch("currency");
   const basePriceUSD = getEffectivePrice();
   const isFree = basePriceUSD === 0;
-  const displayPrice = isFree ? 0 : (selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency));
+  
+  // Make displayPrice reactive to currency changes
+  const displayPrice = React.useMemo(() => {
+    if (isFree) return 0;
+    return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
+  }, [basePriceUSD, selectedCurrency, isFree]);
 
   // Check if there's a discount to show in the course summary
   const hasDiscount = course.discounted_price !== undefined && 
