@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -80,6 +79,21 @@ const EXCHANGE_RATES = {
   EUR: 0.92,
   CAD: 1.41,
   AUD: 1.56,
+};
+
+// Utility functions moved outside component to prevent recreation
+const convertPrice = (priceInUSD: number, toCurrency: string): number => {
+  const rate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES];
+  return Math.round(priceInUSD * rate * 100) / 100;
+};
+
+const formatPrice = (price: number, currency: string) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: currency === 'NGN' ? 0 : 2,
+    maximumFractionDigits: currency === 'NGN' ? 0 : 2
+  }).format(price);
 };
 
 declare global {
@@ -196,21 +210,6 @@ const EnrollmentPage = () => {
     enabled: !!courseId && !!user?.id,
   });
 
-  // Move all utility functions before useMemo
-  const convertPrice = (priceInUSD: number, toCurrency: string): number => {
-    const rate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES];
-    return Math.round(priceInUSD * rate * 100) / 100;
-  };
-
-  const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: currency === 'NGN' ? 0 : 2,
-      maximumFractionDigits: currency === 'NGN' ? 0 : 2
-    }).format(price);
-  };
-
   const getEffectivePrice = () => {
     if (!course) return 0;
     
@@ -224,12 +223,12 @@ const EnrollmentPage = () => {
     return course.price || 0;
   };
 
-  // Watch currency selection and make displayPrice reactive
+  // Watch currency selection to make displayPrice reactive
   const selectedCurrency = form.watch("currency");
   const basePriceUSD = getEffectivePrice();
   const isFree = basePriceUSD === 0;
   
-  // Move displayPrice useMemo here, right after the dependencies are defined
+  // Calculate display price reactively based on selected currency
   const displayPrice = React.useMemo(() => {
     if (isFree) return 0;
     return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
