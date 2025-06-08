@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -211,6 +212,225 @@ const EnrollmentPage = () => {
     if (isFree) return 0;
     return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
   }, [basePriceUSD, selectedCurrency, isFree]);
+
+  // Payment verification functions
+  const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: any) => {
+    try {
+      console.log('Verifying payment for transaction:', transactionId);
+      
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Create enrollment directly
+      const { error: enrollmentError } = await supabase
+        .from("enrollments")
+        .insert({
+          student_id: user.id,
+          course_id: courseId,
+          enrolled_at: new Date().toISOString(),
+          progress: 0,
+          status: 'active'
+        });
+
+      if (enrollmentError) {
+        console.error('Enrollment error:', enrollmentError);
+        throw enrollmentError;
+      }
+
+      // Clean up stored data
+      localStorage.removeItem(`enrollment_${courseId}`);
+      
+      toast({
+        title: "Enrollment Successful!",
+        description: "Welcome to the course! You can now start learning.",
+      });
+
+      navigate(`/dashboard/courses/${courseId}`);
+    } catch (error) {
+      console.error('Payment verification failed:', error);
+      setPaymentProcessing(false);
+      toast({
+        title: "Enrollment Error",
+        description: error instanceof Error ? error.message : "Failed to complete enrollment. Please contact support.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNewUserPaymentVerification = async (enrollmentData: any, transactionId: string) => {
+    try {
+      console.log('Handling new user payment verification');
+      
+      // Try to sign up/sign in the user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: enrollmentData.email,
+        password: enrollmentData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (authError) {
+        // If user already exists, try to sign in
+        if (authError.message.includes('already registered')) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: enrollmentData.email,
+            password: enrollmentData.password,
+          });
+
+          if (signInError) {
+            throw signInError;
+          }
+        } else {
+          throw authError;
+        }
+      }
+
+      // Wait a moment for auth to settle
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+    } catch (error) {
+      console.error('New user authentication failed:', error);
+      setPaymentProcessing(false);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to create account. Please try enrolling again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Form submission handler
+  const onSubmit = async (data: EnrollmentFormData) => {
+    console.log('Form submitted with data:', data);
+    
+    if (!course) {
+      toast({
+        title: "Error",
+        description: "Course information not available. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEnrolling(true);
+
+    try {
+      // Handle free course enrollment
+      if (isFree) {
+        if (isNewUser) {
+          // Create new user account first
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: data.email,
+            password: data.password!,
+            options: {
+              emailRedirectTo: `${window.location.origin}/dashboard`
+            }
+          });
+
+          if (authError) {
+            if (authError.message.includes('already registered')) {
+              // Try to sign in instead
+              const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: data.email,
+                password: data.password!,
+              });
+
+              if (signInError) {
+                throw signInError;
+              }
+            } else {
+              throw authError;
+            }
+          }
+
+          // Wait for auth state to update
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+          return;
+        }
+
+        // Enroll existing user in free course
+        const { error: enrollmentError } = await supabase
+          .from("enrollments")
+          .insert({
+            student_id: user!.id,
+            course_id: courseId,
+            enrolled_at: new Date().toISOString(),
+            progress: 0,
+            status: 'active'
+          });
+
+        if (enrollmentError) throw enrollmentError;
+
+        toast({
+          title: "Enrollment Successful!",
+          description: "Welcome to the course! You can now start learning.",
+        });
+
+        navigate(`/dashboard/courses/${courseId}`);
+        return;
+      }
+
+      // Handle paid course - store enrollment data and proceed to payment
+      localStorage.setItem(`enrollment_${courseId}`, JSON.stringify(data));
+
+      if (!flutterwaveLoaded || !window.FlutterwaveCheckout) {
+        throw new Error('Payment system not loaded. Please refresh the page and try again.');
+      }
+
+      setIsProcessingPayment(true);
+
+      // Configure Flutterwave payment
+      const config = {
+        public_key: "FLWPUBK_TEST-7c7bfcd4d2bb6c8e3b9b8de5d3d3b6a8-X",
+        tx_ref: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        amount: displayPrice,
+        currency: selectedCurrency,
+        payment_options: "card, banktransfer, ussd",
+        redirect_url: `${window.location.origin}/enroll/${courseId}?payment=success`,
+        customer: {
+          email: data.email,
+          phone_number: data.phone,
+          name: `${data.firstName} ${data.lastName}`,
+        },
+        customizations: {
+          title: course.title,
+          description: `Enrollment for ${course.title}`,
+          logo: "/placeholder.svg",
+        },
+        callback: (response: any) => {
+          console.log('Flutterwave callback:', response);
+          if (response.status === 'successful') {
+            window.location.href = `${window.location.origin}/enroll/${courseId}?payment=success&transaction_id=${response.transaction_id}`;
+          }
+        },
+        onclose: () => {
+          console.log('Payment modal closed');
+          setIsProcessingPayment(false);
+        },
+      };
+
+      window.FlutterwaveCheckout(config);
+
+    } catch (error) {
+      console.error('Enrollment error:', error);
+      setIsEnrolling(false);
+      setIsProcessingPayment(false);
+      
+      toast({
+        title: "Enrollment Error",
+        description: error instanceof Error ? error.message : "An error occurred during enrollment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
 
   // Pre-fill form with user profile data when available
   useEffect(() => {
