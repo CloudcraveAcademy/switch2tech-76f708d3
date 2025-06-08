@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -47,14 +48,14 @@ import {
 import { COUNTRIES } from "@/utils/countries";
 import LiveCourseDetails from "@/components/course/LiveCourseDetails";
 
-// Enrollment form schema - updated to include password for new users
+// Enrollment form schema - updated to make fields optional for logged-in users
 const enrollmentSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  country: z.string().min(2, "Please select your country"),
+  phone: z.string().min(10, "Please enter a valid phone number").optional(),
+  country: z.string().min(2, "Please select your country").optional(),
   currency: z.string().min(3, "Please select your currency"),
   motivation: z.string().min(20, "Please tell us why you want to take this course (minimum 20 characters)"),
 });
@@ -201,7 +202,7 @@ const EnrollmentPage = () => {
     return course.price || 0;
   };
 
-  // Watch currency selection early and make displayPrice reactive
+  // Watch currency selection and make displayPrice reactive
   const selectedCurrency = form.watch("currency");
   const basePriceUSD = getEffectivePrice();
   const isFree = basePriceUSD === 0;
@@ -714,7 +715,11 @@ const EnrollmentPage = () => {
                               Email Address
                             </FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter your email address" {...field} />
+                              <Input 
+                                placeholder="Enter your email address" 
+                                {...field} 
+                                disabled={!!user}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -741,59 +746,64 @@ const EnrollmentPage = () => {
                         />
                       )}
 
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Phone className="h-4 w-4" />
-                              Phone Number
-                            </FormLabel>
-                            <FormControl>
-                              <PhoneInput
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Enter phone number"
-                                defaultCountry={profileData?.country ? COUNTRIES.find(c => c.name.toLowerCase() === profileData.country?.toLowerCase())?.code || "US" : "US"}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Only show phone and country for new users or if not in profile */}
+                      {(isNewUser || !profileData?.phone) && (
                         <FormField
                           control={form.control}
-                          name="country"
+                          name="phone"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                Country
+                                <Phone className="h-4 w-4" />
+                                Phone Number {!isNewUser && <span className="text-sm text-gray-500">(optional)</span>}
                               </FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select your country" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="max-h-60">
-                                  {COUNTRIES.map((country) => (
-                                    <SelectItem key={country.code} value={country.name}>
-                                      <div className="flex items-center gap-2">
-                                        <span>{country.flag}</span>
-                                        <span>{country.name}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <FormControl>
+                                <PhoneInput
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  placeholder="Enter phone number"
+                                  defaultCountry={profileData?.country ? COUNTRIES.find(c => c.name.toLowerCase() === profileData.country?.toLowerCase())?.code || "US" : "US"}
+                                />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(isNewUser || !profileData?.country) && (
+                          <FormField
+                            control={form.control}
+                            name="country"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  Country {!isNewUser && <span className="text-sm text-gray-500">(optional)</span>}
+                                </FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select your country" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="max-h-60">
+                                    {COUNTRIES.map((country) => (
+                                      <SelectItem key={country.code} value={country.name}>
+                                        <div className="flex items-center gap-2">
+                                          <span>{country.flag}</span>
+                                          <span>{country.name}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         <FormField
                           control={form.control}
@@ -801,7 +811,7 @@ const EnrollmentPage = () => {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Preferred Currency</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select currency" />
