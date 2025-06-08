@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -447,6 +446,11 @@ const EnrollmentPage = () => {
       });
     }
   }, [profileData, user, form]);
+
+  // Update isNewUser state when auth state changes
+  useEffect(() => {
+    setIsNewUser(!user);
+  }, [user]);
 
   // Load Flutterwave script
   useEffect(() => {
