@@ -97,6 +97,7 @@ const EnrollmentPage = () => {
   const [flutterwaveLoaded, setFlutterwaveLoaded] = useState(false);
   const [isNewUser, setIsNewUser] = useState(!user);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -152,16 +153,27 @@ const EnrollmentPage = () => {
     };
   }, []);
 
-  // Check for payment status in URL on component mount - FIXED VERSION
+  // Wait for auth to load and mark check as complete
   useEffect(() => {
-    if (authLoading) return; // Wait for auth to load
+    if (!authLoading) {
+      setAuthCheckComplete(true);
+      console.log('Auth check complete, user:', user?.id);
+    }
+  }, [authLoading, user]);
+
+  // Check for payment status in URL on component mount - IMPROVED VERSION
+  useEffect(() => {
+    if (!authCheckComplete) {
+      console.log('Auth check not complete yet, waiting...');
+      return;
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
     const transactionId = urlParams.get('transaction_id');
     
     if (paymentStatus === 'success') {
-      console.log('Payment success detected in URL');
+      console.log('Payment success detected in URL, current user:', user?.id);
       setPaymentProcessing(true);
       
       // Get enrollment data from localStorage
@@ -171,32 +183,33 @@ const EnrollmentPage = () => {
         const enrollmentData = JSON.parse(storedEnrollmentData);
         console.log('Found stored enrollment data:', enrollmentData);
         
-        // Check if this is a new user payment (has password in stored data)
-        if (!user && enrollmentData.password) {
-          console.log('New user payment detected, attempting authentication');
-          handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
-        } else if (user) {
-          // Existing user payment
-          console.log('Existing user payment, verifying transaction');
+        // If user is already logged in, proceed with enrollment
+        if (user?.id) {
+          console.log('User is logged in, proceeding with enrollment');
           verifyPaymentAndEnroll(transactionId || 'redirect_success', enrollmentData);
+        } else if (enrollmentData.password) {
+          // Try to register/login the new user
+          console.log('No user found but password in enrollment data, attempting authentication');
+          handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
         } else {
-          // No user and no password in enrollment data - redirect to login
-          console.log('No authentication available, redirecting to login');
+          // No user and no password - this shouldn't happen but handle gracefully
+          console.log('No user and no password in enrollment data');
           toast({
-            title: "Authentication Required",
+            title: "Authentication Error",
             description: "Please log in to complete your enrollment.",
             variant: "destructive",
           });
-          navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}&redirect=/enroll/${courseId}`);
+          localStorage.setItem('redirect_after_login', `/enroll/${courseId}?payment=success&transaction_id=${transactionId}`);
+          navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}`);
         }
       } else {
-        console.log('No stored enrollment data found, but payment was successful');
-        if (user) {
-          // User is authenticated, just verify and enroll
+        console.log('No stored enrollment data found');
+        if (user?.id) {
+          // User is authenticated, try to verify payment anyway
           verifyPaymentAndEnroll(transactionId || 'redirect_success');
         } else {
           toast({
-            title: "Authentication Required",
+            title: "Authentication Error",
             description: "Please log in to complete your enrollment.",
             variant: "destructive",
           });
@@ -214,7 +227,7 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate, user, authLoading]);
+  }, [courseId, navigate, user, authCheckComplete]);
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["course-enrollment", courseId],
@@ -469,7 +482,7 @@ const EnrollmentPage = () => {
       console.log('User authenticated successfully, proceeding with enrollment');
       
       // Wait a moment for auth state to update
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Complete the payment verification and enrollment
       await completePaymentAndEnrollment(authUser.id, transactionId, enrollmentData);
@@ -546,43 +559,25 @@ const EnrollmentPage = () => {
       console.log('Verifying payment for user:', user?.id);
       
       if (!user?.id) {
-        console.log('No user found, waiting for auth state...');
-        // Wait a bit for auth state to update, then check again
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Check if we have a user now
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (!currentUser) {
-          toast({
-            title: "Authentication Error",
-            description: "Please log in to complete your enrollment.",
-            variant: "destructive",
-          });
-          navigate('/login');
-          return;
-        }
-        
-        console.log('Found user after waiting:', currentUser.id);
-        await completePaymentAndEnrollment(currentUser.id, transactionId, enrollmentData || {
-          firstName: currentUser?.user_metadata?.first_name || "",
-          lastName: currentUser?.user_metadata?.last_name || "",
-          email: currentUser?.email || "",
-          phone: "",
-          country: "",
-          currency: "USD",
-          motivation: "Payment completed via redirect"
+        console.log('No user found during payment verification');
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to complete your enrollment.",
+          variant: "destructive",
         });
-      } else {
-        await completePaymentAndEnrollment(user.id, transactionId, enrollmentData || {
-          firstName: user?.user_metadata?.first_name || "",
-          lastName: user?.user_metadata?.last_name || "",
-          email: user?.email || "",
-          phone: "",
-          country: "",
-          currency: "USD",
-          motivation: "Payment completed via redirect"
-        });
+        navigate('/login');
+        return;
       }
+      
+      await completePaymentAndEnrollment(user.id, transactionId, enrollmentData || {
+        firstName: user?.user_metadata?.first_name || "",
+        lastName: user?.user_metadata?.last_name || "",
+        email: user?.email || "",
+        phone: "",
+        country: "",
+        currency: "USD",
+        motivation: "Payment completed via redirect"
+      });
 
     } catch (error) {
       console.error('Payment verification error:', error);
@@ -779,7 +774,7 @@ const EnrollmentPage = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || !authCheckComplete) {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
