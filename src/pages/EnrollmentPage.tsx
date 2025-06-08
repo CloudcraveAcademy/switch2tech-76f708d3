@@ -74,11 +74,11 @@ const SUPPORTED_CURRENCIES = [
 // Exchange rates with USD as base (1 USD = X in target currency)
 const EXCHANGE_RATES = {
   USD: 1,
-  NGN: 1650, // 1 USD = 1650 NGN
-  GBP: 0.79, // 1 USD = 0.79 GBP
-  EUR: 0.92, // 1 USD = 0.92 EUR
-  CAD: 1.41, // 1 USD = 1.41 CAD
-  AUD: 1.56, // 1 USD = 1.56 AUD
+  NGN: 1650,
+  GBP: 0.79,
+  EUR: 0.92,
+  CAD: 1.41,
+  AUD: 1.56,
 };
 
 declare global {
@@ -89,13 +89,14 @@ declare global {
 
 const EnrollmentPage = () => {
   const { id: courseId } = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { profileData } = useProfileData();
   const navigate = useNavigate();
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [flutterwaveLoaded, setFlutterwaveLoaded] = useState(false);
   const [isNewUser, setIsNewUser] = useState(!user);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -150,6 +151,70 @@ const EnrollmentPage = () => {
       document.head.removeChild(script);
     };
   }, []);
+
+  // Check for payment status in URL on component mount - FIXED VERSION
+  useEffect(() => {
+    if (authLoading) return; // Wait for auth to load
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const transactionId = urlParams.get('transaction_id');
+    
+    if (paymentStatus === 'success') {
+      console.log('Payment success detected in URL');
+      setPaymentProcessing(true);
+      
+      // Get enrollment data from localStorage
+      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
+      
+      if (storedEnrollmentData) {
+        const enrollmentData = JSON.parse(storedEnrollmentData);
+        console.log('Found stored enrollment data:', enrollmentData);
+        
+        // Check if this is a new user payment (has password in stored data)
+        if (!user && enrollmentData.password) {
+          console.log('New user payment detected, attempting authentication');
+          handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
+        } else if (user) {
+          // Existing user payment
+          console.log('Existing user payment, verifying transaction');
+          verifyPaymentAndEnroll(transactionId || 'redirect_success', enrollmentData);
+        } else {
+          // No user and no password in enrollment data - redirect to login
+          console.log('No authentication available, redirecting to login');
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to complete your enrollment.",
+            variant: "destructive",
+          });
+          navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}&redirect=/enroll/${courseId}`);
+        }
+      } else {
+        console.log('No stored enrollment data found, but payment was successful');
+        if (user) {
+          // User is authenticated, just verify and enroll
+          verifyPaymentAndEnroll(transactionId || 'redirect_success');
+        } else {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to complete your enrollment.",
+            variant: "destructive",
+          });
+          navigate('/login');
+        }
+      }
+      
+      // Clean up URL immediately
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentStatus === 'cancelled') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. You can try enrolling again.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [courseId, navigate, user, authLoading]);
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["course-enrollment", courseId],
@@ -295,7 +360,7 @@ const EnrollmentPage = () => {
       return;
     }
 
-    const basePriceUSD = getEffectivePrice(); // Use the effective price (discounted if available)
+    const basePriceUSD = getEffectivePrice();
     const isFree = basePriceUSD === 0;
 
     if (isFree) {
@@ -391,51 +456,6 @@ const EnrollmentPage = () => {
     }
   };
 
-  // Check for payment status in URL on component mount
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const transactionId = urlParams.get('transaction_id');
-    
-    if (paymentStatus === 'success') {
-      console.log('Payment success detected in URL');
-      // Get enrollment data from localStorage
-      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
-      
-      if (storedEnrollmentData) {
-        const enrollmentData = JSON.parse(storedEnrollmentData);
-        console.log('Found stored enrollment data:', enrollmentData);
-        
-        // Check if this is a new user payment
-        if (!user && enrollmentData.password) {
-          console.log('New user payment detected, processing authentication and enrollment');
-          handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
-        } else {
-          // Existing user payment
-          verifyPaymentAndEnroll(transactionId || 'redirect_success', enrollmentData);
-        }
-      } else {
-        console.log('No stored enrollment data found');
-        toast({
-          title: "Payment Successful!",
-          description: "Your payment has been processed. Redirecting to course...",
-        });
-        setTimeout(() => {
-          navigate(`/dashboard/courses/${courseId}`);
-        }, 2000);
-      }
-      // Clean up URL immediately
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (paymentStatus === 'cancelled') {
-      toast({
-        title: "Payment Cancelled",
-        description: "Your payment was cancelled. You can try enrolling again.",
-        variant: "destructive",
-      });
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [courseId, navigate, user]);
-
   const handleNewUserPaymentVerification = async (enrollmentData: EnrollmentFormData, transactionId: string) => {
     try {
       console.log('Handling new user payment verification');
@@ -447,6 +467,9 @@ const EnrollmentPage = () => {
       }
 
       console.log('User authenticated successfully, proceeding with enrollment');
+      
+      // Wait a moment for auth state to update
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Complete the payment verification and enrollment
       await completePaymentAndEnrollment(authUser.id, transactionId, enrollmentData);
@@ -460,8 +483,10 @@ const EnrollmentPage = () => {
       });
       // Redirect to login page with the email pre-filled
       setTimeout(() => {
-        navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}`);
+        navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}&redirect=/enroll/${courseId}`);
       }, 3000);
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
@@ -475,7 +500,7 @@ const EnrollmentPage = () => {
         .insert([{
           user_id: userId,
           course_id: courseId,
-          amount: course?.price || 0,
+          amount: getEffectivePrice(),
           currency: enrollmentData.currency || 'USD',
           payment_reference: transactionId,
           paystack_reference: transactionId,
@@ -518,27 +543,46 @@ const EnrollmentPage = () => {
 
   const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: EnrollmentFormData) => {
     try {
-      console.log('Verifying payment for existing user:', user?.id);
+      console.log('Verifying payment for user:', user?.id);
       
       if (!user?.id) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to complete your enrollment.",
-          variant: "destructive",
+        console.log('No user found, waiting for auth state...');
+        // Wait a bit for auth state to update, then check again
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Check if we have a user now
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          toast({
+            title: "Authentication Error",
+            description: "Please log in to complete your enrollment.",
+            variant: "destructive",
+          });
+          navigate('/login');
+          return;
+        }
+        
+        console.log('Found user after waiting:', currentUser.id);
+        await completePaymentAndEnrollment(currentUser.id, transactionId, enrollmentData || {
+          firstName: currentUser?.user_metadata?.first_name || "",
+          lastName: currentUser?.user_metadata?.last_name || "",
+          email: currentUser?.email || "",
+          phone: "",
+          country: "",
+          currency: "USD",
+          motivation: "Payment completed via redirect"
         });
-        navigate('/login');
-        return;
+      } else {
+        await completePaymentAndEnrollment(user.id, transactionId, enrollmentData || {
+          firstName: user?.user_metadata?.first_name || "",
+          lastName: user?.user_metadata?.last_name || "",
+          email: user?.email || "",
+          phone: "",
+          country: "",
+          currency: "USD",
+          motivation: "Payment completed via redirect"
+        });
       }
-
-      await completePaymentAndEnrollment(user.id, transactionId, enrollmentData || {
-        firstName: user?.user_metadata?.first_name || "",
-        lastName: user?.user_metadata?.last_name || "",
-        email: user?.email || "",
-        phone: "",
-        country: "",
-        currency: "USD",
-        motivation: "Payment completed via redirect"
-      });
 
     } catch (error) {
       console.error('Payment verification error:', error);
@@ -547,6 +591,8 @@ const EnrollmentPage = () => {
         description: "There was an issue verifying your payment. Please contact support.",
         variant: "destructive",
       });
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
@@ -560,7 +606,7 @@ const EnrollmentPage = () => {
         .insert([{
           user_id: userId,
           course_id: courseId,
-          amount: paymentResponse.amount || getEffectivePrice(), // Use effective price
+          amount: paymentResponse.amount || getEffectivePrice(),
           currency: paymentResponse.currency || enrollmentData.currency,
           payment_reference: paymentResponse.tx_ref,
           paystack_reference: paymentResponse.transaction_id,
@@ -639,7 +685,7 @@ const EnrollmentPage = () => {
       const { error: enrollmentError } = await supabase
         .from("enrollments")
         .insert([{
-          course_id: courseId, // Only enroll in the course that was paid for
+          course_id: courseId,
           student_id: userId,
           progress: 0,
           completed: false
@@ -718,6 +764,21 @@ const EnrollmentPage = () => {
     }
   };
 
+  // Show processing message if payment is being verified
+  if (paymentProcessing) {
+    return (
+      <Layout>
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+          <div className="space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <h1 className="text-2xl font-bold">Processing Payment...</h1>
+            <p className="text-gray-600">Please wait while we verify your payment and complete your enrollment.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (isLoading) {
     return (
       <Layout>
@@ -751,7 +812,7 @@ const EnrollmentPage = () => {
     : "Instructor";
 
   const selectedCurrency = form.watch("currency");
-  const basePriceUSD = getEffectivePrice(); // Use effective price
+  const basePriceUSD = getEffectivePrice();
   const isFree = basePriceUSD === 0;
   const displayPrice = isFree ? 0 : (selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency));
 
