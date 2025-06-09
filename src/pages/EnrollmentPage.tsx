@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -915,9 +917,9 @@ const EnrollmentPage = () => {
                           <FormItem>
                             <FormLabel>Why do you want to take this course?</FormLabel>
                             <FormControl>
-                              <textarea
-                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              <Textarea
                                 placeholder="Tell us what motivates you to learn and how this course fits your goals..."
+                                className="min-h-[80px]"
                                 {...field}
                               />
                             </FormControl>
