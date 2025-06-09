@@ -130,13 +130,17 @@ const EnrollmentPage = () => {
     },
   });
 
-  // Query to get Flutterwave configuration
-  const { data: flutterwaveConfig, isLoading: isLoadingPaymentConfig } = useQuery({
+  // Query to get Flutterwave configuration with better error handling
+  const { data: flutterwaveConfig, isLoading: isLoadingPaymentConfig, error: paymentConfigError } = useQuery({
     queryKey: ["payment-gateway-config", "flutterwave"],
     queryFn: async () => {
+      console.log('Fetching Flutterwave configuration...');
+      
       const { data, error } = await supabase.rpc('get_payment_gateway_config', {
         gateway_name_param: 'flutterwave'
       });
+
+      console.log('Flutterwave config response:', { data, error });
 
       if (error) {
         console.error('Error fetching payment gateway config:', error);
@@ -144,10 +148,18 @@ const EnrollmentPage = () => {
       }
 
       if (!data || data.length === 0) {
+        console.error('No Flutterwave configuration found');
         throw new Error('Flutterwave payment gateway not configured');
       }
 
-      return data[0];
+      const config = data[0];
+      console.log('Flutterwave config found:', {
+        has_public_key: !!config.public_key,
+        is_active: config.is_active,
+        public_key_length: config.public_key?.length || 0
+      });
+
+      return config;
     },
     retry: 3,
   });
@@ -326,7 +338,7 @@ const EnrollmentPage = () => {
     }
   };
 
-  // Form submission handler
+  // Form submission handler with improved error handling
   const onSubmit = async (data: EnrollmentFormData) => {
     console.log('Form submitted with data:', data);
     
@@ -401,11 +413,18 @@ const EnrollmentPage = () => {
 
       // Handle paid course - validate payment gateway configuration first
       if (!flutterwaveConfig) {
+        console.error('No Flutterwave config available');
         throw new Error('Payment system not configured. Please contact support.');
       }
 
       if (!flutterwaveConfig.public_key) {
+        console.error('Missing Flutterwave public key');
         throw new Error('Payment gateway not properly configured. Please contact support.');
+      }
+
+      if (!flutterwaveConfig.is_active) {
+        console.error('Flutterwave gateway is not active');
+        throw new Error('Payment system is currently disabled. Please contact support.');
       }
 
       // Store enrollment data and proceed to payment
@@ -416,6 +435,12 @@ const EnrollmentPage = () => {
       }
 
       setIsProcessingPayment(true);
+
+      console.log('Initializing Flutterwave with config:', {
+        public_key: flutterwaveConfig.public_key?.substring(0, 10) + '...',
+        amount: displayPrice,
+        currency: selectedCurrency
+      });
 
       // Configure Flutterwave payment with dynamic public key
       const config = {
@@ -447,6 +472,7 @@ const EnrollmentPage = () => {
         },
       };
 
+      console.log('Calling FlutterwaveCheckout with config...');
       window.FlutterwaveCheckout(config);
 
     } catch (error) {
@@ -621,6 +647,21 @@ const EnrollmentPage = () => {
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
           <h1 className="text-2xl font-bold mb-4">Course not found</h1>
           <p className="text-gray-600 mb-8">The course you're looking for doesn't exist or is not available.</p>
+          <Button onClick={() => navigate("/courses")}>
+            Browse All Courses
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show error if payment configuration is missing for paid courses
+  if (!isFree && paymentConfigError) {
+    return (
+      <Layout>
+        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold mb-4">Payment System Unavailable</h1>
+          <p className="text-gray-600 mb-8">The payment system is currently not configured. Please contact support or try again later.</p>
           <Button onClick={() => navigate("/courses")}>
             Browse All Courses
           </Button>
@@ -921,11 +962,7 @@ const EnrollmentPage = () => {
                               <Textarea
                                 placeholder="Tell us what motivates you to learn and how this course fits your goals..."
                                 className="min-h-[80px]"
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                ref={field.ref}
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -937,7 +974,7 @@ const EnrollmentPage = () => {
                         type="submit" 
                         className="w-full" 
                         size="lg"
-                        disabled={isEnrolling || isProcessingPayment || !flutterwaveLoaded || (!isFree && !flutterwaveConfig)}
+                        disabled={isEnrolling || isProcessingPayment || !flutterwaveLoaded || (!isFree && (!flutterwaveConfig || !flutterwaveConfig.is_active))}
                       >
                         {isProcessingPayment ? (
                           "Processing Payment..."
@@ -947,6 +984,8 @@ const EnrollmentPage = () => {
                           "Loading Payment System..."
                         ) : !flutterwaveConfig && !isFree ? (
                           "Payment System Unavailable"
+                        ) : !isFree && !flutterwaveConfig.is_active ? (
+                          "Payment System Disabled"
                         ) : (
                           <>
                             {isFree ? (
