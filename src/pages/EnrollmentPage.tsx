@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -255,6 +256,24 @@ const EnrollmentPage = () => {
       
       if (!user?.id) {
         throw new Error('User not authenticated');
+      }
+
+      // Check if already enrolled first
+      const { data: existingEnrollment } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("course_id", courseId)
+        .eq("student_id", user.id)
+        .maybeSingle();
+
+      if (existingEnrollment) {
+        console.log('User already enrolled, redirecting to course');
+        toast({
+          title: "Already Enrolled",
+          description: "You are already enrolled in this course!",
+        });
+        navigate(`/dashboard/courses/${courseId}`);
+        return;
       }
 
       // Create enrollment directly
@@ -562,21 +581,26 @@ const EnrollmentPage = () => {
       // Get enrollment data from localStorage
       const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
       
+      // If user is already logged in, proceed with enrollment immediately
+      if (user?.id) {
+        console.log('User is logged in, proceeding with enrollment');
+        verifyPaymentAndEnroll(transactionId || 'redirect_success');
+        // Clean up URL immediately
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+      
+      // Handle new user case only if no user is logged in
       if (storedEnrollmentData) {
         const enrollmentData = JSON.parse(storedEnrollmentData);
-        console.log('Found stored enrollment data:', enrollmentData);
+        console.log('Found stored enrollment data for new user:', enrollmentData);
         
-        // If user is already logged in, proceed with enrollment
-        if (user?.id) {
-          console.log('User is logged in, proceeding with enrollment');
-          verifyPaymentAndEnroll(transactionId || 'redirect_success', enrollmentData);
-        } else if (enrollmentData.password) {
+        if (enrollmentData.password) {
           // Try to register/login the new user
           console.log('No user found but password in enrollment data, attempting authentication');
           handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
         } else {
-          // No user and no password - this shouldn't happen but handle gracefully
-          console.log('No user and no password in enrollment data');
+          console.log('No password in enrollment data');
           toast({
             title: "Authentication Error",
             description: "Please log in to complete your enrollment.",
@@ -586,18 +610,14 @@ const EnrollmentPage = () => {
           navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}`);
         }
       } else {
-        console.log('No stored enrollment data found');
-        if (user?.id) {
-          // User is authenticated, try to verify payment anyway
-          verifyPaymentAndEnroll(transactionId || 'redirect_success');
-        } else {
-          toast({
-            title: "Authentication Error",
-            description: "Please log in to complete your enrollment.",
-            variant: "destructive",
-          });
-          navigate('/login');
-        }
+        // No stored data and no user - redirect to login
+        console.log('No stored enrollment data and no user found');
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to complete your enrollment.",
+          variant: "destructive",
+        });
+        navigate('/login');
       }
       
       // Clean up URL immediately
