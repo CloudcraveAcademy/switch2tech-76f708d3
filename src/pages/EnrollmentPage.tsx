@@ -920,7 +920,11 @@ const EnrollmentPage = () => {
                               <Textarea
                                 placeholder="Tell us what motivates you to learn and how this course fits your goals..."
                                 className="min-h-[80px]"
-                                {...field}
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
                               />
                             </FormControl>
                             <FormMessage />
