@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -115,6 +114,7 @@ const EnrollmentPage = () => {
   const [isNewUser, setIsNewUser] = useState(!user);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
+  const [formInitialized, setFormInitialized] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -464,9 +464,9 @@ const EnrollmentPage = () => {
     }
   };
 
-  // Pre-fill form with user profile data when available
+  // Pre-fill form with user profile data when available - only once
   useEffect(() => {
-    if (profileData && user) {
+    if (profileData && user && !formInitialized) {
       console.log("Pre-filling form with profile data:", profileData);
       form.reset({
         firstName: profileData.first_name || "",
@@ -475,10 +475,11 @@ const EnrollmentPage = () => {
         phone: profileData.phone || "",
         country: profileData.country || "",
         currency: "USD",
-        motivation: "",
+        motivation: "", // Keep this empty to not override user input
       });
+      setFormInitialized(true);
     }
-  }, [profileData, user, form]);
+  }, [profileData, user, form, formInitialized]);
 
   // Update isNewUser state when auth state changes
   useEffect(() => {
