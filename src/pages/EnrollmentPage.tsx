@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -116,6 +115,7 @@ const EnrollmentPage = () => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const [formInitialized, setFormInitialized] = useState(false);
+  const [paymentUrlChecked, setPaymentUrlChecked] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -563,10 +563,16 @@ const EnrollmentPage = () => {
     }
   }, [authLoading, user]);
 
-  // Check for payment status in URL on component mount - IMPROVED VERSION
+  // Check for payment status in URL on component mount - FIXED VERSION
   useEffect(() => {
-    if (!authCheckComplete) {
-      console.log('Auth check not complete yet, waiting...');
+    // Don't check URL if we've already processed it
+    if (paymentUrlChecked) {
+      return;
+    }
+
+    // Wait for auth to be fully loaded
+    if (!authCheckComplete || authLoading) {
+      console.log('Auth not ready yet, waiting...');
       return;
     }
 
@@ -576,28 +582,28 @@ const EnrollmentPage = () => {
     
     if (paymentStatus === 'success') {
       console.log('Payment success detected in URL, current user:', user?.id);
+      setPaymentUrlChecked(true); // Mark as checked to prevent re-processing
       setPaymentProcessing(true);
       
-      // Get enrollment data from localStorage
-      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
+      // Clean up URL immediately to prevent re-processing
+      window.history.replaceState({}, document.title, window.location.pathname);
       
-      // If user is already logged in, proceed with enrollment immediately
+      // If user is logged in, proceed with enrollment
       if (user?.id) {
-        console.log('User is logged in, proceeding with enrollment');
+        console.log('User is authenticated, proceeding with enrollment');
         verifyPaymentAndEnroll(transactionId || 'redirect_success');
-        // Clean up URL immediately
-        window.history.replaceState({}, document.title, window.location.pathname);
         return;
       }
       
-      // Handle new user case only if no user is logged in
+      // Handle new user case - check for stored enrollment data
+      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
       if (storedEnrollmentData) {
         const enrollmentData = JSON.parse(storedEnrollmentData);
         console.log('Found stored enrollment data for new user:', enrollmentData);
         
         if (enrollmentData.password) {
           // Try to register/login the new user
-          console.log('No user found but password in enrollment data, attempting authentication');
+          console.log('Attempting authentication for new user');
           handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
         } else {
           console.log('No password in enrollment data');
@@ -610,8 +616,8 @@ const EnrollmentPage = () => {
           navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}`);
         }
       } else {
-        // No stored data and no user - redirect to login
-        console.log('No stored enrollment data and no user found');
+        // No stored data and no user - this shouldn't happen for payment success
+        console.log('No stored enrollment data found - payment completed but no user context');
         toast({
           title: "Authentication Error",
           description: "Please log in to complete your enrollment.",
@@ -619,10 +625,8 @@ const EnrollmentPage = () => {
         });
         navigate('/login');
       }
-      
-      // Clean up URL immediately
-      window.history.replaceState({}, document.title, window.location.pathname);
     } else if (paymentStatus === 'cancelled') {
+      setPaymentUrlChecked(true);
       toast({
         title: "Payment Cancelled",
         description: "Your payment was cancelled. You can try enrolling again.",
@@ -630,7 +634,7 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate, user, authCheckComplete]);
+  }, [courseId, navigate, user, authCheckComplete, authLoading, paymentUrlChecked]);
 
   // Show processing message if payment is being verified
   if (paymentProcessing) {
