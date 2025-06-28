@@ -1106,6 +1106,57 @@ export type Database = {
           },
         ]
       }
+      student_success_stories: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_approved: boolean
+          is_featured: boolean
+          name: string
+          role: string
+          story: string
+          submitted_by: string | null
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_approved?: boolean
+          is_featured?: boolean
+          name: string
+          role: string
+          story: string
+          submitted_by?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_approved?: boolean
+          is_featured?: boolean
+          name?: string
+          role?: string
+          story?: string
+          submitted_by?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null

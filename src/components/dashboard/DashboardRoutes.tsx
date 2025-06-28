@@ -1,124 +1,62 @@
-
-import { Routes, Route } from "react-router-dom";
-import { useState, useEffect } from "react";
-import StudentDashboard from "./student/Dashboard";
-import InstructorDashboard from "./InstructorDashboard";
-import AdminDashboard from "./AdminDashboard";
-import Profile from "./Profile";
-import MyCourses from "./student/MyCourses";
-import Certificates from "./student/Certificates";
-import MyStudents from "./MyStudents";
-import MyRevenue from "./MyRevenue";
-import Settings from "./Settings";
-import Notifications from "./Notifications";
-import CreateCourse from "./CreateCourse";
-import CourseEdit from "./CourseEdit";
-import CourseView from "@/components/CourseView";
-import { useAuth } from "@/contexts/AuthContext";
-import InstructorMyCourses from "./MyCourses";
-import LessonForm from "./course/LessonForm";
-
-// Import certificate components
-import InstructorCertificates from "./instructor/Certificates";
-import AdminCertificates from "./admin/Certificates";
-
-// Import admin pages
-import UsersPage from "@/pages/admin/UsersPage";
-import CoursesPage from "@/pages/admin/CoursesPage";
-import FinancePage from "@/pages/admin/FinancePage";
-import ReportsPage from "@/pages/admin/ReportsPage"; 
-import SupportTicketsPage from "@/pages/admin/SupportTicketsPage";
-import AnnouncementsPage from "@/pages/admin/AnnouncementsPage";
-import SystemPage from "@/pages/admin/SystemPage";
+import React from "react";
+import { Route, Routes } from "react-router-dom";
+import DashboardHome from "./DashboardHome";
+import CoursesDashboard from "./courses/CoursesDashboard";
+import CourseDetails from "./courses/CourseDetails";
+import LessonsDashboard from "./lessons/LessonsDashboard";
+import LessonDetails from "./lessons/LessonDetails";
+import AssignmentsDashboard from "./assignments/AssignmentsDashboard";
+import AssignmentDetails from "./assignments/AssignmentDetails";
+import UsersDashboard from "./users/UsersDashboard";
+import UserDetails from "./users/UserDetails";
+import EnrollmentsDashboard from "./enrollments/EnrollmentsDashboard";
+import SettingsDashboard from "./settings/SettingsDashboard";
+import SupportDashboard from "./support/SupportDashboard";
+import SupportTicketDetails from "./support/SupportTicketDetails";
+import AdminDashboard from "./admin/AdminDashboard";
+import CourseCategoriesManager from "./admin/CourseCategoriesManager";
+import PaymentGatewaysManager from "./admin/PaymentGatewaysManager";
+import StudentSuccessStories from "@/components/home/StudentSuccessStoriesSection";
+import SuccessStoriesManager from "./admin/SuccessStoriesManager";
 
 const DashboardRoutes = () => {
-  // Always call hooks at the top level
-  const { user } = useAuth();
-  const [currentRole, setCurrentRole] = useState(user?.role || "student");
-  
-  // Update the role only when the user is loaded and different from current role
-  useEffect(() => {
-    if (user?.role && user.role !== currentRole) {
-      console.log("Dashboard role updated to:", user.role);
-      setCurrentRole(user.role);
-    }
-  }, [user?.role, currentRole]);
-
-  // Add debug logging to help troubleshoot role-related issues
-  useEffect(() => {
-    console.log("Current user:", user);
-    console.log("Current role in state:", currentRole);
-  }, [user, currentRole]);
-
-  // Prepare all route fragments regardless of role
-  const studentRoutesFragment = (
-    <>
-      <Route path="/certificates" element={<Certificates />} />
-      <Route path="/courses/:courseId" element={<CourseView />} />
-    </>
-  );
-
-  const instructorRoutesFragment = (
-    <>
-      <Route path="/students" element={<MyStudents />} />
-      <Route path="/revenue" element={<MyRevenue />} />
-      <Route path="/certificates" element={<InstructorCertificates />} />
-      <Route path="/create-course" element={<CreateCourse />} />
-      <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
-      <Route path="/courses/:courseId/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
-    </>
-  );
-
-  const adminRoutesFragment = (
-    <>
-      <Route path="/users" element={<UsersPage />} />
-      <Route path="/courses" element={<CoursesPage />} />
-      <Route path="/certificates" element={<AdminCertificates />} />
-      <Route path="/finance" element={<FinancePage />} />
-      <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/support-tickets" element={<SupportTicketsPage />} />
-      <Route path="/announcements" element={<AnnouncementsPage />} />
-      <Route path="/system" element={<SystemPage />} />
-    </>
-  );
-
-  // Get dashboard component based on role
-  const dashboardComponent = (() => {
-    // Force log to debug
-    console.log("Selecting dashboard for role:", currentRole);
-    
-    switch (currentRole) {
-      case "instructor":
-        return <InstructorDashboard />;
-      case "admin":
-      case "super_admin":
-        return <AdminDashboard />;
-      case "student":
-      default:
-        return <StudentDashboard />;
-    }
-  })();
-
-  // Return routes with conditional fragments
   return (
     <Routes>
-      <Route path="/" element={dashboardComponent} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/notifications" element={<Notifications />} />
-      <Route path="/settings" element={<Settings />} />
+      <Route path="/" element={<DashboardHome />} />
       
-      {/* Student and Instructor Routes */}
-      <Route path="/my-courses" element={currentRole === "instructor" ? <InstructorMyCourses /> : <MyCourses />} />
+      {/* Courses Routes */}
+      <Route path="courses" element={<CoursesDashboard />} />
+      <Route path="courses/:courseId" element={<CourseDetails />} />
+
+      {/* Lessons Routes */}
+      <Route path="courses/:courseId/lessons" element={<LessonsDashboard />} />
+      <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetails />} />
+
+      {/* Assignments Routes */}
+      <Route path="courses/:courseId/assignments" element={<AssignmentsDashboard />} />
+      <Route path="courses/:courseId/assignments/:assignmentId" element={<AssignmentDetails />} />
+
+      {/* Users Routes */}
+      <Route path="users" element={<UsersDashboard />} />
+      <Route path="users/:userId" element={<UserDetails />} />
+
+      {/* Enrollments Route */}
+      <Route path="enrollments" element={<EnrollmentsDashboard />} />
+
+      {/* Settings Route */}
+      <Route path="settings" element={<SettingsDashboard />} />
+
+      {/* Support Route */}
+      <Route path="support" element={<SupportDashboard />} />
+      <Route path="support/:ticketId" element={<SupportTicketDetails />} />
       
-      {/* Role-specific routes - conditionally rendered */}
-      {currentRole === "student" && studentRoutesFragment}
-      {currentRole === "instructor" && instructorRoutesFragment}
-      {(currentRole === "admin" || currentRole === "super_admin") && adminRoutesFragment}
-      
-      {/* Common Routes */}
-      <Route path="/courses/:courseId/lessons/new" element={<LessonForm />} />
-      <Route path="/courses/:courseId/lessons/:lessonId/edit" element={<LessonForm />} />
-      <Route path="*" element={<div className="p-6"><h1 className="text-2xl font-bold">Page Not Found</h1></div>} />
+      {/* Admin Routes */}
+      <Route path="admin">
+        <Route path="/" element={<AdminDashboard />} />
+        <Route path="course-categories" element={<CourseCategoriesManager />} />
+        <Route path="payment-gateways" element={<PaymentGatewaysManager />} />
+        <Route path="success-stories" element={<SuccessStoriesManager />} />
+      </Route>
     </Routes>
   );
 };
