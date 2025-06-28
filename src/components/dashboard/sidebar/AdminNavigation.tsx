@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +11,10 @@ interface NavItemProps {
   path: string;
   label: string;
   icon: React.ReactNode;
+}
+
+interface AdminNavigationProps {
+  isActive: (path: string) => boolean;
 }
 
 const NavItem: React.FC<NavItemProps> = ({ path, label, icon }) => {
@@ -26,14 +31,14 @@ const NavItem: React.FC<NavItemProps> = ({ path, label, icon }) => {
   );
 };
 
-const AdminNavigation: React.FC = () => {
-  const { user, signOut } = useAuth();
+const AdminNavigation: React.FC<AdminNavigationProps> = ({ isActive }) => {
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout();
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
