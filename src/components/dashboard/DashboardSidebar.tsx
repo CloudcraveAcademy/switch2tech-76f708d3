@@ -65,7 +65,7 @@ const DashboardSidebar = () => {
         )}
         
         {(user?.role === "admin" || user?.role === "super_admin") && (
-          <AdminNavigation />
+          <AdminNavigation isActive={isActive} />
         )}
         
         <div className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">

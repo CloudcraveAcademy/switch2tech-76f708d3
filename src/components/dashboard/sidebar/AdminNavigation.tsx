@@ -1,10 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, GraduationCap, Users, Settings, Book, ListChecks, LayoutDashboard, MessageSquare, FileVideo, FileText, UserPlus, UserCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import SuccessStoriesManager from "@/components/dashboard/admin/SuccessStoriesManager";
 
 interface NavItemProps {
   path: string;
@@ -27,13 +27,13 @@ const NavItem: React.FC<NavItemProps> = ({ path, label, icon }) => {
 };
 
 const AdminNavigation: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await logout();
+      await signOut();
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
@@ -57,7 +57,7 @@ const AdminNavigation: React.FC = () => {
     { path: "announcements", component: null, label: "Announcements" },
     { path: "assignments", component: null, label: "Assignments" },
     { path: "quizzes", component: null, label: "Quizzes" },
-    { path: "success-stories", component: null, label: "Success Stories" },
+    { path: "success-stories", component: SuccessStoriesManager, label: "Success Stories" },
   ];
 
   return (

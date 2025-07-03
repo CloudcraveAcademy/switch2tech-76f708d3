@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import DashboardHome from "./DashboardHome";
@@ -14,15 +13,16 @@ import EnrollmentsDashboard from "./enrollments/EnrollmentsDashboard";
 import SettingsDashboard from "./settings/SettingsDashboard";
 import SupportDashboard from "./support/SupportDashboard";
 import SupportTicketDetails from "./support/SupportTicketDetails";
-import AdminDashboard from "./AdminDashboard";
+import AdminDashboard from "./admin/AdminDashboard";
 import CourseCategoriesManager from "./admin/CourseCategoriesManager";
 import PaymentGatewaysManager from "./admin/PaymentGatewaysManager";
+import StudentSuccessStories from "@/components/home/StudentSuccessStoriesSection";
 import SuccessStoriesManager from "./admin/SuccessStoriesManager";
 
 const DashboardRoutes = () => {
   return (
     <Routes>
-      <Route index element={<DashboardHome />} />
+      <Route path="/" element={<DashboardHome />} />
       
       {/* Courses Routes */}
       <Route path="courses" element={<CoursesDashboard />} />
@@ -50,11 +50,13 @@ const DashboardRoutes = () => {
       <Route path="support" element={<SupportDashboard />} />
       <Route path="support/:ticketId" element={<SupportTicketDetails />} />
       
-      {/* Admin Routes - Fixed nested routing */}
-      <Route path="admin" element={<AdminDashboard />} />
-      <Route path="admin/course-categories" element={<CourseCategoriesManager />} />
-      <Route path="admin/payment-gateways" element={<PaymentGatewaysManager />} />
-      <Route path="admin/success-stories" element={<SuccessStoriesManager />} />
+      {/* Admin Routes */}
+      <Route path="admin">
+        <Route path="/" element={<AdminDashboard />} />
+        <Route path="course-categories" element={<CourseCategoriesManager />} />
+        <Route path="payment-gateways" element={<PaymentGatewaysManager />} />
+        <Route path="success-stories" element={<SuccessStoriesManager />} />
+      </Route>
     </Routes>
   );
 };
