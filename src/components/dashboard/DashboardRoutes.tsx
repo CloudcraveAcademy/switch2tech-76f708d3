@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import DashboardHome from "./DashboardHome";
@@ -13,7 +14,7 @@ import EnrollmentsDashboard from "./enrollments/EnrollmentsDashboard";
 import SettingsDashboard from "./settings/SettingsDashboard";
 import SupportDashboard from "./support/SupportDashboard";
 import SupportTicketDetails from "./support/SupportTicketDetails";
-import AdminDashboard from "./admin/AdminDashboard";
+import AdminDashboard from "./AdminDashboard";
 import CourseCategoriesManager from "./admin/CourseCategoriesManager";
 import PaymentGatewaysManager from "./admin/PaymentGatewaysManager";
 import StudentSuccessStories from "@/components/home/StudentSuccessStoriesSection";
