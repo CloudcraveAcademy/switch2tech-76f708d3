@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import DashboardHome from "./DashboardHome";
@@ -51,11 +50,13 @@ const DashboardRoutes = () => {
       <Route path="support" element={<SupportDashboard />} />
       <Route path="support/:ticketId" element={<SupportTicketDetails />} />
       
-      {/* Admin Routes - Fixed the routing structure */}
-      <Route path="admin" element={<AdminDashboard />} />
-      <Route path="admin/course-categories" element={<CourseCategoriesManager />} />
-      <Route path="admin/payment-gateways" element={<PaymentGatewaysManager />} />
-      <Route path="admin/success-stories" element={<SuccessStoriesManager />} />
+      {/* Admin Routes */}
+      <Route path="admin">
+        <Route path="/" element={<AdminDashboard />} />
+        <Route path="course-categories" element={<CourseCategoriesManager />} />
+        <Route path="payment-gateways" element={<PaymentGatewaysManager />} />
+        <Route path="success-stories" element={<SuccessStoriesManager />} />
+      </Route>
     </Routes>
   );
 };
