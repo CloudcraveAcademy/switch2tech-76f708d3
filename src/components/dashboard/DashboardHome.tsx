@@ -26,7 +26,7 @@ const DashboardHome = () => {
       console.log("Rendering AdminDashboard");
       return <AdminDashboard />;
     default:
-      console.log("Rendering default StudentDashboard");
+      console.log("Rendering default StudentDashboard for role:", user.role);
       return <StudentDashboard />;
   }
 };

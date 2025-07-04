@@ -49,7 +49,7 @@ const DashboardRoutes = () => {
       <Route path="support" element={<SupportDashboard />} />
       <Route path="support/:ticketId" element={<SupportTicketDetails />} />
       
-      {/* Admin Routes - Fixed the nested route issue */}
+      {/* Admin Routes */}
       <Route path="admin/course-categories" element={<CourseCategoriesManager />} />
       <Route path="admin/payment-gateways" element={<PaymentGatewaysManager />} />
       <Route path="admin/success-stories" element={<SuccessStoriesManager />} />
