@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -253,9 +252,26 @@ const EnrollmentPage = () => {
   const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: any) => {
     try {
       console.log('Verifying payment for transaction:', transactionId);
+      console.log('Current user state:', user?.id);
       
+      // Wait for auth to be ready if not already
       if (!user?.id) {
-        throw new Error('User not authenticated');
+        console.log('No user found, waiting for auth state...');
+        // Try to wait for auth state to settle
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Check again after waiting
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          throw new Error('User not authenticated after payment');
+        }
+        
+        console.log('User found after waiting:', session.user.id);
+      }
+
+      const currentUserId = user?.id;
+      if (!currentUserId) {
+        throw new Error('User authentication required');
       }
 
       // Check if already enrolled first
@@ -263,7 +279,7 @@ const EnrollmentPage = () => {
         .from("enrollments")
         .select("id")
         .eq("course_id", courseId)
-        .eq("student_id", user.id)
+        .eq("student_id", currentUserId)
         .maybeSingle();
 
       if (existingEnrollment) {
@@ -280,7 +296,7 @@ const EnrollmentPage = () => {
       const { error: enrollmentError } = await supabase
         .from("enrollments")
         .insert({
-          student_id: user.id,
+          student_id: currentUserId,
           course_id: courseId,
           enrolled_at: new Date().toISOString(),
           progress: 0,
@@ -341,10 +357,10 @@ const EnrollmentPage = () => {
         }
       }
 
-      // Wait a moment for auth to settle
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Wait a moment for auth to settle, then verify payment
+      setTimeout(async () => {
+        await verifyPaymentAndEnroll(transactionId, enrollmentData);
+      }, 2000);
 
     } catch (error) {
       console.error('New user authentication failed:', error);
@@ -607,7 +623,7 @@ const EnrollmentPage = () => {
             variant: "destructive",
           });
           localStorage.setItem('redirect_after_login', `/enroll/${courseId}?payment=success&transaction_id=${transactionId}`);
-          navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}`);
+          navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
         }
       } else {
         // No stored data and no user - redirect to login
@@ -617,7 +633,7 @@ const EnrollmentPage = () => {
           description: "Please log in to complete your enrollment.",
           variant: "destructive",
         });
-        navigate('/login');
+        navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
       }
       
       // Clean up URL immediately

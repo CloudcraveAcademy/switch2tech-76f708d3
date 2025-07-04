@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -30,15 +29,19 @@ const Login = () => {
     handleSubmit,
   } = useLoginForm();
 
-  // Check if user is already logged in
+  // Extract redirect path from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get('redirect') || "/dashboard";
+
+  // Check if user is already logged in and redirect
   useEffect(() => {
     const checkAuthAndRedirect = async () => {
-      console.log("Login page - checking auth state");
+      console.log("Login page - checking auth state, redirect path:", redirectPath);
       
       // First check if we already have a user
       if (user) {
-        console.log("User is already authenticated, redirecting to dashboard");
-        navigate("/dashboard");
+        console.log("User is already authenticated, redirecting to:", redirectPath);
+        navigate(redirectPath);
         return;
       }
       
@@ -46,27 +49,24 @@ const Login = () => {
       const isValid = await validateSession();
       
       if (isValid) {
-        console.log("Valid session found, redirecting to dashboard");
-        navigate("/dashboard");
+        console.log("Valid session found, redirecting to:", redirectPath);
+        navigate(redirectPath);
       }
     };
     
     checkAuthAndRedirect();
-  }, [user, navigate, validateSession]);
+  }, [user, navigate, validateSession, redirectPath]);
 
   // Set up demo accounts when page loads
   useEffect(() => {
     setupDemoAccounts();
   }, []);
 
-  // Extract the redirect path from location state
-  const from = location.state?.from || "/dashboard";
-
   // Update the login form's handleSubmit to redirect after successful login
   const handleLogin = async (e: React.FormEvent) => {
-    await handleSubmit(e);
-    // The auth listener will handle setting the user state
-    // and the useEffect above will handle redirection
+    const result = await handleSubmit(e);
+    // After successful login, the auth state change will trigger the redirect
+    // No need to manually redirect here as the useEffect above handles it
   };
 
   return (
@@ -145,7 +145,10 @@ const Login = () => {
 
           <p className="mt-8 text-center text-sm text-gray-600">
             Don't have an account?{" "}
-            <Link to="/register" className="text-brand-600 hover:text-brand-700 font-medium">
+            <Link 
+              to={`/register${redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""}`} 
+              className="text-brand-600 hover:text-brand-700 font-medium"
+            >
               Sign up
             </Link>
           </p>
