@@ -248,38 +248,41 @@ const EnrollmentPage = () => {
     return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
   }, [basePriceUSD, selectedCurrency, isFree]);
 
-  // Payment verification functions
+  // Payment verification functions with improved auth handling
   const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: any) => {
     try {
       console.log('Verifying payment for transaction:', transactionId);
-      console.log('Current user state:', user?.id);
       
-      // Wait for auth to be ready if not already
-      if (!user?.id) {
-        console.log('No user found, waiting for auth state...');
-        // Try to wait for auth state to settle
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get current auth state
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user;
+      
+      if (!currentUser?.id) {
+        console.log('No authenticated user found, waiting...');
+        // Wait a bit more for auth to settle
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
-        // Check again after waiting
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
-          throw new Error('User not authenticated after payment');
+        // Check again
+        const { data: { session: newSession } } = await supabase.auth.getSession();
+        const retryUser = newSession?.user;
+        
+        if (!retryUser?.id) {
+          throw new Error('User authentication required after payment');
         }
         
-        console.log('User found after waiting:', session.user.id);
+        console.log('User found after retry:', retryUser.id);
       }
 
-      const currentUserId = user?.id;
-      if (!currentUserId) {
-        throw new Error('User authentication required');
-      }
+      const userId = currentUser?.id || session?.user?.id;
+      
+      console.log('Processing enrollment for user:', userId);
 
       // Check if already enrolled first
       const { data: existingEnrollment } = await supabase
         .from("enrollments")
         .select("id")
         .eq("course_id", courseId)
-        .eq("student_id", currentUserId)
+        .eq("student_id", userId)
         .maybeSingle();
 
       if (existingEnrollment) {
@@ -296,7 +299,7 @@ const EnrollmentPage = () => {
       const { error: enrollmentError } = await supabase
         .from("enrollments")
         .insert({
-          student_id: currentUserId,
+          student_id: userId,
           course_id: courseId,
           enrolled_at: new Date().toISOString(),
           progress: 0,
@@ -337,6 +340,10 @@ const EnrollmentPage = () => {
         email: enrollmentData.email,
         password: enrollmentData.password,
         options: {
+          data: {
+            first_name: enrollmentData.firstName,
+            last_name: enrollmentData.lastName,
+          },
           emailRedirectTo: `${window.location.origin}/dashboard`
         }
       });
@@ -357,10 +364,10 @@ const EnrollmentPage = () => {
         }
       }
 
-      // Wait a moment for auth to settle, then verify payment
+      // Wait longer for auth to settle, then verify payment
       setTimeout(async () => {
         await verifyPaymentAndEnroll(transactionId, enrollmentData);
-      }, 2000);
+      }, 4000);
 
     } catch (error) {
       console.error('New user authentication failed:', error);
@@ -373,7 +380,7 @@ const EnrollmentPage = () => {
     }
   };
 
-  // Form submission handler with improved error handling
+  // Form submission handler with improved validation
   const onSubmit = async (data: EnrollmentFormData) => {
     console.log('Form submitted with data:', data);
     
@@ -381,6 +388,25 @@ const EnrollmentPage = () => {
       toast({
         title: "Error",
         description: "Course information not available. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!data.firstName.trim() || !data.lastName.trim() || !data.email.trim() || !data.motivation.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isNewUser && (!data.password || data.password.length < 6)) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters long.",
         variant: "destructive",
       });
       return;
@@ -397,6 +423,10 @@ const EnrollmentPage = () => {
             email: data.email,
             password: data.password!,
             options: {
+              data: {
+                first_name: data.firstName,
+                last_name: data.lastName,
+              },
               emailRedirectTo: `${window.location.origin}/dashboard`
             }
           });
@@ -420,7 +450,7 @@ const EnrollmentPage = () => {
           // Wait for auth state to update
           setTimeout(() => {
             window.location.reload();
-          }, 1000);
+          }, 2000);
           return;
         }
 
@@ -1010,17 +1040,27 @@ const EnrollmentPage = () => {
                         type="submit" 
                         className="w-full" 
                         size="lg"
-                        disabled={isEnrolling || isProcessingPayment || !flutterwaveLoaded || (!isFree && (!flutterwaveConfig || !flutterwaveConfig.is_active))}
+                        disabled={
+                          isEnrolling || 
+                          isProcessingPayment || 
+                          !flutterwaveLoaded || 
+                          (!isFree && (!flutterwaveConfig || !flutterwaveConfig.is_active)) ||
+                          !form.watch("firstName")?.trim() ||
+                          !form.watch("lastName")?.trim() ||
+                          !form.watch("email")?.trim() ||
+                          !form.watch("motivation")?.trim() ||
+                          (isNewUser && (!form.watch("password") || form.watch("password").length < 6))
+                        }
                       >
                         {isProcessingPayment ? (
                           "Processing Payment..."
                         ) : isEnrolling ? (
                           "Processing..."
-                        ) : !flutterwaveLoaded ? (
+                        ) : !flutterwaveLoaded && !isFree ? (
                           "Loading Payment System..."
                         ) : !flutterwaveConfig && !isFree ? (
                           "Payment System Unavailable"
-                        ) : !isFree && !flutterwaveConfig.is_active ? (
+                        ) : !isFree && !flutterwaveConfig?.is_active ? (
                           "Payment System Disabled"
                         ) : (
                           <>
