@@ -24,16 +24,13 @@ const CourseEnrollButton = ({
   isCompleted = false,
   className = "",
 }: CourseEnrollButtonProps) => {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [enrolling, setEnrolling] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleEnroll = async () => {
-    console.log("Enroll button clicked - User:", user, "Session:", session);
-    
-    if (!user || !session) {
-      console.log("User not authenticated, redirecting to enrollment page");
+    if (!user) {
       // Redirect to enrollment page for guest users
       navigate(`/enroll/${courseId}`);
       return;
@@ -41,13 +38,10 @@ const CourseEnrollButton = ({
 
     setEnrolling(true);
     try {
-      console.log("Attempting to enroll user:", user.id, "in course:", courseId);
       const result = await CourseEnrollmentService.enrollInCourse(
         courseId,
         user.id
       );
-      
-      console.log("Enrollment result:", result);
       
       if (result.success && result.error !== "Already enrolled") {
         setShowConfirmation(true);
@@ -77,8 +71,6 @@ const CourseEnrollButton = ({
 
   const handleConfirmationClose = () => {
     setShowConfirmation(false);
-    // Refresh the page or redirect to dashboard to show the enrolled course
-    window.location.reload();
   };
 
   return (

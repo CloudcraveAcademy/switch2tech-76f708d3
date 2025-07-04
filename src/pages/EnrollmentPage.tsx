@@ -25,6 +25,7 @@ import {
   Calendar,
   CreditCard,
   ArrowLeft,
+  Play,
   User,
   Mail,
   Phone,
@@ -47,7 +48,6 @@ import {
 } from "@/components/ui/select";
 import { COUNTRIES } from "@/utils/countries";
 import LiveCourseDetails from "@/components/course/LiveCourseDetails";
-import { CourseEnrollmentService } from "@/services/CourseEnrollmentService";
 
 // Enrollment form schema - updated to make fields optional for logged-in users
 const enrollmentSchema = z.object({
@@ -116,7 +116,6 @@ const EnrollmentPage = () => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const [formInitialized, setFormInitialized] = useState(false);
-  const [paymentUrlChecked, setPaymentUrlChecked] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -259,32 +258,49 @@ const EnrollmentPage = () => {
         throw new Error('User not authenticated');
       }
 
-      console.log('Attempting to enroll user:', user.id, 'in course:', courseId);
-      const result = await CourseEnrollmentService.enrollInCourse(
-        courseId!,
-        user.id
-      );
-      
-      console.log('Enrollment result:', result);
-      
+      // Check if already enrolled first
+      const { data: existingEnrollment } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("course_id", courseId)
+        .eq("student_id", user.id)
+        .maybeSingle();
+
+      if (existingEnrollment) {
+        console.log('User already enrolled, redirecting to course');
+        toast({
+          title: "Already Enrolled",
+          description: "You are already enrolled in this course!",
+        });
+        navigate(`/dashboard/courses/${courseId}`);
+        return;
+      }
+
+      // Create enrollment directly
+      const { error: enrollmentError } = await supabase
+        .from("enrollments")
+        .insert({
+          student_id: user.id,
+          course_id: courseId,
+          enrolled_at: new Date().toISOString(),
+          progress: 0,
+          status: 'active'
+        });
+
+      if (enrollmentError) {
+        console.error('Enrollment error:', enrollmentError);
+        throw enrollmentError;
+      }
+
       // Clean up stored data
       localStorage.removeItem(`enrollment_${courseId}`);
       
-      if (result.success) {
-        toast({
-          title: "Enrollment Successful!",
-          description: "Welcome to the course! You can now start learning.",
-        });
-        
-        // Force a page refresh to update the enrollment status
-        window.location.href = `/dashboard/courses/${courseId}`;
-      } else {
-        toast({
-          title: "Enrollment Error",
-          description: result.error || "Failed to complete enrollment. Please contact support.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Enrollment Successful!",
+        description: "Welcome to the course! You can now start learning.",
+      });
+
+      navigate(`/dashboard/courses/${courseId}`);
     } catch (error) {
       console.error('Payment verification failed:', error);
       setPaymentProcessing(false);
@@ -392,18 +408,25 @@ const EnrollmentPage = () => {
           return;
         }
 
-        // Enroll existing user in free course using the service
-        const result = await CourseEnrollmentService.enrollInCourse(courseId!, user!.id);
-        
-        if (result.success) {
-          toast({
-            title: "Enrollment Successful!",
-            description: "Welcome to the course! You can now start learning.",
+        // Enroll existing user in free course
+        const { error: enrollmentError } = await supabase
+          .from("enrollments")
+          .insert({
+            student_id: user!.id,
+            course_id: courseId,
+            enrolled_at: new Date().toISOString(),
+            progress: 0,
+            status: 'active'
           });
-          navigate(`/dashboard/courses/${courseId}`);
-        } else {
-          throw new Error(result.error || "Enrollment failed");
-        }
+
+        if (enrollmentError) throw enrollmentError;
+
+        toast({
+          title: "Enrollment Successful!",
+          description: "Welcome to the course! You can now start learning.",
+        });
+
+        navigate(`/dashboard/courses/${courseId}`);
         return;
       }
 
@@ -540,16 +563,10 @@ const EnrollmentPage = () => {
     }
   }, [authLoading, user]);
 
-  // Check for payment status in URL on component mount - FIXED VERSION
+  // Check for payment status in URL on component mount - IMPROVED VERSION
   useEffect(() => {
-    // Don't check URL if we've already processed it
-    if (paymentUrlChecked) {
-      return;
-    }
-
-    // Wait for auth to be fully loaded
-    if (!authCheckComplete || authLoading) {
-      console.log('Auth not ready yet, waiting...');
+    if (!authCheckComplete) {
+      console.log('Auth check not complete yet, waiting...');
       return;
     }
 
@@ -559,28 +576,28 @@ const EnrollmentPage = () => {
     
     if (paymentStatus === 'success') {
       console.log('Payment success detected in URL, current user:', user?.id);
-      setPaymentUrlChecked(true); // Mark as checked to prevent re-processing
       setPaymentProcessing(true);
       
-      // Clean up URL immediately to prevent re-processing
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Get enrollment data from localStorage
+      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
       
-      // If user is logged in, proceed with enrollment
+      // If user is already logged in, proceed with enrollment immediately
       if (user?.id) {
-        console.log('User is authenticated, proceeding with enrollment');
+        console.log('User is logged in, proceeding with enrollment');
         verifyPaymentAndEnroll(transactionId || 'redirect_success');
+        // Clean up URL immediately
+        window.history.replaceState({}, document.title, window.location.pathname);
         return;
       }
       
-      // Handle new user case - check for stored enrollment data
-      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
+      // Handle new user case only if no user is logged in
       if (storedEnrollmentData) {
         const enrollmentData = JSON.parse(storedEnrollmentData);
         console.log('Found stored enrollment data for new user:', enrollmentData);
         
         if (enrollmentData.password) {
           // Try to register/login the new user
-          console.log('Attempting authentication for new user');
+          console.log('No user found but password in enrollment data, attempting authentication');
           handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
         } else {
           console.log('No password in enrollment data');
@@ -593,8 +610,8 @@ const EnrollmentPage = () => {
           navigate(`/login?email=${encodeURIComponent(enrollmentData.email)}`);
         }
       } else {
-        // No stored data and no user - this shouldn't happen for payment success
-        console.log('No stored enrollment data found - payment completed but no user context');
+        // No stored data and no user - redirect to login
+        console.log('No stored enrollment data and no user found');
         toast({
           title: "Authentication Error",
           description: "Please log in to complete your enrollment.",
@@ -602,8 +619,10 @@ const EnrollmentPage = () => {
         });
         navigate('/login');
       }
+      
+      // Clean up URL immediately
+      window.history.replaceState({}, document.title, window.location.pathname);
     } else if (paymentStatus === 'cancelled') {
-      setPaymentUrlChecked(true);
       toast({
         title: "Payment Cancelled",
         description: "Your payment was cancelled. You can try enrolling again.",
@@ -611,7 +630,7 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate, user, authCheckComplete, authLoading, paymentUrlChecked]);
+  }, [courseId, navigate, user, authCheckComplete]);
 
   // Show processing message if payment is being verified
   if (paymentProcessing) {

@@ -15,7 +15,6 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<any>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
-  signOut: () => Promise<void>; // Added signOut method
   loading: boolean;
   setLoading: (isLoading: boolean) => void;
   validateSession: () => Promise<boolean>;

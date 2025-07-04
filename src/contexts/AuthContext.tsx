@@ -16,9 +16,12 @@ export const useAuth = () => {
 };
 
 export const requireAuth = (Component: React.ComponentType<any>) => {
+  // Use a named function instead of anonymous to help with debugging
   function AuthWrappedComponent(props: any) {
+    // Always call hooks at the top level - consistent across all renders
     const { user, loading } = useAuth();
     
+    // Use a render-only approach without early returns
     return (
       <>
         {loading ? (
@@ -45,21 +48,17 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // Create a stable reference for the logout handler
   const logoutHandlerRef = useRef((path?: string) => {
     console.log("Navigation after logout");
     window.location.href = path || "/";
   });
   
+  // Use the authState directly to avoid hook inconsistencies
   const authState = useAuthProvider(logoutHandlerRef.current);
 
-  // Add signOut method that matches the logout functionality
-  const authStateWithSignOut = {
-    ...authState,
-    signOut: authState.logout
-  };
-
   return (
-    <AuthContext.Provider value={authStateWithSignOut}>
+    <AuthContext.Provider value={authState}>
       {children}
     </AuthContext.Provider>
   );
