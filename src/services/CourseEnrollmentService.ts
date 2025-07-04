@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -7,12 +6,23 @@ export interface EnrollmentResult {
   enrollment?: any;
   error?: string;
   requiresPayment?: boolean;
+  requiresAuth?: boolean;
   courseId?: string;
 }
 
 export const CourseEnrollmentService = {
-  async enrollInCourse(courseId: string, userId: string): Promise<EnrollmentResult> {
+  async enrollInCourse(courseId: string, userId?: string): Promise<EnrollmentResult> {
     try {
+      // Check if user is authenticated
+      if (!userId) {
+        return {
+          success: false,
+          error: "Authentication required",
+          requiresAuth: true,
+          courseId: courseId
+        };
+      }
+
       // Check if already enrolled
       const { data: existingEnrollment } = await supabase
         .from("enrollments")

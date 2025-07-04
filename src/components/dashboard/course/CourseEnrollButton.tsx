@@ -31,8 +31,13 @@ const CourseEnrollButton = ({
 
   const handleEnroll = async () => {
     if (!user) {
-      // Redirect to enrollment page for guest users
-      navigate(`/enroll/${courseId}`);
+      // For guest users, redirect to login first, then enrollment
+      toast({
+        title: "Login Required",
+        description: "Please log in to enroll in this course.",
+        variant: "default",
+      });
+      navigate(`/login?redirect=/enroll/${courseId}`);
       return;
     }
 
@@ -50,6 +55,13 @@ const CourseEnrollButton = ({
       } else if (result.requiresPayment) {
         // Redirect to enrollment page for payment
         navigate(`/enroll/${courseId}`);
+      } else if (result.requiresAuth) {
+        toast({
+          title: "Login Required",
+          description: "Please log in to enroll in this course.",
+          variant: "default",
+        });
+        navigate(`/login?redirect=/enroll/${courseId}`);
       } else {
         toast({
           title: "Enrollment Failed",
@@ -90,7 +102,7 @@ const CourseEnrollButton = ({
           onClick={handleEnroll} 
           disabled={enrolling}
         >
-          {enrolling ? "Enrolling..." : "Enroll Now"}
+          {enrolling ? "Processing..." : user ? "Enroll Now" : "Login to Enroll"}
         </Button>
       )}
 
