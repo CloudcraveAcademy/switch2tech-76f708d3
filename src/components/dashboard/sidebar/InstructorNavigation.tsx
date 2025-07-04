@@ -1,50 +1,55 @@
 
 import React from "react";
-import { BookOpen, Users, BarChart3, Calendar, FileText } from "lucide-react";
-import SidebarMenuItem from "./SidebarMenuItem";
+import { NavLink } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import {
+  BookOpen,
+  Users,
+  BarChart3,
+  User,
+  Settings,
+  HelpCircle,
+} from "lucide-react";
 
 interface InstructorNavigationProps {
   isActive: (path: string) => boolean;
 }
 
-const InstructorNavigation: React.FC<InstructorNavigationProps> = ({ isActive }) => {
+const InstructorNavigation = ({ isActive }: InstructorNavigationProps) => {
+  const navItems = [
+    { icon: BookOpen, label: "My Courses", path: "/dashboard" },
+    { icon: Users, label: "Students", path: "/dashboard/students" },
+    { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
+    { icon: User, label: "Profile", path: "/dashboard/profile" },
+    { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+    { icon: HelpCircle, label: "Support", path: "/dashboard/support" },
+  ];
+
   return (
-    <>
-      <SidebarMenuItem
-        to="/dashboard/courses"
-        icon={BookOpen}
-        label="My Courses"
-        isActive={isActive("/dashboard/courses")}
-      />
-      
-      <SidebarMenuItem
-        to="/dashboard/students"
-        icon={Users}
-        label="My Students"
-        isActive={isActive("/dashboard/students")}
-      />
-      
-      <SidebarMenuItem
-        to="/dashboard/analytics"
-        icon={BarChart3}
-        label="Analytics"
-        isActive={isActive("/dashboard/analytics")}
-      />
-      
-      <SidebarMenuItem
-        to="/dashboard/schedule"
-        icon={Calendar}
-        label="Schedule"
-        isActive={isActive("/dashboard/schedule")}
-      />
-      
-      <SidebarMenuItem
-        to="/dashboard/certificates"
-        icon={FileText}
-        label="Certificates"
-        isActive={isActive("/dashboard/certificates")}
-      />
-    </>
+    <nav className="space-y-1">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          className={cn(
+            "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
+            isActive(item.path)
+              ? "bg-gray-900 text-white"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          )}
+        >
+          <item.icon
+            className={cn(
+              "mr-3 h-5 w-5 flex-shrink-0",
+              isActive(item.path)
+                ? "text-gray-300"
+                : "text-gray-400 group-hover:text-gray-500"
+            )}
+          />
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
   );
 };
 

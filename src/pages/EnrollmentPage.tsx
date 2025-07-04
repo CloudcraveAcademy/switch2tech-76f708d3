@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -24,7 +25,6 @@ import {
   Calendar,
   CreditCard,
   ArrowLeft,
-  Play,
   User,
   Mail,
   Phone,
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { COUNTRIES } from "@/utils/countries";
 import LiveCourseDetails from "@/components/course/LiveCourseDetails";
+import { CourseEnrollmentService } from "@/services/CourseEnrollmentService";
 
 // Enrollment form schema - updated to make fields optional for logged-in users
 const enrollmentSchema = z.object({
@@ -258,49 +259,32 @@ const EnrollmentPage = () => {
         throw new Error('User not authenticated');
       }
 
-      // Check if already enrolled first
-      const { data: existingEnrollment } = await supabase
-        .from("enrollments")
-        .select("id")
-        .eq("course_id", courseId)
-        .eq("student_id", user.id)
-        .maybeSingle();
-
-      if (existingEnrollment) {
-        console.log('User already enrolled, redirecting to course');
-        toast({
-          title: "Already Enrolled",
-          description: "You are already enrolled in this course!",
-        });
-        navigate(`/dashboard/courses/${courseId}`);
-        return;
-      }
-
-      // Create enrollment directly
-      const { error: enrollmentError } = await supabase
-        .from("enrollments")
-        .insert({
-          student_id: user.id,
-          course_id: courseId,
-          enrolled_at: new Date().toISOString(),
-          progress: 0,
-          status: 'active'
-        });
-
-      if (enrollmentError) {
-        console.error('Enrollment error:', enrollmentError);
-        throw enrollmentError;
-      }
-
+      console.log('Attempting to enroll user:', user.id, 'in course:', courseId);
+      const result = await CourseEnrollmentService.enrollInCourse(
+        courseId!,
+        user.id
+      );
+      
+      console.log('Enrollment result:', result);
+      
       // Clean up stored data
       localStorage.removeItem(`enrollment_${courseId}`);
       
-      toast({
-        title: "Enrollment Successful!",
-        description: "Welcome to the course! You can now start learning.",
-      });
-
-      navigate(`/dashboard/courses/${courseId}`);
+      if (result.success) {
+        toast({
+          title: "Enrollment Successful!",
+          description: "Welcome to the course! You can now start learning.",
+        });
+        
+        // Force a page refresh to update the enrollment status
+        window.location.href = `/dashboard/courses/${courseId}`;
+      } else {
+        toast({
+          title: "Enrollment Error",
+          description: result.error || "Failed to complete enrollment. Please contact support.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Payment verification failed:', error);
       setPaymentProcessing(false);
@@ -408,25 +392,18 @@ const EnrollmentPage = () => {
           return;
         }
 
-        // Enroll existing user in free course
-        const { error: enrollmentError } = await supabase
-          .from("enrollments")
-          .insert({
-            student_id: user!.id,
-            course_id: courseId,
-            enrolled_at: new Date().toISOString(),
-            progress: 0,
-            status: 'active'
+        // Enroll existing user in free course using the service
+        const result = await CourseEnrollmentService.enrollInCourse(courseId!, user!.id);
+        
+        if (result.success) {
+          toast({
+            title: "Enrollment Successful!",
+            description: "Welcome to the course! You can now start learning.",
           });
-
-        if (enrollmentError) throw enrollmentError;
-
-        toast({
-          title: "Enrollment Successful!",
-          description: "Welcome to the course! You can now start learning.",
-        });
-
-        navigate(`/dashboard/courses/${courseId}`);
+          navigate(`/dashboard/courses/${courseId}`);
+        } else {
+          throw new Error(result.error || "Enrollment failed");
+        }
         return;
       }
 
