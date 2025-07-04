@@ -27,13 +27,13 @@ const NavItem: React.FC<NavItemProps> = ({ path, label, icon }) => {
 };
 
 const AdminNavigation: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth(); // Use logout instead of signOut
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout(); // Use logout method
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -13,6 +12,18 @@ export interface EnrollmentResult {
 export const CourseEnrollmentService = {
   async enrollInCourse(courseId: string, userId: string): Promise<EnrollmentResult> {
     try {
+      console.log("Starting enrollment process for course:", courseId, "user:", userId);
+      
+      // Verify user is authenticated
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        console.error("User not authenticated");
+        return {
+          success: false,
+          error: "Authentication error, login to complete your Enrolment"
+        };
+      }
+
       // Check if already enrolled
       const { data: existingEnrollment } = await supabase
         .from("enrollments")
@@ -22,6 +33,7 @@ export const CourseEnrollmentService = {
         .single();
 
       if (existingEnrollment) {
+        console.log("User already enrolled in course");
         return {
           success: true,
           enrollment: existingEnrollment,
@@ -37,6 +49,7 @@ export const CourseEnrollmentService = {
         .single();
 
       const isFree = !courseData?.price || courseData.price === 0;
+      console.log("Course is free:", isFree, "Price:", courseData?.price);
 
       // If course is not free, check for payment
       if (!isFree) {
@@ -48,7 +61,10 @@ export const CourseEnrollmentService = {
           .eq("status", "successful")
           .maybeSingle();
 
+        console.log("Payment record found:", paymentRecord);
+
         if (!paymentRecord) {
+          console.log("Payment required for course");
           return {
             success: false,
             error: "Payment required",
@@ -59,6 +75,7 @@ export const CourseEnrollmentService = {
       }
 
       // Create new enrollment record
+      console.log("Creating enrollment record");
       const { data: enrollment, error } = await supabase
         .from("enrollments")
         .insert({
@@ -83,6 +100,7 @@ export const CourseEnrollmentService = {
         };
       }
 
+      console.log("Enrollment successful:", enrollment);
       toast({
         title: "Successfully Enrolled",
         description: "You have been enrolled in the course.",

@@ -1,24 +1,32 @@
 
-import React from 'react';
-import { BookOpen, GraduationCap } from "lucide-react";
-import SidebarMenuItem from './SidebarMenuItem';
+import React from "react";
+import { BookOpen, GraduationCap, Calendar, Award, User } from "lucide-react";
+import SidebarMenuItem from "./SidebarMenuItem";
 
 interface StudentNavigationProps {
   isActive: (path: string) => boolean;
 }
 
-const StudentNavigation = ({ isActive }: StudentNavigationProps) => {
+const StudentNavigation: React.FC<StudentNavigationProps> = ({ isActive }) => {
   return (
     <>
       <SidebarMenuItem
-        to="/dashboard/my-courses"
+        to="/dashboard/courses"
         icon={BookOpen}
         label="My Courses"
-        isActive={isActive("/dashboard/my-courses")}
+        isActive={isActive("/dashboard/courses")}
       />
+      
+      <SidebarMenuItem
+        to="/dashboard/schedule"
+        icon={Calendar}
+        label="Class Schedule"
+        isActive={isActive("/dashboard/schedule")}
+      />
+      
       <SidebarMenuItem
         to="/dashboard/certificates"
-        icon={GraduationCap}
+        icon={Award}
         label="Certificates"
         isActive={isActive("/dashboard/certificates")}
       />
