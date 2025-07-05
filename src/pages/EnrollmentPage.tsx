@@ -242,25 +242,38 @@ const EnrollmentPage = () => {
 
   const completeEnrollment = async (userId: string) => {
     try {
-      console.log('Starting enrollment for user:', userId, 'Course:', courseId);
+      console.log('=== STARTING ENROLLMENT COMPLETION ===');
+      console.log('User ID:', userId);
+      console.log('Course ID:', courseId);
       
-      const { data: existingEnrollment } = await supabase
+      // Check if user is already enrolled
+      const { data: existingEnrollment, error: checkError } = await supabase
         .from("enrollments")
         .select("id")
         .eq("course_id", courseId)
         .eq("student_id", userId)
         .maybeSingle();
 
+      if (checkError) {
+        console.error('Error checking existing enrollment:', checkError);
+        throw checkError;
+      }
+
       if (existingEnrollment) {
         console.log('User already enrolled, redirecting to course dashboard');
         toast({
-          title: "Already Enrolled",
+          title: "Already Enrolled! 🎉",
           description: "You are already enrolled in this course!",
         });
-        navigate(`/dashboard/courses/${courseId}`);
+        
+        // Direct navigation without delay
+        console.log('Navigating to:', `/dashboard/courses/${courseId}`);
+        navigate(`/dashboard/courses/${courseId}`, { replace: true });
         return;
       }
 
+      // Create new enrollment
+      console.log('Creating new enrollment...');
       const { error: enrollmentError } = await supabase
         .from("enrollments")
         .insert({
@@ -271,23 +284,27 @@ const EnrollmentPage = () => {
         });
 
       if (enrollmentError) {
-        console.error('Enrollment error:', enrollmentError);
+        console.error('Enrollment creation error:', enrollmentError);
         throw enrollmentError;
       }
 
-      console.log('Enrollment successful, redirecting to course dashboard');
-      toast({
-        title: "Enrollment Successful! 🎉",
-        description: "Welcome to the course! You can now start learning.",
-      });
-
-      // Clear stored enrollment data
+      console.log('Enrollment created successfully!');
+      
+      // Clear any stored enrollment data
       localStorage.removeItem(`enrollment_${courseId}`);
       
-      // Redirect to the course dashboard page
-      navigate(`/dashboard/courses/${courseId}`);
+      toast({
+        title: "Enrollment Successful! 🎉",
+        description: "Welcome to the course! Redirecting to your course dashboard...",
+      });
+
+      // Immediate navigation to course dashboard
+      console.log('=== REDIRECTING TO COURSE DASHBOARD ===');
+      console.log('Target URL:', `/dashboard/courses/${courseId}`);
+      navigate(`/dashboard/courses/${courseId}`, { replace: true });
+      
     } catch (error) {
-      console.error('Enrollment completion failed:', error);
+      console.error('=== ENROLLMENT COMPLETION FAILED ===', error);
       toast({
         title: "Enrollment Error",
         description: error instanceof Error ? error.message : "Failed to complete enrollment. Please contact support.",
@@ -298,77 +315,50 @@ const EnrollmentPage = () => {
 
   const verifyPaymentAndEnroll = async (transactionId: string) => {
     try {
-      console.log('Verifying payment for transaction:', transactionId);
+      console.log('=== PAYMENT VERIFICATION STARTED ===');
+      console.log('Transaction ID:', transactionId);
+      console.log('Current user from context:', user?.id);
+      
       setPaymentProcessing(true);
       
-      // Check if we already have a valid user session
+      // First check: Current user from context
       if (user?.id) {
-        console.log('User already authenticated, proceeding with enrollment:', user.id);
+        console.log('✅ User authenticated via context, proceeding with enrollment');
         await completeEnrollment(user.id);
         return;
       }
       
-      // If no user, try to get current session
-      console.log('No user in context, checking current session...');
+      // Second check: Get fresh session
+      console.log('No user in context, checking fresh session...');
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw sessionError;
+        console.error('Session retrieval error:', sessionError);
+        throw new Error('Failed to verify authentication status');
       }
       
       if (session?.user) {
-        console.log('Found valid session, proceeding with enrollment:', session.user.id);
+        console.log('✅ Found valid session, proceeding with enrollment');
         await completeEnrollment(session.user.id);
         return;
       }
       
-      // If still no user, check for stored enrollment data to attempt authentication
-      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
-      if (storedEnrollmentData) {
-        try {
-          const enrollmentData = JSON.parse(storedEnrollmentData);
-          console.log('Found stored enrollment data, attempting authentication');
-          
-          if (enrollmentData.password) {
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email: enrollmentData.email,
-              password: enrollmentData.password,
-            });
-
-            if (signInError) {
-              console.error('Auto sign-in failed:', signInError);
-              throw signInError;
-            }
-            
-            if (signInData.user) {
-              console.log('Auto sign-in successful, proceeding with enrollment');
-              // Wait a bit for auth context to update
-              setTimeout(async () => {
-                await completeEnrollment(signInData.user.id);
-              }, 1000);
-              return;
-            }
-          }
-        } catch (parseError) {
-          console.error('Error parsing stored enrollment data:', parseError);
-        }
-      }
-      
-      // If all else fails, redirect to login
-      console.log('No authentication method available, redirecting to login');
+      // If no authentication found, redirect to login with return path
+      console.log('❌ No authentication found, redirecting to login');
       toast({
         title: "Authentication Required",
-        description: "Please log in to complete your enrollment after payment.",
+        description: "Please log in to complete your enrollment.",
         variant: "destructive",
       });
-      navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
+      
+      const returnUrl = `/enroll/${courseId}?payment=success&transaction_id=${transactionId}`;
+      navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`, { replace: true });
       
     } catch (error) {
-      console.error('Payment verification failed:', error);
+      console.error('=== PAYMENT VERIFICATION FAILED ===', error);
       toast({
         title: "Enrollment Error",
-        description: error instanceof Error ? error.message : "Failed to complete enrollment. Please contact support.",
+        description: error instanceof Error ? error.message : "Failed to complete enrollment after payment. Please contact support.",
         variant: "destructive",
       });
     } finally {
@@ -583,19 +573,24 @@ const EnrollmentPage = () => {
 
   // Enhanced payment success handling effect
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+      console.log('Auth still loading, skipping payment success check');
+      return;
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
     const transactionId = urlParams.get('transaction_id');
     
     if (paymentStatus === 'success' && transactionId) {
-      console.log('Payment success detected in URL, transaction:', transactionId);
+      console.log('=== PAYMENT SUCCESS DETECTED ===');
+      console.log('Transaction ID:', transactionId);
+      console.log('Current user:', user?.id);
       
-      // Clean up URL immediately
+      // Clean up URL immediately to prevent re-processing
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // Start payment verification immediately
+      // Start payment verification
       verifyPaymentAndEnroll(transactionId);
     } else if (paymentStatus === 'cancelled') {
       console.log('Payment was cancelled');
@@ -606,7 +601,7 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate, authLoading]);
+  }, [courseId, navigate, authLoading, user]);
 
   if (paymentProcessing) {
     return (
