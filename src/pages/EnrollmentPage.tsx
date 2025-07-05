@@ -110,6 +110,7 @@ const EnrollmentPage = () => {
   const [flutterwaveLoaded, setFlutterwaveLoaded] = useState(false);
   const [isNewUser, setIsNewUser] = useState(!user);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [formInitialized, setFormInitialized] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -499,7 +500,7 @@ const EnrollmentPage = () => {
   };
 
   useEffect(() => {
-    if (profileData && user) {
+    if (profileData && user && !formInitialized) {
       console.log("Pre-filling form with profile data:", profileData);
       form.reset({
         firstName: profileData.first_name || "",
@@ -507,11 +508,12 @@ const EnrollmentPage = () => {
         email: user.email || "",
         phone: profileData.phone || "",
         country: profileData.country || "",
-        currency: "USD",
+        currency: "USD", // Keep default currency
         motivation: "",
       });
+      setFormInitialized(true);
     }
-  }, [profileData, user, form]);
+  }, [profileData, user, form, formInitialized]);
 
   useEffect(() => {
     setIsNewUser(!user);
