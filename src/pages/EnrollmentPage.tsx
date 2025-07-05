@@ -125,6 +125,9 @@ const EnrollmentPage = () => {
     },
   });
 
+  // Watch the currency field to trigger price updates
+  const watchedCurrency = form.watch("currency");
+
   const { data: flutterwaveConfig, isLoading: isLoadingPaymentConfig, error: paymentConfigError } = useQuery({
     queryKey: ["payment-gateway-config", "flutterwave"],
     queryFn: async () => {
@@ -227,14 +230,14 @@ const EnrollmentPage = () => {
     return course.price || 0;
   };
 
-  const selectedCurrency = form.watch("currency");
   const basePriceUSD = getEffectivePrice();
   const isFree = basePriceUSD === 0;
   
+  // Calculate display price based on watched currency
   const displayPrice = React.useMemo(() => {
     if (isFree) return 0;
-    return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
-  }, [basePriceUSD, selectedCurrency, isFree]);
+    return watchedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, watchedCurrency);
+  }, [basePriceUSD, watchedCurrency, isFree]);
 
   const completeEnrollment = async (userId: string) => {
     try {
@@ -455,7 +458,7 @@ const EnrollmentPage = () => {
         public_key: flutterwaveConfig.public_key,
         tx_ref: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         amount: displayPrice,
-        currency: selectedCurrency,
+        currency: data.currency,
         payment_options: "card, banktransfer, ussd",
         redirect_url: `${window.location.origin}/enroll/${courseId}?payment=success`,
         customer: {
@@ -907,7 +910,7 @@ const EnrollmentPage = () => {
                               ) : (
                                 <>
                                   <CreditCard className="h-4 w-4 mr-2" />
-                                  {isNewUser ? "Create Account & Pay" : "Enroll & Pay"} {formatPrice(displayPrice, selectedCurrency)}
+                                  {isNewUser ? "Create Account & Pay" : "Enroll & Pay"} {formatPrice(displayPrice, watchedCurrency)}
                                 </>
                               )}
                             </>
@@ -969,19 +972,19 @@ const EnrollmentPage = () => {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-xl text-brand-600">
-                                {formatPrice(displayPrice, selectedCurrency)}
+                                {formatPrice(displayPrice, watchedCurrency)}
                               </span>
                               <Badge className="bg-red-500 text-white text-xs">
                                 {Math.round(((course.price! - course.discounted_price!) / course.price!) * 100)}% OFF
                               </Badge>
                             </div>
                             <span className="text-sm line-through text-gray-500">
-                              {formatPrice(selectedCurrency === 'USD' ? course.price! : convertPrice(course.price!, selectedCurrency), selectedCurrency)}
+                              {formatPrice(watchedCurrency === 'USD' ? course.price! : convertPrice(course.price!, watchedCurrency), watchedCurrency)}
                             </span>
                           </div>
                         ) : (
                           <span className="font-bold text-xl text-brand-600">
-                            {isFree ? "Free" : formatPrice(displayPrice, selectedCurrency)}
+                            {isFree ? "Free" : formatPrice(displayPrice, watchedCurrency)}
                           </span>
                         )}
                       </div>
