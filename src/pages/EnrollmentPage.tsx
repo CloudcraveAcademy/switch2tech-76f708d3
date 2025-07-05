@@ -242,7 +242,7 @@ const EnrollmentPage = () => {
 
   const completeEnrollment = async (userId: string) => {
     try {
-      console.log('Starting enrollment for user:', userId);
+      console.log('Starting enrollment for user:', userId, 'Course:', courseId);
       
       const { data: existingEnrollment } = await supabase
         .from("enrollments")
@@ -252,7 +252,7 @@ const EnrollmentPage = () => {
         .maybeSingle();
 
       if (existingEnrollment) {
-        console.log('User already enrolled, redirecting to course');
+        console.log('User already enrolled, redirecting to course dashboard');
         toast({
           title: "Already Enrolled",
           description: "You are already enrolled in this course!",
@@ -266,7 +266,7 @@ const EnrollmentPage = () => {
         .insert({
           student_id: userId,
           course_id: courseId,
-          enrolled_at: new Date().toISOString(),
+          enrollment_date: new Date().toISOString(),
           progress: 0,
         });
 
@@ -275,14 +275,16 @@ const EnrollmentPage = () => {
         throw enrollmentError;
       }
 
-      console.log('Enrollment successful');
+      console.log('Enrollment successful, redirecting to course dashboard');
       toast({
-        title: "Enrollment Successful!",
+        title: "Enrollment Successful! 🎉",
         description: "Welcome to the course! You can now start learning.",
       });
 
+      // Clear stored enrollment data
       localStorage.removeItem(`enrollment_${courseId}`);
       
+      // Redirect to the course dashboard page
       navigate(`/dashboard/courses/${courseId}`);
     } catch (error) {
       console.error('Enrollment completion failed:', error);
@@ -303,6 +305,7 @@ const EnrollmentPage = () => {
       let currentUser: UserWithProfile | null = user;
       let retryCount = 0;
       
+      // Wait for user authentication if not already available
       while (!currentUser && retryCount < maxRetries) {
         console.log(`Waiting for authentication... attempt ${retryCount + 1}`);
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -345,7 +348,7 @@ const EnrollmentPage = () => {
 
   const handleNewUserAuth = async (enrollmentData: any, transactionId: string) => {
     try {
-      console.log('Handling new user authentication');
+      console.log('Handling new user authentication for enrollment');
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: enrollmentData.email,
@@ -361,6 +364,7 @@ const EnrollmentPage = () => {
 
       if (authError) {
         if (authError.message.includes('already registered')) {
+          console.log('User already exists, attempting sign in');
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: enrollmentData.email,
             password: enrollmentData.password,
@@ -369,11 +373,14 @@ const EnrollmentPage = () => {
           if (signInError) {
             throw signInError;
           }
+          
+          console.log('User signed in successfully, proceeding with enrollment');
         } else {
           throw authError;
         }
       }
 
+      // Wait a bit for auth state to update, then proceed with enrollment
       setTimeout(async () => {
         await verifyPaymentAndEnroll(transactionId);
       }, 2000);
@@ -552,30 +559,47 @@ const EnrollmentPage = () => {
     const transactionId = urlParams.get('transaction_id');
     
     if (paymentStatus === 'success' && transactionId) {
-      console.log('Payment success detected in URL');
+      console.log('Payment success detected in URL, transaction:', transactionId);
       
+      // Clean up URL immediately
       window.history.replaceState({}, document.title, window.location.pathname);
       
       const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
       
       if (user) {
-        console.log('User is logged in, proceeding with enrollment');
+        console.log('User is authenticated, proceeding with enrollment verification');
         verifyPaymentAndEnroll(transactionId);
       } else if (storedEnrollmentData) {
-        const enrollmentData = JSON.parse(storedEnrollmentData);
-        console.log('Found stored enrollment data for new user');
-        
-        if (enrollmentData.password) {
-          handleNewUserAuth(enrollmentData, transactionId);
-        } else {
-          console.log('No password in enrollment data, redirecting to login');
+        try {
+          const enrollmentData = JSON.parse(storedEnrollmentData);
+          console.log('Found stored enrollment data for new user, proceeding with auth');
+          
+          if (enrollmentData.password) {
+            handleNewUserAuth(enrollmentData, transactionId);
+          } else {
+            console.log('No password in enrollment data, redirecting to login');
+            toast({
+              title: "Authentication Required",
+              description: "Please log in to complete your enrollment after payment.",
+              variant: "destructive",
+            });
+            navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
+          }
+        } catch (error) {
+          console.error('Error parsing stored enrollment data:', error);
           navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
         }
       } else {
         console.log('No stored enrollment data, redirecting to login');
+        toast({
+          title: "Session Lost",
+          description: "Please log in to complete your enrollment after payment.",
+          variant: "destructive",
+        });
         navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
       }
     } else if (paymentStatus === 'cancelled') {
+      console.log('Payment was cancelled');
       toast({
         title: "Payment Cancelled",
         description: "Your payment was cancelled. You can try enrolling again.",
@@ -591,8 +615,9 @@ const EnrollmentPage = () => {
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
           <div className="space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <h1 className="text-2xl font-bold">Processing Payment...</h1>
+            <h1 className="text-2xl font-bold">Processing Your Enrollment...</h1>
             <p className="text-gray-600">Please wait while we verify your payment and complete your enrollment.</p>
+            <p className="text-sm text-gray-500">You will be redirected to your course dashboard shortly.</p>
           </div>
         </div>
       </Layout>
