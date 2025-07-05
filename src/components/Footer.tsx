@@ -10,7 +10,7 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center">
               <img src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" alt="Switch2Tech Academy" className="h-8 w-auto" />
-              <span className="ml-2 text-xl font-bold text-brand-dark">Switch2Tech Academy</span>
+              <span className="ml-2 text-xl font-bold text-brand-dark">Switch2Tech</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-md">
               Learn. Build. Transform Your Career. Switch2Tech Academy is your gateway to a successful career in technology through structured courses, mentorship, internship, and certification.
