@@ -301,38 +301,68 @@ const EnrollmentPage = () => {
       console.log('Verifying payment for transaction:', transactionId);
       setPaymentProcessing(true);
       
-      const maxRetries = 10;
-      let currentUser: UserWithProfile | null = user;
-      let retryCount = 0;
-      
-      // Wait for user authentication if not already available
-      while (!currentUser && retryCount < maxRetries) {
-        console.log(`Waiting for authentication... attempt ${retryCount + 1}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          currentUser = {
-            ...session.user,
-            role: 'student'
-          } as UserWithProfile;
-        }
-        retryCount++;
-      }
-
-      if (!currentUser) {
-        console.error('No authenticated user found after payment');
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to complete your enrollment.",
-          variant: "destructive",
-        });
-        navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
+      // Check if we already have a valid user session
+      if (user?.id) {
+        console.log('User already authenticated, proceeding with enrollment:', user.id);
+        await completeEnrollment(user.id);
         return;
       }
+      
+      // If no user, try to get current session
+      console.log('No user in context, checking current session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw sessionError;
+      }
+      
+      if (session?.user) {
+        console.log('Found valid session, proceeding with enrollment:', session.user.id);
+        await completeEnrollment(session.user.id);
+        return;
+      }
+      
+      // If still no user, check for stored enrollment data to attempt authentication
+      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
+      if (storedEnrollmentData) {
+        try {
+          const enrollmentData = JSON.parse(storedEnrollmentData);
+          console.log('Found stored enrollment data, attempting authentication');
+          
+          if (enrollmentData.password) {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: enrollmentData.email,
+              password: enrollmentData.password,
+            });
 
-      console.log('User authenticated, proceeding with enrollment:', currentUser.id);
-      await completeEnrollment(currentUser.id);
+            if (signInError) {
+              console.error('Auto sign-in failed:', signInError);
+              throw signInError;
+            }
+            
+            if (signInData.user) {
+              console.log('Auto sign-in successful, proceeding with enrollment');
+              // Wait a bit for auth context to update
+              setTimeout(async () => {
+                await completeEnrollment(signInData.user.id);
+              }, 1000);
+              return;
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing stored enrollment data:', parseError);
+        }
+      }
+      
+      // If all else fails, redirect to login
+      console.log('No authentication method available, redirecting to login');
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to complete your enrollment after payment.",
+        variant: "destructive",
+      });
+      navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
       
     } catch (error) {
       console.error('Payment verification failed:', error);
@@ -551,6 +581,7 @@ const EnrollmentPage = () => {
     };
   }, []);
 
+  // Enhanced payment success handling effect
   useEffect(() => {
     if (authLoading) return;
 
@@ -564,40 +595,8 @@ const EnrollmentPage = () => {
       // Clean up URL immediately
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
-      
-      if (user) {
-        console.log('User is authenticated, proceeding with enrollment verification');
-        verifyPaymentAndEnroll(transactionId);
-      } else if (storedEnrollmentData) {
-        try {
-          const enrollmentData = JSON.parse(storedEnrollmentData);
-          console.log('Found stored enrollment data for new user, proceeding with auth');
-          
-          if (enrollmentData.password) {
-            handleNewUserAuth(enrollmentData, transactionId);
-          } else {
-            console.log('No password in enrollment data, redirecting to login');
-            toast({
-              title: "Authentication Required",
-              description: "Please log in to complete your enrollment after payment.",
-              variant: "destructive",
-            });
-            navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
-          }
-        } catch (error) {
-          console.error('Error parsing stored enrollment data:', error);
-          navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
-        }
-      } else {
-        console.log('No stored enrollment data, redirecting to login');
-        toast({
-          title: "Session Lost",
-          description: "Please log in to complete your enrollment after payment.",
-          variant: "destructive",
-        });
-        navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
-      }
+      // Start payment verification immediately
+      verifyPaymentAndEnroll(transactionId);
     } else if (paymentStatus === 'cancelled') {
       console.log('Payment was cancelled');
       toast({
@@ -607,7 +606,7 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate, user, authLoading]);
+  }, [courseId, navigate, authLoading]);
 
   if (paymentProcessing) {
     return (
