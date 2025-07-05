@@ -48,7 +48,6 @@ import {
 import { COUNTRIES } from "@/utils/countries";
 import LiveCourseDetails from "@/components/course/LiveCourseDetails";
 
-// Enrollment form schema - updated to make fields optional for logged-in users
 const enrollmentSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
@@ -62,7 +61,6 @@ const enrollmentSchema = z.object({
 
 type EnrollmentFormData = z.infer<typeof enrollmentSchema>;
 
-// Currency configuration with USD as base
 const SUPPORTED_CURRENCIES = [
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
@@ -72,7 +70,6 @@ const SUPPORTED_CURRENCIES = [
   { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
 ];
 
-// Exchange rates with USD as base (1 USD = X in target currency)
 const EXCHANGE_RATES = {
   USD: 1,
   NGN: 1650,
@@ -82,7 +79,6 @@ const EXCHANGE_RATES = {
   AUD: 1.56,
 };
 
-// Utility functions moved outside component to prevent recreation
 const convertPrice = (priceInUSD: number, toCurrency: string): number => {
   const rate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES];
   return Math.round(priceInUSD * rate * 100) / 100;
@@ -113,8 +109,6 @@ const EnrollmentPage = () => {
   const [flutterwaveLoaded, setFlutterwaveLoaded] = useState(false);
   const [isNewUser, setIsNewUser] = useState(!user);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [authCheckComplete, setAuthCheckComplete] = useState(false);
-  const [formInitialized, setFormInitialized] = useState(false);
 
   const form = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
@@ -130,7 +124,6 @@ const EnrollmentPage = () => {
     },
   });
 
-  // Query to get Flutterwave configuration with better error handling
   const { data: flutterwaveConfig, isLoading: isLoadingPaymentConfig, error: paymentConfigError } = useQuery({
     queryKey: ["payment-gateway-config", "flutterwave"],
     queryFn: async () => {
@@ -164,7 +157,6 @@ const EnrollmentPage = () => {
     retry: 3,
   });
 
-  // Move the query hooks before any useMemo that depends on them
   const { data: course, isLoading } = useQuery({
     queryKey: ["course-enrollment", courseId],
     queryFn: async () => {
@@ -191,7 +183,6 @@ const EnrollmentPage = () => {
 
       if (error) throw error;
 
-      // Get enrollment count
       const { count: enrollmentCount } = await supabase
         .from("enrollments")
         .select("*", { count: 'exact', head: true })
@@ -205,7 +196,6 @@ const EnrollmentPage = () => {
     enabled: !!courseId,
   });
 
-  // Check if user is already enrolled
   const { data: enrollment } = useQuery({
     queryKey: ["enrollment-status", courseId, user?.id],
     queryFn: async () => {
@@ -227,7 +217,6 @@ const EnrollmentPage = () => {
   const getEffectivePrice = () => {
     if (!course) return 0;
     
-    // Use discounted price if it exists and is greater than 0
     if (course.discounted_price !== undefined && 
         course.discounted_price !== null && 
         course.discounted_price > 0) {
@@ -237,47 +226,19 @@ const EnrollmentPage = () => {
     return course.price || 0;
   };
 
-  // Watch currency selection to make displayPrice reactive
   const selectedCurrency = form.watch("currency");
   const basePriceUSD = getEffectivePrice();
   const isFree = basePriceUSD === 0;
   
-  // Calculate display price reactively based on selected currency
   const displayPrice = React.useMemo(() => {
     if (isFree) return 0;
     return selectedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, selectedCurrency);
   }, [basePriceUSD, selectedCurrency, isFree]);
 
-  // Payment verification functions with improved auth handling
-  const verifyPaymentAndEnroll = async (transactionId: string, enrollmentData?: any) => {
+  const completeEnrollment = async (userId: string) => {
     try {
-      console.log('Verifying payment for transaction:', transactionId);
+      console.log('Starting enrollment for user:', userId);
       
-      // Get current auth state
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user;
-      
-      if (!currentUser?.id) {
-        console.log('No authenticated user found, waiting...');
-        // Wait a bit more for auth to settle
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Check again
-        const { data: { session: newSession } } = await supabase.auth.getSession();
-        const retryUser = newSession?.user;
-        
-        if (!retryUser?.id) {
-          throw new Error('User authentication required after payment');
-        }
-        
-        console.log('User found after retry:', retryUser.id);
-      }
-
-      const userId = currentUser?.id || session?.user?.id;
-      
-      console.log('Processing enrollment for user:', userId);
-
-      // Check if already enrolled first
       const { data: existingEnrollment } = await supabase
         .from("enrollments")
         .select("id")
@@ -295,7 +256,6 @@ const EnrollmentPage = () => {
         return;
       }
 
-      // Create enrollment directly
       const { error: enrollmentError } = await supabase
         .from("enrollments")
         .insert({
@@ -303,7 +263,6 @@ const EnrollmentPage = () => {
           course_id: courseId,
           enrolled_at: new Date().toISOString(),
           progress: 0,
-          status: 'active'
         });
 
       if (enrollmentError) {
@@ -311,18 +270,17 @@ const EnrollmentPage = () => {
         throw enrollmentError;
       }
 
-      // Clean up stored data
-      localStorage.removeItem(`enrollment_${courseId}`);
-      
+      console.log('Enrollment successful');
       toast({
         title: "Enrollment Successful!",
         description: "Welcome to the course! You can now start learning.",
       });
 
+      localStorage.removeItem(`enrollment_${courseId}`);
+      
       navigate(`/dashboard/courses/${courseId}`);
     } catch (error) {
-      console.error('Payment verification failed:', error);
-      setPaymentProcessing(false);
+      console.error('Enrollment completion failed:', error);
       toast({
         title: "Enrollment Error",
         description: error instanceof Error ? error.message : "Failed to complete enrollment. Please contact support.",
@@ -331,11 +289,54 @@ const EnrollmentPage = () => {
     }
   };
 
-  const handleNewUserPaymentVerification = async (enrollmentData: any, transactionId: string) => {
+  const verifyPaymentAndEnroll = async (transactionId: string) => {
     try {
-      console.log('Handling new user payment verification');
+      console.log('Verifying payment for transaction:', transactionId);
+      setPaymentProcessing(true);
       
-      // Try to sign up/sign in the user
+      const maxRetries = 10;
+      let currentUser = user;
+      let retryCount = 0;
+      
+      while (!currentUser && retryCount < maxRetries) {
+        console.log(`Waiting for authentication... attempt ${retryCount + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        currentUser = session?.user || null;
+        retryCount++;
+      }
+
+      if (!currentUser) {
+        console.error('No authenticated user found after payment');
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to complete your enrollment.",
+          variant: "destructive",
+        });
+        navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
+        return;
+      }
+
+      console.log('User authenticated, proceeding with enrollment:', currentUser.id);
+      await completeEnrollment(currentUser.id);
+      
+    } catch (error) {
+      console.error('Payment verification failed:', error);
+      toast({
+        title: "Enrollment Error",
+        description: error instanceof Error ? error.message : "Failed to complete enrollment. Please contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
+
+  const handleNewUserAuth = async (enrollmentData: any, transactionId: string) => {
+    try {
+      console.log('Handling new user authentication');
+      
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: enrollmentData.email,
         password: enrollmentData.password,
@@ -349,7 +350,6 @@ const EnrollmentPage = () => {
       });
 
       if (authError) {
-        // If user already exists, try to sign in
         if (authError.message.includes('already registered')) {
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: enrollmentData.email,
@@ -364,10 +364,9 @@ const EnrollmentPage = () => {
         }
       }
 
-      // Wait longer for auth to settle, then verify payment
       setTimeout(async () => {
-        await verifyPaymentAndEnroll(transactionId, enrollmentData);
-      }, 4000);
+        await verifyPaymentAndEnroll(transactionId);
+      }, 2000);
 
     } catch (error) {
       console.error('New user authentication failed:', error);
@@ -380,7 +379,6 @@ const EnrollmentPage = () => {
     }
   };
 
-  // Form submission handler with improved validation
   const onSubmit = async (data: EnrollmentFormData) => {
     console.log('Form submitted with data:', data);
     
@@ -393,32 +391,11 @@ const EnrollmentPage = () => {
       return;
     }
 
-    // Validate required fields
-    if (!data.firstName.trim() || !data.lastName.trim() || !data.email.trim() || !data.motivation.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isNewUser && (!data.password || data.password.length < 6)) {
-      toast({
-        title: "Validation Error",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsEnrolling(true);
 
     try {
-      // Handle free course enrollment
       if (isFree) {
         if (isNewUser) {
-          // Create new user account first
           const { data: authData, error: authError } = await supabase.auth.signUp({
             email: data.email,
             password: data.password!,
@@ -433,7 +410,6 @@ const EnrollmentPage = () => {
 
           if (authError) {
             if (authError.message.includes('already registered')) {
-              // Try to sign in instead
               const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email: data.email,
                 password: data.password!,
@@ -447,52 +423,20 @@ const EnrollmentPage = () => {
             }
           }
 
-          // Wait for auth state to update
           setTimeout(() => {
             window.location.reload();
           }, 2000);
           return;
         }
 
-        // Enroll existing user in free course
-        const { error: enrollmentError } = await supabase
-          .from("enrollments")
-          .insert({
-            student_id: user!.id,
-            course_id: courseId,
-            enrolled_at: new Date().toISOString(),
-            progress: 0,
-            status: 'active'
-          });
-
-        if (enrollmentError) throw enrollmentError;
-
-        toast({
-          title: "Enrollment Successful!",
-          description: "Welcome to the course! You can now start learning.",
-        });
-
-        navigate(`/dashboard/courses/${courseId}`);
+        await completeEnrollment(user!.id);
         return;
       }
 
-      // Handle paid course - validate payment gateway configuration first
-      if (!flutterwaveConfig) {
-        console.error('No Flutterwave config available');
+      if (!flutterwaveConfig?.public_key || !flutterwaveConfig.is_active) {
         throw new Error('Payment system not configured. Please contact support.');
       }
 
-      if (!flutterwaveConfig.public_key) {
-        console.error('Missing Flutterwave public key');
-        throw new Error('Payment gateway not properly configured. Please contact support.');
-      }
-
-      if (!flutterwaveConfig.is_active) {
-        console.error('Flutterwave gateway is not active');
-        throw new Error('Payment system is currently disabled. Please contact support.');
-      }
-
-      // Store enrollment data and proceed to payment
       localStorage.setItem(`enrollment_${courseId}`, JSON.stringify(data));
 
       if (!flutterwaveLoaded || !window.FlutterwaveCheckout) {
@@ -501,13 +445,6 @@ const EnrollmentPage = () => {
 
       setIsProcessingPayment(true);
 
-      console.log('Initializing Flutterwave with config:', {
-        public_key: flutterwaveConfig.public_key?.substring(0, 10) + '...',
-        amount: displayPrice,
-        currency: selectedCurrency
-      });
-
-      // Configure Flutterwave payment with dynamic public key
       const config = {
         public_key: flutterwaveConfig.public_key,
         tx_ref: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -542,9 +479,6 @@ const EnrollmentPage = () => {
 
     } catch (error) {
       console.error('Enrollment error:', error);
-      setIsEnrolling(false);
-      setIsProcessingPayment(false);
-      
       toast({
         title: "Enrollment Error",
         description: error instanceof Error ? error.message : "An error occurred during enrollment. Please try again.",
@@ -555,9 +489,8 @@ const EnrollmentPage = () => {
     }
   };
 
-  // Pre-fill form with user profile data when available - only once
   useEffect(() => {
-    if (profileData && user && !formInitialized) {
+    if (profileData && user) {
       console.log("Pre-filling form with profile data:", profileData);
       form.reset({
         firstName: profileData.first_name || "",
@@ -566,18 +499,15 @@ const EnrollmentPage = () => {
         phone: profileData.phone || "",
         country: profileData.country || "",
         currency: "USD",
-        motivation: "", // Keep this empty to not override user input
+        motivation: "",
       });
-      setFormInitialized(true);
     }
-  }, [profileData, user, form, formInitialized]);
+  }, [profileData, user, form]);
 
-  // Update isNewUser state when auth state changes
   useEffect(() => {
     setIsNewUser(!user);
   }, [user]);
 
-  // Load Flutterwave script
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.flutterwave.com/v3.js';
@@ -597,77 +527,43 @@ const EnrollmentPage = () => {
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
     };
   }, []);
 
-  // Wait for auth to load and mark check as complete
   useEffect(() => {
-    if (!authLoading) {
-      setAuthCheckComplete(true);
-      console.log('Auth check complete, user:', user?.id);
-    }
-  }, [authLoading, user]);
-
-  // Check for payment status in URL on component mount - IMPROVED VERSION
-  useEffect(() => {
-    if (!authCheckComplete) {
-      console.log('Auth check not complete yet, waiting...');
-      return;
-    }
+    if (authLoading) return;
 
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
     const transactionId = urlParams.get('transaction_id');
     
-    if (paymentStatus === 'success') {
-      console.log('Payment success detected in URL, current user:', user?.id);
-      setPaymentProcessing(true);
+    if (paymentStatus === 'success' && transactionId) {
+      console.log('Payment success detected in URL');
       
-      // Get enrollment data from localStorage
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
       const storedEnrollmentData = localStorage.getItem(`enrollment_${courseId}`);
       
-      // If user is already logged in, proceed with enrollment immediately
-      if (user?.id) {
+      if (user) {
         console.log('User is logged in, proceeding with enrollment');
-        verifyPaymentAndEnroll(transactionId || 'redirect_success');
-        // Clean up URL immediately
-        window.history.replaceState({}, document.title, window.location.pathname);
-        return;
-      }
-      
-      // Handle new user case only if no user is logged in
-      if (storedEnrollmentData) {
+        verifyPaymentAndEnroll(transactionId);
+      } else if (storedEnrollmentData) {
         const enrollmentData = JSON.parse(storedEnrollmentData);
-        console.log('Found stored enrollment data for new user:', enrollmentData);
+        console.log('Found stored enrollment data for new user');
         
         if (enrollmentData.password) {
-          // Try to register/login the new user
-          console.log('No user found but password in enrollment data, attempting authentication');
-          handleNewUserPaymentVerification(enrollmentData, transactionId || 'redirect_success');
+          handleNewUserAuth(enrollmentData, transactionId);
         } else {
-          console.log('No password in enrollment data');
-          toast({
-            title: "Authentication Error",
-            description: "Please log in to complete your enrollment.",
-            variant: "destructive",
-          });
-          localStorage.setItem('redirect_after_login', `/enroll/${courseId}?payment=success&transaction_id=${transactionId}`);
-          navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
+          console.log('No password in enrollment data, redirecting to login');
+          navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
         }
       } else {
-        // No stored data and no user - redirect to login
-        console.log('No stored enrollment data and no user found');
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to complete your enrollment.",
-          variant: "destructive",
-        });
-        navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}?payment=success&transaction_id=${transactionId}`)}`);
+        console.log('No stored enrollment data, redirecting to login');
+        navigate(`/login?redirect=${encodeURIComponent(`/enroll/${courseId}`)}`);
       }
-      
-      // Clean up URL immediately
-      window.history.replaceState({}, document.title, window.location.pathname);
     } else if (paymentStatus === 'cancelled') {
       toast({
         title: "Payment Cancelled",
@@ -676,9 +572,8 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate, user, authCheckComplete]);
+  }, [courseId, navigate, user, authLoading]);
 
-  // Show processing message if payment is being verified
   if (paymentProcessing) {
     return (
       <Layout>
@@ -693,7 +588,7 @@ const EnrollmentPage = () => {
     );
   }
 
-  if (isLoading || !authCheckComplete || isLoadingPaymentConfig) {
+  if (isLoading || authLoading || isLoadingPaymentConfig) {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -721,7 +616,6 @@ const EnrollmentPage = () => {
     );
   }
 
-  // Show error if payment configuration is missing for paid courses
   if (!isFree && paymentConfigError) {
     return (
       <Layout>
@@ -740,7 +634,6 @@ const EnrollmentPage = () => {
     ? `${course.user_profiles.first_name || ""} ${course.user_profiles.last_name || ""}`.trim()
     : "Instructor";
 
-  // Check if there's a discount to show in the course summary
   const hasDiscount = course.discounted_price !== undefined && 
                      course.discounted_price !== null &&
                      course.discounted_price > 0 &&
@@ -749,7 +642,6 @@ const EnrollmentPage = () => {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back Button */}
         <Button 
           variant="ghost" 
           onClick={() => navigate(`/courses/${courseId}`)}
@@ -759,7 +651,6 @@ const EnrollmentPage = () => {
           Back to Course Details
         </Button>
 
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-4">
             {enrollment ? "You're Already Enrolled!" : "Enroll in Course"}
@@ -773,7 +664,6 @@ const EnrollmentPage = () => {
         </div>
 
         {enrollment ? (
-          // Already enrolled view
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
@@ -797,14 +687,12 @@ const EnrollmentPage = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Show live course details if it's a live course */}
             {course.mode === 'virtual-live' && (
               <div className="lg:col-span-3 mb-6">
                 <LiveCourseDetails course={course} />
               </div>
             )}
 
-            {/* Enrollment Form */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
@@ -816,271 +704,216 @@ const EnrollmentPage = () => {
                 <CardContent>
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      {/* Pre-filled fields for logged-in users */}
-                      {user && (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="firstName"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>First Name</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter your first name" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="lastName"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Last Name</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter your last name" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
-                            name="email"
+                            name="firstName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <Mail className="h-4 w-4" />
-                                  Email Address
-                                </FormLabel>
+                                <FormLabel>First Name</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    placeholder="Enter your email address" 
-                                    {...field} 
-                                    disabled={!!user}
-                                  />
+                                  <Input placeholder="Enter your first name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="lastName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Last Name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Enter your last name" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                         </div>
-                      )}
 
-                      {/* New user fields */}
-                      {isNewUser && (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="firstName"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>First Name</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter your first name" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="lastName"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Last Name</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter your last name" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <Mail className="h-4 w-4" />
-                                  Email Address
-                                </FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter your email address" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="password" 
-                                    placeholder="Enter a secure password (min 6 characters)" 
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="phone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <Phone className="h-4 w-4" />
-                                  Phone Number
-                                </FormLabel>
-                                <FormControl>
-                                  <PhoneInput
-                                    value={field.value || ""}
-                                    onChange={field.onChange}
-                                    placeholder="Enter phone number"
-                                    defaultCountry="US"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="country"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4" />
-                                  Country
-                                </FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ""}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select your country" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent className="max-h-60">
-                                    {COUNTRIES.map((country) => (
-                                      <SelectItem key={country.code} value={country.name}>
-                                        <div className="flex items-center gap-2">
-                                          <span>{country.flag}</span>
-                                          <span>{country.name}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
-
-                      <FormField
-                        control={form.control}
-                        name="currency"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Preferred Currency</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <Mail className="h-4 w-4" />
+                                Email Address
+                              </FormLabel>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select currency" />
-                                </SelectTrigger>
+                                <Input 
+                                  placeholder="Enter your email address" 
+                                  {...field} 
+                                  disabled={!!user}
+                                />
                               </FormControl>
-                              <SelectContent>
-                                {SUPPORTED_CURRENCIES.map((currency) => (
-                                  <SelectItem key={currency.code} value={currency.code}>
-                                    {currency.symbol} {currency.name} ({currency.code})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        control={form.control}
-                        name="motivation"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Why do you want to take this course?</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Tell us what motivates you to learn and how this course fits your goals..."
-                                className="min-h-[80px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        size="lg"
-                        disabled={
-                          isEnrolling || 
-                          isProcessingPayment || 
-                          !flutterwaveLoaded || 
-                          (!isFree && (!flutterwaveConfig || !flutterwaveConfig.is_active)) ||
-                          !form.watch("firstName")?.trim() ||
-                          !form.watch("lastName")?.trim() ||
-                          !form.watch("email")?.trim() ||
-                          !form.watch("motivation")?.trim() ||
-                          (isNewUser && (!form.watch("password") || form.watch("password").length < 6))
-                        }
-                      >
-                        {isProcessingPayment ? (
-                          "Processing Payment..."
-                        ) : isEnrolling ? (
-                          "Processing..."
-                        ) : !flutterwaveLoaded && !isFree ? (
-                          "Loading Payment System..."
-                        ) : !flutterwaveConfig && !isFree ? (
-                          "Payment System Unavailable"
-                        ) : !isFree && !flutterwaveConfig?.is_active ? (
-                          "Payment System Disabled"
-                        ) : (
+                        {isNewUser && (
                           <>
-                            {isFree ? (
-                              isNewUser ? "Create Account & Enroll for Free" : "Enroll for Free"
-                            ) : (
-                              <>
-                                <CreditCard className="h-4 w-4 mr-2" />
-                                {isNewUser ? "Create Account & Pay" : "Enroll & Pay"} {formatPrice(displayPrice, selectedCurrency)}
-                              </>
-                            )}
+                            <FormField
+                              control={form.control}
+                              name="password"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Password</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="password" 
+                                      placeholder="Enter a secure password (min 6 characters)" 
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="phone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="flex items-center gap-2">
+                                    <Phone className="h-4 w-4" />
+                                    Phone Number
+                                  </FormLabel>
+                                  <FormControl>
+                                    <PhoneInput
+                                      value={field.value || ""}
+                                      onChange={field.onChange}
+                                      placeholder="Enter phone number"
+                                      defaultCountry="US"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="country"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    Country
+                                  </FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select your country" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="max-h-60">
+                                      {COUNTRIES.map((country) => (
+                                        <SelectItem key={country.code} value={country.name}>
+                                          <div className="flex items-center gap-2">
+                                            <span>{country.flag}</span>
+                                            <span>{country.name}</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </>
                         )}
-                      </Button>
 
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500">
-                          By enrolling, you agree to our terms of service and privacy policy
-                          {isNewUser && ". Creating an account will give you access to your course progress and materials."}
-                        </p>
+                        <FormField
+                          control={form.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Preferred Currency</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select currency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {SUPPORTED_CURRENCIES.map((currency) => (
+                                    <SelectItem key={currency.code} value={currency.code}>
+                                      {currency.symbol} {currency.name} ({currency.code})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="motivation"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Why do you want to take this course?</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Tell us what motivates you to learn and how this course fits your goals..."
+                                  className="min-h-[80px]"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <Button 
+                          type="submit" 
+                          className="w-full" 
+                          size="lg"
+                          disabled={
+                            isEnrolling || 
+                            isProcessingPayment || 
+                            (!isFree && !flutterwaveLoaded) ||
+                            (!isFree && (!flutterwaveConfig || !flutterwaveConfig.is_active))
+                          }
+                        >
+                          {isProcessingPayment ? (
+                            "Processing Payment..."
+                          ) : isEnrolling ? (
+                            "Processing..."
+                          ) : !flutterwaveLoaded && !isFree ? (
+                            "Loading Payment System..."
+                          ) : !flutterwaveConfig && !isFree ? (
+                            "Payment System Unavailable"
+                          ) : !isFree && !flutterwaveConfig?.is_active ? (
+                            "Payment System Disabled"
+                          ) : (
+                            <>
+                              {isFree ? (
+                                isNewUser ? "Create Account & Enroll for Free" : "Enroll for Free"
+                              ) : (
+                                <>
+                                  <CreditCard className="h-4 w-4 mr-2" />
+                                  {isNewUser ? "Create Account & Pay" : "Enroll & Pay"} {formatPrice(displayPrice, selectedCurrency)}
+                                </>
+                              )}
+                            </>
+                          )}
+                        </Button>
+
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500">
+                            By enrolling, you agree to our terms of service and privacy policy
+                            {isNewUser && ". Creating an account will give you access to your course progress and materials."}
+                          </p>
+                        </div>
                       </div>
                     </form>
                   </Form>
@@ -1088,7 +921,6 @@ const EnrollmentPage = () => {
               </Card>
             </div>
 
-            {/* Course Summary */}
             <div className="lg:col-span-1">
               <Card className="sticky top-8">
                 <CardContent className="p-6">
