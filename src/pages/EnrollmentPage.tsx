@@ -57,7 +57,7 @@ const enrollmentSchema = z.object({
   phone: z.string().min(10, "Please enter a valid phone number").optional(),
   country: z.string().min(2, "Please select your country").optional(),
   currency: z.string().min(3, "Please select your currency"),
-  motivation: z.string().min(20, "Please tell us why you want to take this course (minimum 20 characters)"),
+  motivation: z.string().optional(),
 });
 
 type EnrollmentFormData = z.infer<typeof enrollmentSchema>;
@@ -867,7 +867,7 @@ const EnrollmentPage = () => {
                           name="motivation"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Why do you want to take this course?</FormLabel>
+                              <FormLabel>Why do you want to take this course? (Optional)</FormLabel>
                               <FormControl>
                                 <Textarea
                                   placeholder="Tell us what motivates you to learn and how this course fits your goals..."
