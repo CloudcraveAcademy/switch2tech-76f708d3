@@ -305,10 +305,9 @@ const EnrollmentPage = () => {
         
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          // Create a UserWithProfile object from the session user
           currentUser = {
             ...session.user,
-            role: 'student' // Default role for new users
+            role: 'student'
           } as UserWithProfile;
         }
         retryCount++;
