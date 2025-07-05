@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { COUNTRIES } from "@/utils/countries";
 import LiveCourseDetails from "@/components/course/LiveCourseDetails";
+import type { UserWithProfile } from "@/types/auth";
 
 const enrollmentSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -295,7 +296,7 @@ const EnrollmentPage = () => {
       setPaymentProcessing(true);
       
       const maxRetries = 10;
-      let currentUser = user;
+      let currentUser: UserWithProfile | null = user;
       let retryCount = 0;
       
       while (!currentUser && retryCount < maxRetries) {
@@ -303,7 +304,13 @@ const EnrollmentPage = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const { data: { session } } = await supabase.auth.getSession();
-        currentUser = session?.user || null;
+        if (session?.user) {
+          // Create a UserWithProfile object from the session user
+          currentUser = {
+            ...session.user,
+            role: 'student' // Default role for new users
+          } as UserWithProfile;
+        }
         retryCount++;
       }
 
