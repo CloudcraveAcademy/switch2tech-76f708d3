@@ -10,10 +10,10 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center">
               <img src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" alt="Switch2Tech Academy" className="h-8 w-auto" />
-              <span className="ml-2 text-xl font-bold text-brand-dark">Switch2Tech  </span>  - by CloudCrave
+              <span className="ml-2 text-xl font-bold text-brand-dark">Switch2Tech </span> - by CloudCrave
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-md">
-              Learn. Build. Transform Your Career. Switch2Tech is your gateway to a successful career in technology through structured courses, mentorship, internship, and certification.
+              Learn. Build. Transform Your Career. Switch2Tech Academy is your gateway to a successful career in technology through structured courses, mentorship, internship, and certification.
             </p>
           </div>
           
@@ -53,7 +53,7 @@ const Footer = () => {
         
         <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} Switch2Tech Academy. All rights reserved.
+            &copy; {currentYear} Switch2Tech - by CloudCrave Solutions LTD. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <a href="#" className="text-gray-400 hover:text-brand-600">
