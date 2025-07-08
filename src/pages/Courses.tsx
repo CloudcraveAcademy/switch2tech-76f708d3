@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
@@ -39,6 +38,22 @@ interface Course {
   tags: string[];
   duration: string;
 }
+
+// Helper function to safely cast level
+const parseLevel = (level: string | null): "beginner" | "intermediate" | "advanced" => {
+  if (level === "intermediate" || level === "advanced") {
+    return level;
+  }
+  return "beginner"; // default fallback
+};
+
+// Helper function to safely cast mode
+const parseMode = (mode: string | null): "self-paced" | "virtual" | "live" => {
+  if (mode === "virtual" || mode === "live") {
+    return mode;
+  }
+  return "self-paced"; // default fallback
+};
 
 const PAGE_SIZE = 9;
 
@@ -86,10 +101,10 @@ const Courses = () => {
         description: course.description,
         price: Number(course.price) || 0,
         discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-        level: course.level || "beginner",
+        level: parseLevel(course.level),
         rating: 4.5,
         reviews: 42,
-        mode: course.mode || "self-paced",
+        mode: parseMode(course.mode),
         enrolledStudents: 156,
         lessons: 8,
         instructor: {
