@@ -39,13 +39,19 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
           try {
             const enrichedUser = await enrichUserWithProfile(currentSession.user);
             if (mounted) {
-              console.log("User profile enriched successfully");
+              console.log("User profile enriched successfully, role:", enrichedUser.role);
               setUser(enrichedUser);
             }
           } catch (profileError) {
             console.error("Profile enrichment failed, using basic user:", profileError);
             if (mounted) {
-              setUser(currentSession.user);
+              // Create a basic user object with fallback role
+              const basicUser = {
+                ...currentSession.user,
+                role: 'student', // Default role
+                name: currentSession.user.user_metadata?.first_name || 'User'
+              };
+              setUser(basicUser);
             }
           }
         } else {
@@ -83,7 +89,13 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
             console.log("User authenticated and profile loaded:", enrichedUser.role);
           } catch (error) {
             console.error("Profile enrichment failed in auth listener:", error);
-            setUser(newSession.user);
+            // Fallback to basic user
+            const basicUser = {
+              ...newSession.user,
+              role: 'student',
+              name: newSession.user.user_metadata?.first_name || 'User'
+            };
+            setUser(basicUser);
           }
         }
         

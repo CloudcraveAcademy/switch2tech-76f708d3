@@ -53,6 +53,19 @@ const FeaturedCoursesSection = () => {
       console.log("Fetching featured courses...");
       
       try {
+        // Test connection first
+        const { data: connectionTest, error: connectionError } = await supabase
+          .from("courses")
+          .select("count")
+          .limit(1);
+
+        if (connectionError) {
+          console.error("Connection test failed:", connectionError);
+          throw new Error(`Database connection failed: ${connectionError.message}`);
+        }
+
+        console.log("Database connection successful");
+
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select(`
@@ -68,7 +81,7 @@ const FeaturedCoursesSection = () => {
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw coursesError;
+          throw new Error(`Failed to fetch courses: ${coursesError.message}`);
         }
 
         console.log("Fetched courses data:", coursesData?.length || 0, "courses");
@@ -111,7 +124,8 @@ const FeaturedCoursesSection = () => {
         throw error;
       }
     },
-    retry: 1,
+    retry: 2,
+    retryDelay: 1000,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -130,7 +144,10 @@ const FeaturedCoursesSection = () => {
             </p>
           </div>
           <div className="flex justify-center py-12">
-            <Loader className="animate-spin h-10 w-10 text-brand-500" />
+            <div className="text-center">
+              <Loader className="animate-spin h-10 w-10 text-brand-500 mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading courses...</p>
+            </div>
           </div>
         </div>
       </section>
@@ -150,6 +167,9 @@ const FeaturedCoursesSection = () => {
           </div>
           <div className="text-center text-destructive py-12">
             <p className="mb-4">Unable to load courses at the moment.</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Error: {error.message || "Unknown error occurred"}
+            </p>
             <Button variant="outline" onClick={() => window.location.reload()}>
               Try Again
             </Button>

@@ -13,20 +13,36 @@ const Dashboard = () => {
   const location = useLocation();
   const { user, loading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   
   // Handle authentication and redirection
   useEffect(() => {
-    if (!loading && !user) {
-      console.log("User not authenticated, redirecting to login");
-      navigate("/login", { 
-        replace: true,
-        state: { from: location.pathname } 
-      });
-    }
+    const handleAuth = async () => {
+      // Wait for auth to finish loading
+      if (loading) {
+        return;
+      }
+
+      // If no user after loading, redirect to login
+      if (!user) {
+        console.log("User not authenticated, redirecting to login");
+        setRedirecting(true);
+        const currentPath = location.pathname;
+        navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { 
+          replace: true 
+        });
+        return;
+      }
+
+      // User is authenticated
+      console.log("User authenticated in dashboard:", user.role);
+    };
+
+    handleAuth();
   }, [user, loading, navigate, location.pathname]);
 
   // Show loading while auth is being determined
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="space-y-4 w-64">

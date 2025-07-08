@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -10,7 +11,7 @@ import { setupDemoAccounts } from "@/utils/demoAccounts";
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, validateSession } = useAuth();
+  const { user, loading, validateSession } = useAuth();
   const {
     email,
     setEmail,
@@ -21,7 +22,6 @@ const Login = () => {
     loginInProgress,
     errors,
     authError,
-    loading,
     showForgotPassword,
     setShowForgotPassword,
     forgotPasswordEmail,
@@ -38,29 +38,66 @@ const Login = () => {
     const checkAuthAndRedirect = async () => {
       console.log("Login page - checking auth state, redirect path:", redirectPath);
       
-      // First check if we already have a user
-      if (user) {
-        console.log("User is already authenticated, redirecting to:", redirectPath);
-        navigate(redirectPath);
+      // Don't redirect if we're still loading
+      if (loading) {
+        console.log("Still loading auth state...");
         return;
       }
       
-      // If no user but we might have a session, validate it
-      const isValid = await validateSession();
+      // If we have a user, redirect immediately
+      if (user) {
+        console.log("User is already authenticated, redirecting to:", redirectPath);
+        navigate(redirectPath, { replace: true });
+        return;
+      }
       
-      if (isValid) {
-        console.log("Valid session found, redirecting to:", redirectPath);
-        navigate(redirectPath);
+      // Double-check session validation
+      try {
+        const isValid = await validateSession();
+        if (isValid) {
+          console.log("Valid session found, redirecting to:", redirectPath);
+          navigate(redirectPath, { replace: true });
+        }
+      } catch (error) {
+        console.error("Session validation error:", error);
       }
     };
     
     checkAuthAndRedirect();
-  }, [user, navigate, validateSession, redirectPath]);
+  }, [user, loading, navigate, validateSession, redirectPath]);
 
   // Set up demo accounts when page loads
   useEffect(() => {
     setupDemoAccounts();
   }, []);
+
+  // Don't render anything if we're redirecting
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto px-4 py-12">
+          <div className="text-center">
+            <p className="text-lg mb-2">Loading...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // If user is authenticated, show redirecting message
+  if (user) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto px-4 py-12">
+          <div className="text-center">
+            <p className="text-lg mb-2">Redirecting to dashboard...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
