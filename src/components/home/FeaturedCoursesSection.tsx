@@ -36,94 +36,80 @@ const FeaturedCoursesSection = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchCourses = async () => {
       try {
-        console.log("=== STARTING COURSE FETCH ===");
-        setLoading(true);
-        setError(null);
-
-        // Test basic connection first
-        console.log("Testing Supabase connection...");
-        const { data: testData, error: testError } = await supabase
-          .from("courses")
-          .select("count")
-          .limit(1);
-
-        if (testError) {
-          console.error("Supabase connection test failed:", testError);
-          throw new Error(`Database connection failed: ${testError.message}`);
-        }
-
-        console.log("Supabase connection test passed");
-
-        // Simple query for courses
-        console.log("Fetching courses...");
+        console.log("Fetching courses from database...");
+        
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
-          .order("created_at", { ascending: false })
           .limit(6);
 
-        console.log("Courses query result:", { coursesData, coursesError });
+        if (!isMounted) return;
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw new Error(`Failed to fetch courses: ${coursesError.message}`);
+          setError("Unable to load courses");
+          setCourses([]);
+          setLoading(false);
+          return;
         }
 
-        if (!coursesData) {
-          console.log("No courses data received - setting empty array");
+        if (!coursesData || coursesData.length === 0) {
+          console.log("No courses found");
           setCourses([]);
+          setLoading(false);
           return;
         }
 
         console.log("Processing", coursesData.length, "courses");
 
-        // Transform courses
-        const transformedCourses: Course[] = coursesData.map((course: any) => {
-          console.log("Processing course:", course.id, course.title);
-          return {
-            id: course.id,
-            title: course.title || "Untitled Course",
-            description: course.description || "No description available",
-            price: Number(course.price) || 0,
-            discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-            rating: 4.5,
-            reviews: 120,
-            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-            enrolledStudents: 150,
-            lessons: 12,
-            instructor: {
-              name: "Expert Instructor",
-              avatar: "/placeholder.svg"
-            },
-            category: "Technology",
-            image: course.image_url || "/placeholder.svg",
-            featured: true,
-            tags: [],
-            duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
-          };
-        });
+        const transformedCourses: Course[] = coursesData.map((course: any) => ({
+          id: course.id,
+          title: course.title || "Untitled Course",
+          description: course.description || "No description available",
+          price: Number(course.price) || 0,
+          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+          rating: 4.5,
+          reviews: 120,
+          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+          enrolledStudents: 150,
+          lessons: 12,
+          instructor: {
+            name: "Expert Instructor",
+            avatar: "/placeholder.svg"
+          },
+          category: "Technology",
+          image: course.image_url || "/placeholder.svg",
+          featured: true,
+          tags: [],
+          duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
+        }));
 
-        console.log("Successfully transformed", transformedCourses.length, "courses");
+        console.log("Successfully processed", transformedCourses.length, "courses");
         setCourses(transformedCourses);
+        setLoading(false);
         
       } catch (error: any) {
-        console.error("=== COURSE FETCH ERROR ===", error);
-        setError(error.message || "Failed to load courses");
-        setCourses([]);
-      } finally {
-        console.log("=== COURSE FETCH COMPLETED ===");
-        setLoading(false);
+        console.error("Course fetch error:", error);
+        if (isMounted) {
+          setError("Failed to load courses");
+          setCourses([]);
+          setLoading(false);
+        }
       }
     };
 
     fetchCourses();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
-  console.log("Component render - loading:", loading, "courses:", courses.length, "error:", error);
 
   if (loading) {
     return (
