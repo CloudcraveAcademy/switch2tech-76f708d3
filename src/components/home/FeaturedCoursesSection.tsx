@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -38,14 +37,40 @@ const FeaturedCoursesSection = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        console.log("Starting to fetch courses and related data...");
+        console.log("Fetching featured courses...");
         setLoading(true);
         setError(null);
 
-        // Fetch courses with basic info
+        // Test database connection first
+        const { data: testData, error: testError } = await supabase
+          .from("courses")
+          .select("count")
+          .limit(1);
+
+        if (testError) {
+          console.error("Database connection test failed:", testError);
+          throw new Error("Unable to connect to database");
+        }
+
+        console.log("Database connection successful");
+
+        // Fetch courses
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
-          .select("*")
+          .select(`
+            id,
+            title,
+            description,
+            price,
+            discounted_price,
+            level,
+            mode,
+            duration_hours,
+            image_url,
+            instructor_id,
+            category,
+            is_published
+          `)
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(6);
@@ -55,7 +80,7 @@ const FeaturedCoursesSection = () => {
           throw coursesError;
         }
 
-        console.log("Raw courses data:", coursesData);
+        console.log("Courses fetched:", coursesData?.length || 0);
 
         if (!coursesData || coursesData.length === 0) {
           console.log("No courses found");
@@ -63,61 +88,53 @@ const FeaturedCoursesSection = () => {
           return;
         }
 
-        // Fetch categories
-        const { data: categoriesData } = await supabase
-          .from("course_categories")
-          .select("*");
+        // Fetch categories and instructors separately to avoid complex joins
+        const [categoriesResponse, instructorsResponse] = await Promise.all([
+          supabase.from("course_categories").select("id, name"),
+          supabase.from("user_profiles").select("id, first_name, last_name, avatar_url")
+        ]);
 
-        const categoryMap = categoriesData?.reduce((acc, cat) => {
-          acc[cat.id] = cat.name;
-          return acc;
-        }, {} as Record<string, string>) || {};
+        const categories = categoriesResponse.data || [];
+        const instructors = instructorsResponse.data || [];
 
-        // Fetch all instructors for these courses
-        const instructorIds = [...new Set(coursesData.map(course => course.instructor_id))];
-        const { data: instructorsData } = await supabase
-          .from("user_profiles")
-          .select("id, first_name, last_name, avatar_url")
-          .in("id", instructorIds);
-
-        const instructorMap = instructorsData?.reduce((acc, instructor) => {
-          acc[instructor.id] = {
-            id: instructor.id,
-            name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || "Instructor",
-            avatar: instructor.avatar_url || "/placeholder.svg"
-          };
-          return acc;
-        }, {} as Record<string, any>) || {};
+        console.log("Categories fetched:", categories.length);
+        console.log("Instructors fetched:", instructors.length);
 
         // Transform courses data
-        const transformedCourses: Course[] = coursesData.map(course => ({
-          id: course.id,
-          title: course.title || "Untitled Course",
-          description: course.description || "",
-          price: Number(course.price) || 0,
-          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
-          reviews: Math.floor(Math.random() * 100) + 20, // 20-120 reviews
-          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: Math.floor(Math.random() * 200) + 50, // 50-250 students
-          lessons: Math.floor(Math.random() * 20) + 5, // 5-25 lessons
-          instructor: instructorMap[course.instructor_id] || {
-            name: "Instructor",
-            avatar: "/placeholder.svg"
-          },
-          category: categoryMap[course.category] || "General",
-          image: course.image_url || "/placeholder.svg",
-          featured: true,
-          tags: [],
-          duration: course.duration_hours ? String(course.duration_hours) : "10",
-        }));
+        const transformedCourses: Course[] = coursesData.map(course => {
+          const category = categories.find(cat => cat.id === course.category);
+          const instructor = instructors.find(inst => inst.id === course.instructor_id);
 
-        console.log("Transformed courses:", transformedCourses);
+          return {
+            id: course.id,
+            title: course.title || "Untitled Course",
+            description: course.description || "",
+            price: Number(course.price) || 0,
+            discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+            rating: Math.floor(Math.random() * 2) + 4,
+            reviews: Math.floor(Math.random() * 100) + 20,
+            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+            enrolledStudents: Math.floor(Math.random() * 200) + 50,
+            lessons: Math.floor(Math.random() * 20) + 5,
+            instructor: {
+              id: instructor?.id,
+              name: instructor ? `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() : "Instructor",
+              avatar: instructor?.avatar_url || "/placeholder.svg"
+            },
+            category: category?.name || "General",
+            image: course.image_url || "/placeholder.svg",
+            featured: true,
+            tags: [],
+            duration: course.duration_hours ? String(course.duration_hours) : "10",
+          };
+        });
+
+        console.log("Courses transformed successfully:", transformedCourses.length);
         setCourses(transformedCourses);
       } catch (error: any) {
         console.error("Error in fetchCourses:", error);
-        setError("Failed to load courses. Please try again later.");
+        setError(error.message || "Failed to load courses. Please try again later.");
       } finally {
         setLoading(false);
       }
