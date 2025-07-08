@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -10,7 +11,7 @@ import { setupDemoAccounts } from "@/utils/demoAccounts";
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, validateSession } = useAuth();
+  const { user, loading } = useAuth();
   const {
     email,
     setEmail,
@@ -21,7 +22,6 @@ const Login = () => {
     loginInProgress,
     errors,
     authError,
-    loading,
     showForgotPassword,
     setShowForgotPassword,
     forgotPasswordEmail,
@@ -29,45 +29,29 @@ const Login = () => {
     handleSubmit,
   } = useLoginForm();
 
-  // Extract redirect path from URL params
-  const searchParams = new URLSearchParams(location.search);
-  const redirectPath = searchParams.get('redirect') || "/dashboard";
-
-  // Check if user is already logged in and redirect
-  useEffect(() => {
-    const checkAuthAndRedirect = async () => {
-      console.log("Login page - checking auth state, redirect path:", redirectPath);
-      
-      // First check if we already have a user
-      if (user) {
-        console.log("User is already authenticated, redirecting to:", redirectPath);
-        navigate(redirectPath);
-        return;
-      }
-      
-      // If no user but we might have a session, validate it
-      const isValid = await validateSession();
-      
-      if (isValid) {
-        console.log("Valid session found, redirecting to:", redirectPath);
-        navigate(redirectPath);
-      }
-    };
-    
-    checkAuthAndRedirect();
-  }, [user, navigate, validateSession, redirectPath]);
-
   // Set up demo accounts when page loads
   useEffect(() => {
     setupDemoAccounts();
   }, []);
 
-  // Update the login form's handleSubmit to redirect after successful login
-  const handleLogin = async (e: React.FormEvent) => {
-    const result = await handleSubmit(e);
-    // After successful login, the auth state change will trigger the redirect
-    // No need to manually redirect here as the useEffect above handles it
-  };
+  // Simple redirect logic - only redirect if user is authenticated and not loading
+  useEffect(() => {
+    if (user && !loading) {
+      console.log("Login: User authenticated, redirecting to dashboard");
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
+
+  // Don't render anything while loading
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto px-4 py-12">
+          <div className="text-center">Loading...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -90,7 +74,7 @@ const Login = () => {
               loading={loading}
               loginInProgress={loginInProgress}
               setShowForgotPassword={setShowForgotPassword}
-              handleSubmit={handleLogin}
+              handleSubmit={handleSubmit}
               authError={authError}
             />
           ) : (
@@ -146,7 +130,7 @@ const Login = () => {
           <p className="mt-8 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link 
-              to={`/register${redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""}`} 
+              to="/register" 
               className="text-brand-600 hover:text-brand-700 font-medium"
             >
               Sign up

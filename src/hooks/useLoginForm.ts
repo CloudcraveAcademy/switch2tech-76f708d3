@@ -12,7 +12,7 @@ export interface LoginFormErrors {
 export const useLoginForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login, loading: authLoading, setLoading } = useAuth();
+  const { login, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -30,13 +30,6 @@ export const useLoginForm = () => {
       setRememberMe(true);
     }
   }, []);
-
-  // Reset login progress when auth loading changes
-  useEffect(() => {
-    if (!authLoading) {
-      setLoginInProgress(false);
-    }
-  }, [authLoading]);
 
   const validate = () => {
     let valid = true;
@@ -63,11 +56,6 @@ export const useLoginForm = () => {
     return valid;
   };
 
-  const resetLoginState = () => {
-    setLoginInProgress(false);
-    setLoading(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Login form submitted");
@@ -80,8 +68,7 @@ export const useLoginForm = () => {
     setAuthError(null);
     
     try {
-      console.log("Attempting login with email:", email, "remember me:", rememberMe);
-      // We don't need to store the return data since the auth state listener will handle the session
+      console.log("Attempting login...");
       await login(email, password);
       
       if (rememberMe) {
@@ -90,23 +77,18 @@ export const useLoginForm = () => {
         localStorage.removeItem('rememberedEmail');
       }
       
-      console.log("Login successful");
+      console.log("Login successful, will redirect via useEffect");
+      
       toast({
         title: "Login successful",
-        description: "Redirecting to dashboard...",
+        description: "Welcome back!",
       });
       
-      // Set a short timeout before navigating to allow toast to display
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 100);
-      
     } catch (error: any) {
-      console.error("Login error in handleSubmit:", error);
+      console.error("Login error:", error);
       
       let errorMessage = "Invalid email or password. Please try again.";
       
-      // Handle specific error codes
       if (error.code === "email_not_confirmed") {
         errorMessage = "Please check your email to confirm your account before logging in.";
       } else if (error.code === "invalid_credentials") {
@@ -122,7 +104,8 @@ export const useLoginForm = () => {
         description: errorMessage,
         variant: "destructive",
       });
-      resetLoginState();
+    } finally {
+      setLoginInProgress(false);
     }
   };
 
@@ -142,6 +125,5 @@ export const useLoginForm = () => {
     forgotPasswordEmail,
     setForgotPasswordEmail,
     handleSubmit,
-    resetLoginState,
   };
 };

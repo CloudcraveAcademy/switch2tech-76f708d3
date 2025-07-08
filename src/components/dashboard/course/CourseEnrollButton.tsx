@@ -30,23 +30,24 @@ const CourseEnrollButton = ({
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleEnroll = async () => {
+    console.log("Enroll button clicked, user:", user?.id);
+    
     if (!user) {
-      // For guest users, redirect to login first, then enrollment
-      toast({
-        title: "Login Required",
-        description: "Please log in to enroll in this course.",
-        variant: "default",
-      });
-      navigate(`/login?redirect=/enroll/${courseId}`);
+      console.log("No user found, redirecting to login");
+      // Simple redirect without complex query params
+      navigate("/login");
       return;
     }
 
     setEnrolling(true);
     try {
+      console.log("Starting enrollment process for:", courseId);
       const result = await CourseEnrollmentService.enrollInCourse(
         courseId,
         user.id
       );
+      
+      console.log("Enrollment result:", result);
       
       if (result.success && result.error !== "Already enrolled") {
         setShowConfirmation(true);
@@ -55,13 +56,6 @@ const CourseEnrollButton = ({
       } else if (result.requiresPayment) {
         // Redirect to enrollment page for payment
         navigate(`/enroll/${courseId}`);
-      } else if (result.requiresAuth) {
-        toast({
-          title: "Login Required",
-          description: "Please log in to enroll in this course.",
-          variant: "default",
-        });
-        navigate(`/login?redirect=/enroll/${courseId}`);
       } else {
         toast({
           title: "Enrollment Failed",

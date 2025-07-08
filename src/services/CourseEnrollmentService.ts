@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -13,8 +14,11 @@ export interface EnrollmentResult {
 export const CourseEnrollmentService = {
   async enrollInCourse(courseId: string, userId?: string): Promise<EnrollmentResult> {
     try {
-      // Check if user is authenticated
+      console.log("CourseEnrollmentService: Starting enrollment", { courseId, userId });
+      
+      // Simple auth check without complex validation
       if (!userId) {
+        console.log("CourseEnrollmentService: No user ID provided");
         return {
           success: false,
           error: "Authentication required",
@@ -24,6 +28,7 @@ export const CourseEnrollmentService = {
       }
 
       // Check if already enrolled
+      console.log("CourseEnrollmentService: Checking existing enrollment");
       const { data: existingEnrollment } = await supabase
         .from("enrollments")
         .select("id")
@@ -32,6 +37,7 @@ export const CourseEnrollmentService = {
         .single();
 
       if (existingEnrollment) {
+        console.log("CourseEnrollmentService: User already enrolled");
         return {
           success: true,
           enrollment: existingEnrollment,
@@ -39,7 +45,8 @@ export const CourseEnrollmentService = {
         };
       }
 
-      // Check if course is free first
+      // Check if course is free
+      console.log("CourseEnrollmentService: Checking course pricing");
       const { data: courseData } = await supabase
         .from("courses")
         .select("price")
@@ -47,6 +54,7 @@ export const CourseEnrollmentService = {
         .single();
 
       const isFree = !courseData?.price || courseData.price === 0;
+      console.log("CourseEnrollmentService: Course is free:", isFree);
 
       // If course is not free, check for payment
       if (!isFree) {
@@ -59,6 +67,7 @@ export const CourseEnrollmentService = {
           .maybeSingle();
 
         if (!paymentRecord) {
+          console.log("CourseEnrollmentService: Payment required");
           return {
             success: false,
             error: "Payment required",
@@ -69,6 +78,7 @@ export const CourseEnrollmentService = {
       }
 
       // Create new enrollment record
+      console.log("CourseEnrollmentService: Creating enrollment record");
       const { data: enrollment, error } = await supabase
         .from("enrollments")
         .insert({
@@ -81,18 +91,15 @@ export const CourseEnrollmentService = {
         .single();
 
       if (error) {
-        console.error("Enrollment error:", error);
-        toast({
-          title: "Enrollment Failed",
-          description: "There was a problem enrolling in this course. Please try again.",
-          variant: "destructive",
-        });
+        console.error("CourseEnrollmentService: Enrollment error:", error);
         return {
           success: false,
           error: error.message
         };
       }
 
+      console.log("CourseEnrollmentService: Enrollment successful", enrollment);
+      
       toast({
         title: "Successfully Enrolled",
         description: "You have been enrolled in the course.",
@@ -103,7 +110,7 @@ export const CourseEnrollmentService = {
         enrollment
       };
     } catch (error: any) {
-      console.error("Enrollment exception:", error);
+      console.error("CourseEnrollmentService: Exception:", error);
       return {
         success: false,
         error: error.message
