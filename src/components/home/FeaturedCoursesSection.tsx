@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import CourseCard from "@/components/CourseCard";
@@ -31,77 +31,70 @@ type Course = {
 };
 
 const FeaturedCoursesSection = () => {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: courses, isLoading, error } = useQuery({
+    queryKey: ['featured-courses'],
+    queryFn: async () => {
+      console.log("Fetching featured courses...");
+      
+      const { data: coursesData, error: coursesError } = await supabase
+        .from("courses")
+        .select(`
+          *,
+          instructor:user_profiles!instructor_id (
+            first_name,
+            last_name
+          )
+        `)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(6);
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        console.log("Fetching featured courses...");
-        setLoading(true);
-        setError(null);
-
-        // Simple query to get courses
-        const { data: coursesData, error: coursesError } = await supabase
-          .from("courses")
-          .select("*")
-          .eq("is_published", true)
-          .order("created_at", { ascending: false })
-          .limit(6);
-
-        if (coursesError) {
-          console.error("Error fetching courses:", coursesError);
-          throw new Error("Failed to fetch courses");
-        }
-
-        console.log("Raw courses data:", coursesData);
-
-        if (!coursesData || coursesData.length === 0) {
-          console.log("No courses found");
-          setCourses([]);
-          return;
-        }
-
-        // Transform courses data with simple fallbacks
-        const transformedCourses: Course[] = coursesData.map(course => ({
-          id: course.id,
-          title: course.title || "Untitled Course",
-          description: course.description || "",
-          price: Number(course.price) || 0,
-          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: 4.5, // Static rating for now
-          reviews: 42, // Static reviews for now
-          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: 156, // Static number for now
-          lessons: 8, // Static number for now
-          instructor: {
-            id: course.instructor_id,
-            name: "Instructor", // Static name for now
-            avatar: "/placeholder.svg"
-          },
-          category: "Technology", // Static category for now
-          image: course.image_url || "/placeholder.svg",
-          featured: true,
-          tags: [],
-          duration: course.duration_hours ? String(course.duration_hours) : "10",
-        }));
-
-        console.log("Courses transformed successfully:", transformedCourses.length);
-        setCourses(transformedCourses);
-      } catch (error: any) {
-        console.error("Error in fetchCourses:", error);
-        setError("Failed to load courses. Please try again later.");
-      } finally {
-        setLoading(false);
+      if (coursesError) {
+        console.error("Error fetching courses:", coursesError);
+        throw coursesError;
       }
-    };
 
-    fetchCourses();
-  }, []);
+      if (!coursesData || coursesData.length === 0) {
+        console.log("No courses found");
+        return [];
+      }
 
-  if (loading) {
+      console.log("Raw courses data:", coursesData);
+
+      const transformedCourses: Course[] = coursesData.map(course => ({
+        id: course.id,
+        title: course.title || "Untitled Course",
+        description: course.description,
+        price: Number(course.price) || 0,
+        discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+        level: course.level || "beginner",
+        rating: 4.5,
+        reviews: 42,
+        mode: course.mode || "self-paced",
+        enrolledStudents: 156,
+        lessons: 8,
+        instructor: {
+          id: course.instructor_id,
+          name: course.instructor ? 
+            `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Instructor' 
+            : 'Instructor',
+          avatar: "/placeholder.svg"
+        },
+        category: "Technology",
+        image: course.image_url || "/placeholder.svg",
+        featured: true,
+        tags: [],
+        duration: course.duration_hours ? `${course.duration_hours}h` : "10h",
+      }));
+
+      console.log("Transformed courses:", transformedCourses.length);
+      return transformedCourses;
+    },
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  if (isLoading) {
     return (
       <section className="py-24 bg-background border-t border-border">
         <div className="container mx-auto px-6">
@@ -124,6 +117,7 @@ const FeaturedCoursesSection = () => {
   }
 
   if (error) {
+    console.error("Course loading error:", error);
     return (
       <section className="py-24 bg-background border-t border-border">
         <div className="container mx-auto px-6">
@@ -134,10 +128,9 @@ const FeaturedCoursesSection = () => {
             </h2>
           </div>
           <div className="text-center text-destructive py-12">
-            <p className="mb-4">{error}</p>
+            <p className="mb-4">Unable to load courses. Please try refreshing the page.</p>
             <Button variant="outline" onClick={() => window.location.reload()}>
-              <Loader className="mr-2 h-4 w-4" />
-              Retry
+              Refresh Page
             </Button>
           </div>
         </div>
@@ -159,7 +152,7 @@ const FeaturedCoursesSection = () => {
           </p>
         </div>
 
-        {courses.length === 0 ? (
+        {!courses || courses.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
             No featured courses available yet. Check back soon!
           </div>

@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
 import { Input } from "@/components/ui/input";
@@ -46,118 +47,102 @@ const Courses = () => {
   const queryParams = new URLSearchParams(location.search);
   const categoryFromURL = queryParams.get("category");
 
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(categoryFromURL || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
-  const [error, setError] = useState<string | null>(null);
-
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(courses.length / PAGE_SIZE));
-  const pagedCourses = courses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        console.log("Fetching courses...");
+  // Fetch all courses
+  const { data: allCourses, isLoading, error } = useQuery({
+    queryKey: ['all-courses'],
+    queryFn: async () => {
+      console.log("Fetching all courses...");
 
-        // Simple query to get all published courses
-        const { data: coursesData, error: coursesError } = await supabase
-          .from("courses")
-          .select("*")
-          .eq("is_published", true)
-          .order("created_at", { ascending: false });
+      const { data: coursesData, error: coursesError } = await supabase
+        .from("courses")
+        .select(`
+          *,
+          instructor:user_profiles!instructor_id (
+            first_name,
+            last_name
+          )
+        `)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false });
 
-        if (coursesError) {
-          console.error("Error fetching courses:", coursesError);
-          throw new Error("Failed to fetch courses");
-        }
-
-        console.log("Fetched courses:", coursesData?.length);
-
-        if (!coursesData || coursesData.length === 0) {
-          setAllCourses([]);
-          setCourses([]);
-          return;
-        }
-
-        // Transform courses with simple fallbacks
-        const transformedCourses: Course[] = coursesData.map(course => ({
-          id: course.id,
-          title: course.title || "Untitled Course",
-          description: course.description || "",
-          price: Number(course.price) || 0,
-          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: 4.5, // Static for now
-          reviews: 42, // Static for now
-          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: 156, // Static for now
-          lessons: 8, // Static for now
-          instructor: {
-            id: course.instructor_id,
-            name: "Instructor",
-            avatar: "/placeholder.svg"
-          },
-          category: "Technology", // Static for now
-          image: course.image_url || "/placeholder.svg",
-          featured: false,
-          tags: [],
-          duration: course.duration_hours ? String(course.duration_hours) : "10",
-        }));
-
-        console.log("Transformed courses:", transformedCourses.length);
-        setAllCourses(transformedCourses);
-      } catch (error: any) {
-        console.error("Error fetching courses:", error);
-        setError("Failed to load courses. Please try again later.");
-      } finally {
-        setLoading(false);
+      if (coursesError) {
+        console.error("Error fetching courses:", coursesError);
+        throw coursesError;
       }
-    };
 
-    fetchCourses();
-  }, []);
+      if (!coursesData) return [];
 
+      console.log("Fetched courses:", coursesData.length);
+
+      const transformedCourses: Course[] = coursesData.map(course => ({
+        id: course.id,
+        title: course.title || "Untitled Course",
+        description: course.description,
+        price: Number(course.price) || 0,
+        discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+        level: course.level || "beginner",
+        rating: 4.5,
+        reviews: 42,
+        mode: course.mode || "self-paced",
+        enrolledStudents: 156,
+        lessons: 8,
+        instructor: {
+          id: course.instructor_id,
+          name: course.instructor ? 
+            `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Instructor'
+            : 'Instructor',
+          avatar: "/placeholder.svg"
+        },
+        category: "Technology",
+        image: course.image_url || "/placeholder.svg",
+        featured: false,
+        tags: [],
+        duration: course.duration_hours ? `${course.duration_hours}h` : "10h",
+      }));
+
+      console.log("Transformed courses:", transformedCourses.length);
+      return transformedCourses;
+    },
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Filter courses based on search and filters
+  const filteredCourses = allCourses?.filter(course => {
+    const matchesSearch = !searchTerm || 
+      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesLevel = selectedLevel === "all" || course.level === selectedLevel;
+    const matchesMode = selectedMode === "all" || course.mode === selectedMode;
+    
+    return matchesSearch && matchesLevel && matchesMode;
+  }) || [];
+
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / PAGE_SIZE));
+  const pagedCourses = filteredCourses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Reset page when filters change
   useEffect(() => {
-    let filteredCourses = [...allCourses];
-
-    if (searchTerm) {
-      filteredCourses = filteredCourses.filter(
-        (course) =>
-          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-      );
-    }
-
-    if (selectedLevel !== "all") {
-      filteredCourses = filteredCourses.filter(
-        (course) => course.level === selectedLevel
-      );
-    }
-
-    if (selectedMode !== "all") {
-      filteredCourses = filteredCourses.filter(
-        (course) => course.mode === selectedMode
-      );
-    }
-
-    setCourses(filteredCourses);
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses]);
+  }, [searchTerm, selectedLevel, selectedMode]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
   };
 
-  const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
-  const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
-  const handleGotoPage = (n: number) => setCurrentPage(n);
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSelectedLevel("all");
+    setSelectedMode("all");
+  };
 
   return (
     <Layout>
@@ -169,6 +154,7 @@ const Courses = () => {
           </p>
         </div>
 
+        {/* Filters */}
         <div className="mb-12">
           <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
             <form onSubmit={handleSearch} className="mb-6">
@@ -217,37 +203,24 @@ const Courses = () => {
 
             <div className="flex justify-between items-center mt-6">
               <p className="text-sm text-gray-600">
-                {loading
-                  ? "Loading courses..."
-                  : `Showing ${courses.length} results`}
+                {isLoading ? "Loading courses..." : `Showing ${filteredCourses.length} results`}
               </p>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm("");
-                  setSelectedCategory("all");
-                  setSelectedLevel("all");
-                  setSelectedMode("all");
-                }}
-              >
+              <Button variant="outline" onClick={resetFilters}>
                 Reset Filters
               </Button>
             </div>
           </div>
         </div>
 
-        {loading ? (
+        {/* Course Grid */}
+        {isLoading ? (
           <div className="flex justify-center py-12">
             <LoaderCircle className="animate-spin h-10 w-10 text-brand-500" />
           </div>
         ) : error ? (
           <div className="text-center py-8 text-destructive">
-            <p>{error}</p>
-            <Button
-              variant="outline"
-              onClick={() => window.location.reload()}
-              className="mt-4"
-            >
+            <p className="mb-4">Unable to load courses. Please try again.</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>
               Retry
             </Button>
           </div>
@@ -261,27 +234,20 @@ const Courses = () => {
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <h3 className="text-xl font-medium mb-2">No courses found</h3>
             <p className="text-gray-600 mb-6">Try adjusting your filters or search term</p>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedCategory("all");
-                setSelectedLevel("all");
-                setSelectedMode("all");
-              }}
-            >
+            <Button variant="outline" onClick={resetFilters}>
               Reset Filters
             </Button>
           </div>
         )}
 
-        {!loading && courses.length > 0 && (
+        {/* Pagination */}
+        {!isLoading && filteredCourses.length > 0 && (
           <div className="mt-12 flex justify-center">
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 disabled={currentPage <= 1}
-                onClick={handlePrevPage}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               >
                 Previous
               </Button>
@@ -290,7 +256,7 @@ const Courses = () => {
                   key={idx}
                   variant={currentPage === idx + 1 ? "default" : "outline"}
                   className={currentPage === idx + 1 ? "bg-brand-100 text-brand-600" : ""}
-                  onClick={() => handleGotoPage(idx + 1)}
+                  onClick={() => setCurrentPage(idx + 1)}
                 >
                   {idx + 1}
                 </Button>
@@ -298,7 +264,7 @@ const Courses = () => {
               <Button
                 variant="outline"
                 disabled={currentPage >= totalPages}
-                onClick={handleNextPage}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               >
                 Next
               </Button>
