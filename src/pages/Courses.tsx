@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
@@ -71,21 +72,11 @@ const Courses = () => {
         setError(null);
         console.log("Fetching courses and categories...");
 
-        // Set timeout for queries
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Query timeout')), 10000)
-        );
-
-        // Fetch categories with timeout
-        const categoriesPromise = supabase
+        // Fetch categories first
+        const { data: categoriesData, error: categoriesError } = await supabase
           .from("course_categories")
           .select("id, name")
           .order("name");
-
-        const { data: categoriesData, error: categoriesError } = await Promise.race([
-          categoriesPromise,
-          timeoutPromise
-        ]) as any;
 
         if (categoriesError) {
           console.error("Error fetching categories:", categoriesError);
@@ -94,17 +85,12 @@ const Courses = () => {
           setCategories(categoriesData || []);
         }
 
-        // Fetch courses with timeout
-        const coursesPromise = supabase
+        // Fetch courses
+        const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
           .order("created_at", { ascending: false });
-
-        const { data: coursesData, error: coursesError } = await Promise.race([
-          coursesPromise,
-          timeoutPromise
-        ]) as any;
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
@@ -113,7 +99,7 @@ const Courses = () => {
 
         console.log("Courses fetched:", coursesData?.length || 0);
 
-        if (!coursesData) {
+        if (!coursesData || coursesData.length === 0) {
           console.log("No courses data received");
           setAllCourses([]);
           return;
@@ -148,34 +134,8 @@ const Courses = () => {
         
       } catch (error: any) {
         console.error("Error fetching data:", error);
-        
-        // Set fallback data
-        const fallbackCourses: Course[] = [
-          {
-            id: "sample-1",
-            title: "Sample Web Development Course",
-            description: "Learn web development fundamentals",
-            price: 99,
-            level: "beginner",
-            rating: 4.5,
-            reviews: 120,
-            mode: "self-paced",
-            enrolledStudents: 150,
-            lessons: 12,
-            instructor: {
-              name: "Sample Instructor",
-              avatar: "/placeholder.svg"
-            },
-            category: "Technology",
-            image: "/placeholder.svg",
-            featured: false,
-            tags: [],
-            duration: "10 hours",
-          }
-        ];
-        
-        setAllCourses(fallbackCourses);
-        setError("Unable to load courses from database. Showing sample courses.");
+        setError("Unable to load courses from database. Please try refreshing the page.");
+        setAllCourses([]);
       } finally {
         setLoading(false);
       }
@@ -322,13 +282,18 @@ const Courses = () => {
           </div>
         </div>
 
-        {error && (
-          <div className="text-center mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-800">{error}</p>
+        {error ? (
+          <div className="text-center mb-8 p-8 bg-red-50 border border-red-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Courses</h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Refresh Page
+            </Button>
           </div>
-        )}
-
-        {loading ? (
+        ) : loading ? (
           <div className="flex justify-center py-12">
             <div className="flex flex-col items-center space-y-4">
               <LoaderCircle className="animate-spin h-10 w-10 text-primary" />

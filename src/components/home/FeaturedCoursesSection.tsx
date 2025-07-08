@@ -42,22 +42,13 @@ const FeaturedCoursesSection = () => {
         setLoading(true);
         setError(null);
 
-        // Use timeout to prevent hanging queries
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Query timeout')), 10000)
-        );
-
-        const queryPromise = supabase
+        // Simplified query without timeout
+        const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(6);
-
-        const { data: coursesData, error: coursesError } = await Promise.race([
-          queryPromise,
-          timeoutPromise
-        ]) as any;
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
@@ -66,7 +57,7 @@ const FeaturedCoursesSection = () => {
 
         console.log("Raw courses data:", coursesData);
 
-        if (!coursesData) {
+        if (!coursesData || coursesData.length === 0) {
           console.log("No courses data received");
           setCourses([]);
           return;
@@ -106,58 +97,10 @@ const FeaturedCoursesSection = () => {
         
       } catch (error: any) {
         console.error("Error in fetchCourses:", error);
-        console.error("Error message:", error.message);
-        console.error("Error details:", error);
+        setError("Unable to load courses from database. Please try refreshing the page.");
         
-        // Set fallback data on error
-        const fallbackCourses: Course[] = [
-          {
-            id: "fallback-1",
-            title: "Introduction to Web Development",
-            description: "Learn the basics of web development with HTML, CSS, and JavaScript",
-            price: 99,
-            level: "beginner",
-            rating: 4.5,
-            reviews: 120,
-            mode: "self-paced",
-            enrolledStudents: 150,
-            lessons: 12,
-            instructor: {
-              name: "Expert Instructor",
-              avatar: "/placeholder.svg"
-            },
-            category: "Technology",
-            image: "/placeholder.svg",
-            featured: true,
-            tags: [],
-            duration: "10 hours",
-          },
-          {
-            id: "fallback-2",
-            title: "Advanced React Development",
-            description: "Master React with hooks, state management, and modern patterns",
-            price: 149,
-            level: "advanced",
-            rating: 4.8,
-            reviews: 85,
-            mode: "virtual",
-            enrolledStudents: 95,
-            lessons: 18,
-            instructor: {
-              name: "React Expert",
-              avatar: "/placeholder.svg"
-            },
-            category: "Technology",
-            image: "/placeholder.svg",
-            featured: true,
-            tags: [],
-            duration: "15 hours",
-          }
-        ];
-        
-        console.log("Setting fallback courses due to error");
-        setCourses(fallbackCourses);
-        setError("Unable to load courses from database. Showing sample courses.");
+        // Use empty array instead of fallback data to show the error state
+        setCourses([]);
       } finally {
         setLoading(false);
       }
@@ -207,15 +150,21 @@ const FeaturedCoursesSection = () => {
           </p>
         </div>
 
-        {error && (
-          <div className="text-center mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-800">{error}</p>
+        {error ? (
+          <div className="text-center mb-8 p-8 bg-red-50 border border-red-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Courses</h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Refresh Page
+            </Button>
           </div>
-        )}
-
-        {courses.length === 0 && !loading && !error ? (
+        ) : courses.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
-            No featured courses available yet. Check back soon!
+            <h3 className="text-xl font-semibold mb-2">No Featured Courses Available</h3>
+            <p>Check back soon for new courses!</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
