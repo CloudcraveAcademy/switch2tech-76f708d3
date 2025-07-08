@@ -1,137 +1,123 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthOperations } from "./auth/useAuthOperations";
+import { useSessionManager } from "./auth/useSessionManager";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
 export const useAuthProvider = (onLogout?: (path?: string) => void) => {
-  const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const authListenerInitialized = useRef(false);
+  const initializationComplete = useRef(false);
   
-  const { login, register, logout: performLogout } = useAuthOperations();
+  const {
+    login,
+    register,
+    logout: performLogout,
+  } = useAuthOperations();
+  
   const { enrichUserWithProfile } = useUserProfile();
+  
+  const {
+    user,
+    session,
+    setUser,
+    setSession,
+    validateSession,
+    initializeSession,
+  } = useSessionManager();
 
-  // Initialize auth state
+  // Auth state management effect - stabilized to prevent loops
   useEffect(() => {
+    if (authListenerInitialized.current) return;
+    
     let mounted = true;
-
-    const initializeAuth = async () => {
-      try {
-        console.log("Initializing auth state...");
-        
-        // Get current session
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error getting session:", error);
-          if (mounted) {
-            setLoading(false);
-          }
-          return;
-        }
-
-        if (currentSession?.user && mounted) {
-          console.log("Found existing session for user:", currentSession.user.id);
-          setSession(currentSession);
-          
-          // Try to enrich user profile
-          try {
-            const enrichedUser = await enrichUserWithProfile(currentSession.user);
-            if (mounted) {
-              console.log("User profile enriched successfully, role:", enrichedUser.role);
-              setUser(enrichedUser);
-            }
-          } catch (profileError) {
-            console.error("Profile enrichment failed, using basic user:", profileError);
-            if (mounted) {
-              // Create a basic user object with fallback role
-              const basicUser = {
-                ...currentSession.user,
-                role: 'student', // Default role
-                name: currentSession.user.user_metadata?.first_name || 'User'
-              };
-              setUser(basicUser);
-            }
-          }
-        } else {
-          console.log("No existing session found");
-        }
-      } catch (error) {
-        console.error("Auth initialization failed:", error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    // Set up auth listener
+    console.log("Setting up auth state listener");
+    authListenerInitialized.current = true;
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
+        console.log("Auth state changed:", event, newSession ? "session exists" : "no session");
+        
         if (!mounted) return;
         
-        console.log("Auth state changed:", event, newSession ? "with session" : "no session");
-        
-        if (event === 'SIGNED_OUT' || !newSession) {
-          setUser(null);
-          setSession(null);
-          setLoading(false);
+        // Prevent processing during initial load if we're already initialized
+        if (initializationComplete.current && event === 'INITIAL_SESSION') {
           return;
         }
-
-        if (newSession?.user) {
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && newSession)) {
           setSession(newSession);
           
-          try {
-            const enrichedUser = await enrichUserWithProfile(newSession.user);
-            setUser(enrichedUser);
-            console.log("User authenticated and profile loaded:", enrichedUser.role);
-          } catch (error) {
-            console.error("Profile enrichment failed in auth listener:", error);
-            // Fallback to basic user
-            const basicUser = {
-              ...newSession.user,
-              role: 'student',
-              name: newSession.user.user_metadata?.first_name || 'User'
-            };
-            setUser(basicUser);
+          // Use a more reliable approach for user enrichment
+          if (newSession?.user) {
+            try {
+              const enrichedUser = await enrichUserWithProfile(newSession.user);
+              console.log("Enriched user data:", enrichedUser);
+              if (mounted) {
+                setUser(enrichedUser);
+                setLoading(false);
+                initializationComplete.current = true;
+              }
+            } catch (error) {
+              console.error("Error enriching user data:", error);
+              if (mounted) {
+                setUser(newSession.user as any); // Fallback to basic user
+                setLoading(false);
+                initializationComplete.current = true;
+              }
+            }
+          } else if (mounted) {
+            setLoading(false);
+            initializationComplete.current = true;
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing state");
+          if (mounted) {
+            setUser(null);
+            setSession(null);
+            setLoading(false);
+            initializationComplete.current = false;
           }
         }
-        
-        setLoading(false);
       }
     );
 
-    // Initialize
-    initializeAuth();
+    // Initialize session only if not already done
+    if (!initializationComplete.current) {
+      const initialize = async () => {
+        try {
+          await initializeSession();
+        } catch (error) {
+          console.error("Failed to initialize session:", error);
+        } finally {
+          if (mounted && !initializationComplete.current) {
+            setLoading(false);
+            initializationComplete.current = true;
+          }
+        }
+      };
+      
+      initialize();
+    }
     
     return () => {
       mounted = false;
+      authListenerInitialized.current = false;
+      initializationComplete.current = false;
+      console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
-  }, [enrichUserWithProfile]);
+  }, []); // Empty dependency array to prevent loops
 
   const logout = useCallback(async () => {
-    try {
-      await performLogout();
-      if (onLogout) {
-        onLogout();
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
+    await performLogout();
+    
+    if (onLogout) {
+      onLogout();
     }
   }, [performLogout, onLogout]);
-
-  const validateSession = useCallback(async () => {
-    try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      return !!currentSession;
-    } catch (error) {
-      console.error("Session validation failed:", error);
-      return false;
-    }
-  }, []);
 
   return {
     user,

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export interface LoginFormErrors {
   email: string;
@@ -11,9 +11,8 @@ export interface LoginFormErrors {
 
 export const useLoginForm = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-  const { login, loading: authLoading } = useAuth();
+  const { login, loading: authLoading, setLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -23,10 +22,6 @@ export const useLoginForm = () => {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Extract redirect path from URL params
-  const searchParams = new URLSearchParams(location.search);
-  const redirectPath = searchParams.get('redirect') || "/dashboard";
-
   // Load remembered email from localStorage on initial render
   useEffect(() => {
     const rememberedEmail = localStorage.getItem('rememberedEmail');
@@ -35,6 +30,13 @@ export const useLoginForm = () => {
       setRememberMe(true);
     }
   }, []);
+
+  // Reset login progress when auth loading changes
+  useEffect(() => {
+    if (!authLoading) {
+      setLoginInProgress(false);
+    }
+  }, [authLoading]);
 
   const validate = () => {
     let valid = true;
@@ -61,9 +63,14 @@ export const useLoginForm = () => {
     return valid;
   };
 
+  const resetLoginState = () => {
+    setLoginInProgress(false);
+    setLoading(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login form submitted for:", email);
+    console.log("Login form submitted");
 
     if (!validate()) {
       return;
@@ -73,36 +80,37 @@ export const useLoginForm = () => {
     setAuthError(null);
     
     try {
-      console.log("Calling login function...");
+      console.log("Attempting login with email:", email, "remember me:", rememberMe);
+      // We don't need to store the return data since the auth state listener will handle the session
       await login(email, password);
       
-      // Handle remember me
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
       
-      console.log("Login successful, redirecting to:", redirectPath);
+      console.log("Login successful");
       toast({
         title: "Login successful",
-        description: "Welcome back!",
+        description: "Redirecting to dashboard...",
       });
       
-      // Navigate to the redirect path
-      navigate(redirectPath, { replace: true });
+      // Set a short timeout before navigating to allow toast to display
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
       
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("Login error in handleSubmit:", error);
       
-      let errorMessage = "Login failed. Please try again.";
+      let errorMessage = "Invalid email or password. Please try again.";
       
-      if (error.message?.includes("Invalid login credentials")) {
-        errorMessage = "Invalid email or password. Please check your credentials.";
-      } else if (error.message?.includes("Email not confirmed")) {
+      // Handle specific error codes
+      if (error.code === "email_not_confirmed") {
         errorMessage = "Please check your email to confirm your account before logging in.";
-      } else if (error.message?.includes("Too many requests")) {
-        errorMessage = "Too many login attempts. Please try again later.";
+      } else if (error.code === "invalid_credentials") {
+        errorMessage = "Invalid email or password. Please try again.";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -114,8 +122,7 @@ export const useLoginForm = () => {
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setLoginInProgress(false);
+      resetLoginState();
     }
   };
 
@@ -135,5 +142,6 @@ export const useLoginForm = () => {
     forgotPasswordEmail,
     setForgotPasswordEmail,
     handleSubmit,
+    resetLoginState,
   };
 };

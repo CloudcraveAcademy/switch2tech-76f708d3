@@ -1,5 +1,5 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import CourseCard from "@/components/CourseCard";
@@ -30,106 +30,103 @@ type Course = {
   duration: string;
 };
 
-// Helper function to safely cast level
-const parseLevel = (level: string | null): "beginner" | "intermediate" | "advanced" => {
-  if (level === "intermediate" || level === "advanced") {
-    return level;
-  }
-  return "beginner"; // default fallback
-};
-
-// Helper function to safely cast mode
-const parseMode = (mode: string | null): "self-paced" | "virtual" | "live" => {
-  if (mode === "virtual" || mode === "live") {
-    return mode;
-  }
-  return "self-paced"; // default fallback
-};
-
 const FeaturedCoursesSection = () => {
-  const { data: courses, isLoading, error } = useQuery({
-    queryKey: ['featured-courses'],
-    queryFn: async () => {
-      console.log("Fetching featured courses...");
-      
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
       try {
-        // Test connection first
-        const { data: connectionTest, error: connectionError } = await supabase
-          .from("courses")
-          .select("count")
-          .limit(1);
+        console.log("Starting to fetch courses and related data...");
+        setLoading(true);
+        setError(null);
 
-        if (connectionError) {
-          console.error("Connection test failed:", connectionError);
-          throw new Error(`Database connection failed: ${connectionError.message}`);
-        }
-
-        console.log("Database connection successful");
-
+        // Fetch courses with basic info
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
-          .select(`
-            *,
-            instructor:user_profiles!instructor_id (
-              first_name,
-              last_name
-            )
-          `)
+          .select("*")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(6);
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw new Error(`Failed to fetch courses: ${coursesError.message}`);
+          throw coursesError;
         }
 
-        console.log("Fetched courses data:", coursesData?.length || 0, "courses");
+        console.log("Raw courses data:", coursesData);
 
         if (!coursesData || coursesData.length === 0) {
-          console.log("No courses found, returning empty array");
-          return [];
+          console.log("No courses found");
+          setCourses([]);
+          return;
         }
 
+        // Fetch categories
+        const { data: categoriesData } = await supabase
+          .from("course_categories")
+          .select("*");
+
+        const categoryMap = categoriesData?.reduce((acc, cat) => {
+          acc[cat.id] = cat.name;
+          return acc;
+        }, {} as Record<string, string>) || {};
+
+        // Fetch all instructors for these courses
+        const instructorIds = [...new Set(coursesData.map(course => course.instructor_id))];
+        const { data: instructorsData } = await supabase
+          .from("user_profiles")
+          .select("id, first_name, last_name, avatar_url")
+          .in("id", instructorIds);
+
+        const instructorMap = instructorsData?.reduce((acc, instructor) => {
+          acc[instructor.id] = {
+            id: instructor.id,
+            name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || "Instructor",
+            avatar: instructor.avatar_url || "/placeholder.svg"
+          };
+          return acc;
+        }, {} as Record<string, any>) || {};
+
+        // Transform courses data
         const transformedCourses: Course[] = coursesData.map(course => ({
           id: course.id,
           title: course.title || "Untitled Course",
-          description: course.description,
+          description: course.description || "",
           price: Number(course.price) || 0,
           discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-          level: parseLevel(course.level),
-          rating: 4.5,
-          reviews: 42,
-          mode: parseMode(course.mode),
-          enrolledStudents: 156,
-          lessons: 8,
-          instructor: {
-            id: course.instructor_id,
-            name: course.instructor ? 
-              `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Instructor' 
-              : 'Instructor',
+          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+          rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
+          reviews: Math.floor(Math.random() * 100) + 20, // 20-120 reviews
+          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+          enrolledStudents: Math.floor(Math.random() * 200) + 50, // 50-250 students
+          lessons: Math.floor(Math.random() * 20) + 5, // 5-25 lessons
+          instructor: instructorMap[course.instructor_id] || {
+            name: "Instructor",
             avatar: "/placeholder.svg"
           },
-          category: "Technology",
+          category: categoryMap[course.category] || "General",
           image: course.image_url || "/placeholder.svg",
           featured: true,
           tags: [],
-          duration: course.duration_hours ? `${course.duration_hours}h` : "10h",
+          duration: course.duration_hours ? String(course.duration_hours) : "10",
         }));
 
-        console.log("Successfully transformed", transformedCourses.length, "courses");
-        return transformedCourses;
-      } catch (error) {
-        console.error("Course fetch failed:", error);
-        throw error;
+        console.log("Transformed courses:", transformedCourses);
+        setCourses(transformedCourses);
+      } catch (error: any) {
+        console.error("Error in fetchCourses:", error);
+        setError("Failed to load courses. Please try again later.");
+      } finally {
+        setLoading(false);
       }
-    },
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000,
-  });
+    };
 
-  if (isLoading) {
+    fetchCourses();
+  }, []);
+
+  if (loading) {
     return (
       <section className="py-24 bg-background border-t border-border">
         <div className="container mx-auto px-6">
@@ -143,11 +140,13 @@ const FeaturedCoursesSection = () => {
               and advance your career.
             </p>
           </div>
-          <div className="flex justify-center py-12">
-            <div className="text-center">
-              <Loader className="animate-spin h-10 w-10 text-brand-500 mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading courses...</p>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="animate-pulse rounded-lg bg-accent h-80"
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -155,7 +154,6 @@ const FeaturedCoursesSection = () => {
   }
 
   if (error) {
-    console.error("Course loading error:", error);
     return (
       <section className="py-24 bg-background border-t border-border">
         <div className="container mx-auto px-6">
@@ -166,12 +164,10 @@ const FeaturedCoursesSection = () => {
             </h2>
           </div>
           <div className="text-center text-destructive py-12">
-            <p className="mb-4">Unable to load courses at the moment.</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Error: {error.message || "Unknown error occurred"}
-            </p>
+            <p className="mb-4">{error}</p>
             <Button variant="outline" onClick={() => window.location.reload()}>
-              Try Again
+              <Loader className="mr-2 h-4 w-4" />
+              Retry
             </Button>
           </div>
         </div>
@@ -193,10 +189,9 @@ const FeaturedCoursesSection = () => {
           </p>
         </div>
 
-        {!courses || courses.length === 0 ? (
+        {courses.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
-            <p>No featured courses available yet.</p>
-            <p className="text-sm mt-2">Check back soon for exciting new content!</p>
+            No featured courses available yet. Check back soon!
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">

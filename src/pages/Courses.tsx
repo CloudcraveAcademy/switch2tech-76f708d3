@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import {
 import { Search, LoaderCircle } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+
+interface Category {
+  id: string;
+  name: string;
+}
 
 interface Course {
   id: string;
@@ -39,22 +44,6 @@ interface Course {
   duration: string;
 }
 
-// Helper function to safely cast level
-const parseLevel = (level: string | null): "beginner" | "intermediate" | "advanced" => {
-  if (level === "intermediate" || level === "advanced") {
-    return level;
-  }
-  return "beginner"; // default fallback
-};
-
-// Helper function to safely cast mode
-const parseMode = (mode: string | null): "self-paced" | "virtual" | "live" => {
-  if (mode === "virtual" || mode === "live") {
-    return mode;
-  }
-  return "self-paced"; // default fallback
-};
-
 const PAGE_SIZE = 9;
 
 const Courses = () => {
@@ -62,102 +51,160 @@ const Courses = () => {
   const queryParams = new URLSearchParams(location.search);
   const categoryFromURL = queryParams.get("category");
 
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(categoryFromURL || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
+  const [error, setError] = useState<string | null>(null);
+
   const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(courses.length / PAGE_SIZE));
+  const pagedCourses = courses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Fetch all courses
-  const { data: allCourses, isLoading, error } = useQuery({
-    queryKey: ['all-courses'],
-    queryFn: async () => {
-      console.log("Fetching all courses...");
-
-      const { data: coursesData, error: coursesError } = await supabase
-        .from("courses")
-        .select(`
-          *,
-          instructor:user_profiles!instructor_id (
-            first_name,
-            last_name
-          )
-        `)
-        .eq("is_published", true)
-        .order("created_at", { ascending: false });
-
-      if (coursesError) {
-        console.error("Error fetching courses:", coursesError);
-        throw coursesError;
-      }
-
-      if (!coursesData) return [];
-
-      console.log("Fetched courses:", coursesData.length);
-
-      const transformedCourses: Course[] = coursesData.map(course => ({
-        id: course.id,
-        title: course.title || "Untitled Course",
-        description: course.description,
-        price: Number(course.price) || 0,
-        discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-        level: parseLevel(course.level),
-        rating: 4.5,
-        reviews: 42,
-        mode: parseMode(course.mode),
-        enrolledStudents: 156,
-        lessons: 8,
-        instructor: {
-          id: course.instructor_id,
-          name: course.instructor ? 
-            `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Instructor'
-            : 'Instructor',
-          avatar: "/placeholder.svg"
-        },
-        category: "Technology",
-        image: course.image_url || "/placeholder.svg",
-        featured: false,
-        tags: [],
-        duration: course.duration_hours ? `${course.duration_hours}h` : "10h",
-      }));
-
-      console.log("Transformed courses:", transformedCourses.length);
-      return transformedCourses;
-    },
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Filter courses based on search and filters
-  const filteredCourses = allCourses?.filter(course => {
-    const matchesSearch = !searchTerm || 
-      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesLevel = selectedLevel === "all" || course.level === selectedLevel;
-    const matchesMode = selectedMode === "all" || course.mode === selectedMode;
-    
-    return matchesSearch && matchesLevel && matchesMode;
-  }) || [];
-
-  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / PAGE_SIZE));
-  const pagedCourses = filteredCourses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  // Reset page when filters change
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("Fetching courses and categories...");
+
+        // Fetch categories
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from("course_categories")
+          .select("id, name")
+          .order("name");
+
+        if (categoriesError) {
+          console.error("Error fetching categories:", categoriesError);
+        }
+
+        setCategories(categoriesData || []);
+
+        // Fetch courses
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("courses")
+          .select("*")
+          .eq("is_published", true)
+          .order("created_at", { ascending: false });
+
+        if (coursesError) {
+          console.error("Error fetching courses:", coursesError);
+          throw coursesError;
+        }
+
+        console.log("Fetched courses:", coursesData?.length);
+
+        if (!coursesData || coursesData.length === 0) {
+          setAllCourses([]);
+          setCourses([]);
+          return;
+        }
+
+        // Fetch instructors for all courses
+        const instructorIds = [...new Set(coursesData.map(course => course.instructor_id))];
+        const { data: instructorsData } = await supabase
+          .from("user_profiles")
+          .select("id, first_name, last_name, avatar_url")
+          .in("id", instructorIds);
+
+        const instructorMap = instructorsData?.reduce((acc, instructor) => {
+          acc[instructor.id] = {
+            id: instructor.id,
+            name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || "Instructor",
+            avatar: instructor.avatar_url || "/placeholder.svg"
+          };
+          return acc;
+        }, {} as Record<string, any>) || {};
+
+        const categoryMap = categoriesData?.reduce((acc, cat) => {
+          acc[cat.id] = cat.name;
+          return acc;
+        }, {} as Record<string, string>) || {};
+
+        // Transform courses
+        const transformedCourses: Course[] = coursesData.map(course => ({
+          id: course.id,
+          title: course.title || "Untitled Course",
+          description: course.description || "",
+          price: Number(course.price) || 0,
+          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+          rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
+          reviews: Math.floor(Math.random() * 100) + 20, // 20-120 reviews
+          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+          enrolledStudents: Math.floor(Math.random() * 200) + 50,
+          lessons: Math.floor(Math.random() * 20) + 5,
+          instructor: instructorMap[course.instructor_id] || {
+            name: "Instructor",
+            avatar: "/placeholder.svg"
+          },
+          category: categoryMap[course.category] || "General",
+          image: course.image_url || "/placeholder.svg",
+          featured: false,
+          tags: [],
+          duration: course.duration_hours ? String(course.duration_hours) : "10",
+        }));
+
+        console.log("Transformed courses:", transformedCourses.length);
+        setAllCourses(transformedCourses);
+      } catch (error: any) {
+        console.error("Error fetching data:", error);
+        setError("Failed to load courses. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    let filteredCourses = [...allCourses];
+
+    if (searchTerm) {
+      filteredCourses = filteredCourses.filter(
+        (course) =>
+          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      );
+    }
+
+    if (selectedCategory !== "all") {
+      const categoryName = categories.find(cat => cat.id === selectedCategory)?.name;
+      if (categoryName) {
+        filteredCourses = filteredCourses.filter(
+          (course) => course.category === categoryName
+        );
+      }
+    }
+
+    if (selectedLevel !== "all") {
+      filteredCourses = filteredCourses.filter(
+        (course) => course.level === selectedLevel
+      );
+    }
+
+    if (selectedMode !== "all") {
+      filteredCourses = filteredCourses.filter(
+        (course) => course.mode === selectedMode
+      );
+    }
+
+    setCourses(filteredCourses);
     setCurrentPage(1);
-  }, [searchTerm, selectedLevel, selectedMode]);
+  }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses, categories]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
   };
 
-  const resetFilters = () => {
-    setSearchTerm("");
-    setSelectedCategory("all");
-    setSelectedLevel("all");
-    setSelectedMode("all");
-  };
+  const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+  const handleGotoPage = (n: number) => setCurrentPage(n);
 
   return (
     <Layout>
@@ -169,7 +216,6 @@ const Courses = () => {
           </p>
         </div>
 
-        {/* Filters */}
         <div className="mb-12">
           <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
             <form onSubmit={handleSearch} className="mb-6">
@@ -185,7 +231,24 @@ const Courses = () => {
               </div>
             </form>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
                 <Select value={selectedLevel} onValueChange={setSelectedLevel}>
@@ -218,24 +281,37 @@ const Courses = () => {
 
             <div className="flex justify-between items-center mt-6">
               <p className="text-sm text-gray-600">
-                {isLoading ? "Loading courses..." : `Showing ${filteredCourses.length} results`}
+                {loading
+                  ? "Loading courses..."
+                  : `Showing ${courses.length} results`}
               </p>
-              <Button variant="outline" onClick={resetFilters}>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedCategory("all");
+                  setSelectedLevel("all");
+                  setSelectedMode("all");
+                }}
+              >
                 Reset Filters
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Course Grid */}
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center py-12">
             <LoaderCircle className="animate-spin h-10 w-10 text-brand-500" />
           </div>
         ) : error ? (
           <div className="text-center py-8 text-destructive">
-            <p className="mb-4">Unable to load courses. Please try again.</p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
+            <p>{error}</p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="mt-4"
+            >
               Retry
             </Button>
           </div>
@@ -249,20 +325,27 @@ const Courses = () => {
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <h3 className="text-xl font-medium mb-2">No courses found</h3>
             <p className="text-gray-600 mb-6">Try adjusting your filters or search term</p>
-            <Button variant="outline" onClick={resetFilters}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedCategory("all");
+                setSelectedLevel("all");
+                setSelectedMode("all");
+              }}
+            >
               Reset Filters
             </Button>
           </div>
         )}
 
-        {/* Pagination */}
-        {!isLoading && filteredCourses.length > 0 && (
+        {!loading && courses.length > 0 && (
           <div className="mt-12 flex justify-center">
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 disabled={currentPage <= 1}
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={handlePrevPage}
               >
                 Previous
               </Button>
@@ -271,7 +354,7 @@ const Courses = () => {
                   key={idx}
                   variant={currentPage === idx + 1 ? "default" : "outline"}
                   className={currentPage === idx + 1 ? "bg-brand-100 text-brand-600" : ""}
-                  onClick={() => setCurrentPage(idx + 1)}
+                  onClick={() => handleGotoPage(idx + 1)}
                 >
                   {idx + 1}
                 </Button>
@@ -279,7 +362,7 @@ const Courses = () => {
               <Button
                 variant="outline"
                 disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                onClick={handleNextPage}
               >
                 Next
               </Button>

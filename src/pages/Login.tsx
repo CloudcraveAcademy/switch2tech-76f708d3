@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -11,7 +10,7 @@ import { setupDemoAccounts } from "@/utils/demoAccounts";
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading, validateSession } = useAuth();
+  const { user, validateSession } = useAuth();
   const {
     email,
     setEmail,
@@ -22,6 +21,7 @@ const Login = () => {
     loginInProgress,
     errors,
     authError,
+    loading,
     showForgotPassword,
     setShowForgotPassword,
     forgotPasswordEmail,
@@ -38,66 +38,36 @@ const Login = () => {
     const checkAuthAndRedirect = async () => {
       console.log("Login page - checking auth state, redirect path:", redirectPath);
       
-      // Don't redirect if we're still loading
-      if (loading) {
-        console.log("Still loading auth state...");
-        return;
-      }
-      
-      // If we have a user, redirect immediately
+      // First check if we already have a user
       if (user) {
         console.log("User is already authenticated, redirecting to:", redirectPath);
-        navigate(redirectPath, { replace: true });
+        navigate(redirectPath);
         return;
       }
       
-      // Double-check session validation
-      try {
-        const isValid = await validateSession();
-        if (isValid) {
-          console.log("Valid session found, redirecting to:", redirectPath);
-          navigate(redirectPath, { replace: true });
-        }
-      } catch (error) {
-        console.error("Session validation error:", error);
+      // If no user but we might have a session, validate it
+      const isValid = await validateSession();
+      
+      if (isValid) {
+        console.log("Valid session found, redirecting to:", redirectPath);
+        navigate(redirectPath);
       }
     };
     
     checkAuthAndRedirect();
-  }, [user, loading, navigate, validateSession, redirectPath]);
+  }, [user, navigate, validateSession, redirectPath]);
 
   // Set up demo accounts when page loads
   useEffect(() => {
     setupDemoAccounts();
   }, []);
 
-  // Don't render anything if we're redirecting
-  if (loading) {
-    return (
-      <Layout>
-        <div className="max-w-md mx-auto px-4 py-12">
-          <div className="text-center">
-            <p className="text-lg mb-2">Loading...</p>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // If user is authenticated, show redirecting message
-  if (user) {
-    return (
-      <Layout>
-        <div className="max-w-md mx-auto px-4 py-12">
-          <div className="text-center">
-            <p className="text-lg mb-2">Redirecting to dashboard...</p>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  // Update the login form's handleSubmit to redirect after successful login
+  const handleLogin = async (e: React.FormEvent) => {
+    const result = await handleSubmit(e);
+    // After successful login, the auth state change will trigger the redirect
+    // No need to manually redirect here as the useEffect above handles it
+  };
 
   return (
     <Layout>
@@ -120,7 +90,7 @@ const Login = () => {
               loading={loading}
               loginInProgress={loginInProgress}
               setShowForgotPassword={setShowForgotPassword}
-              handleSubmit={handleSubmit}
+              handleSubmit={handleLogin}
               authError={authError}
             />
           ) : (
@@ -176,7 +146,7 @@ const Login = () => {
           <p className="mt-8 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link 
-              to={`/register${redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""}`}
+              to={`/register${redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""}`} 
               className="text-brand-600 hover:text-brand-700 font-medium"
             >
               Sign up
