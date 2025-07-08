@@ -71,67 +71,111 @@ const Courses = () => {
         setError(null);
         console.log("Fetching courses and categories...");
 
-        // Fetch categories first (simple query)
-        const { data: categoriesData, error: categoriesError } = await supabase
+        // Set timeout for queries
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Query timeout')), 10000)
+        );
+
+        // Fetch categories with timeout
+        const categoriesPromise = supabase
           .from("course_categories")
           .select("id, name")
           .order("name");
 
+        const { data: categoriesData, error: categoriesError } = await Promise.race([
+          categoriesPromise,
+          timeoutPromise
+        ]) as any;
+
         if (categoriesError) {
           console.error("Error fetching categories:", categoriesError);
+        } else {
+          console.log("Categories fetched:", categoriesData?.length || 0);
+          setCategories(categoriesData || []);
         }
 
-        setCategories(categoriesData || []);
-
-        // Simple courses fetch
-        const { data: coursesData, error: coursesError } = await supabase
+        // Fetch courses with timeout
+        const coursesPromise = supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
           .order("created_at", { ascending: false });
 
+        const { data: coursesData, error: coursesError } = await Promise.race([
+          coursesPromise,
+          timeoutPromise
+        ]) as any;
+
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw new Error("Failed to fetch courses");
+          throw coursesError;
         }
 
-        console.log("Fetched courses:", coursesData?.length);
+        console.log("Courses fetched:", coursesData?.length || 0);
 
-        if (!coursesData || coursesData.length === 0) {
+        if (!coursesData) {
+          console.log("No courses data received");
           setAllCourses([]);
-          setCourses([]);
           return;
         }
 
-        // Simple transformation without complex joins
-        const transformedCourses: Course[] = coursesData.map(course => ({
+        // Transform courses
+        const transformedCourses: Course[] = coursesData.map((course: any) => ({
           id: course.id,
           title: course.title || "Untitled Course",
-          description: course.description || "",
+          description: course.description || "No description available",
           price: Number(course.price) || 0,
           discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
           level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: 4.5, // Static for now
-          reviews: 85, // Static for now
+          rating: 4.5,
+          reviews: 85,
           mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: 120, // Static for now
-          lessons: 15, // Static for now
+          enrolledStudents: 120,
+          lessons: 15,
           instructor: {
-            name: "Instructor",
+            name: "Expert Instructor",
             avatar: "/placeholder.svg"
           },
-          category: "Technology", // Static for now - will be enhanced later
+          category: "Technology",
           image: course.image_url || "/placeholder.svg",
           featured: false,
           tags: [],
-          duration: course.duration_hours ? String(course.duration_hours) : "10",
+          duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
         }));
 
         console.log("Transformed courses:", transformedCourses.length);
         setAllCourses(transformedCourses);
+        
       } catch (error: any) {
         console.error("Error fetching data:", error);
-        setError("Failed to load courses. Please try again later.");
+        
+        // Set fallback data
+        const fallbackCourses: Course[] = [
+          {
+            id: "sample-1",
+            title: "Sample Web Development Course",
+            description: "Learn web development fundamentals",
+            price: 99,
+            level: "beginner",
+            rating: 4.5,
+            reviews: 120,
+            mode: "self-paced",
+            enrolledStudents: 150,
+            lessons: 12,
+            instructor: {
+              name: "Sample Instructor",
+              avatar: "/placeholder.svg"
+            },
+            category: "Technology",
+            image: "/placeholder.svg",
+            featured: false,
+            tags: [],
+            duration: "10 hours",
+          }
+        ];
+        
+        setAllCourses(fallbackCourses);
+        setError("Unable to load courses from database. Showing sample courses.");
       } finally {
         setLoading(false);
       }
@@ -278,20 +322,18 @@ const Courses = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="text-center mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800">{error}</p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-12">
-            <LoaderCircle className="animate-spin h-10 w-10 text-brand-500" />
-          </div>
-        ) : error ? (
-          <div className="text-center py-8 text-destructive">
-            <p>{error}</p>
-            <Button
-              variant="outline"
-              onClick={() => window.location.reload()}
-              className="mt-4"
-            >
-              Retry
-            </Button>
+            <div className="flex flex-col items-center space-y-4">
+              <LoaderCircle className="animate-spin h-10 w-10 text-primary" />
+              <p className="text-muted-foreground">Loading courses...</p>
+            </div>
           </div>
         ) : pagedCourses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

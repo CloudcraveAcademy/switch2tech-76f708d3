@@ -38,60 +38,126 @@ const FeaturedCoursesSection = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        console.log("Starting to fetch courses...");
+        console.log("Starting to fetch featured courses...");
         setLoading(true);
         setError(null);
 
-        // Simple course fetch without complex joins
-        const { data: coursesData, error: coursesError } = await supabase
+        // Use timeout to prevent hanging queries
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Query timeout')), 10000)
+        );
+
+        const queryPromise = supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(6);
 
+        const { data: coursesData, error: coursesError } = await Promise.race([
+          queryPromise,
+          timeoutPromise
+        ]) as any;
+
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw new Error("Failed to fetch courses");
+          throw coursesError;
         }
 
-        console.log("Fetched courses:", coursesData?.length || 0);
+        console.log("Raw courses data:", coursesData);
 
-        if (!coursesData || coursesData.length === 0) {
-          console.log("No courses found");
+        if (!coursesData) {
+          console.log("No courses data received");
           setCourses([]);
           return;
         }
 
-        // Transform courses with simple data - avoid complex joins that might fail
-        const transformedCourses: Course[] = coursesData.map(course => ({
-          id: course.id,
-          title: course.title || "Untitled Course",
-          description: course.description || "",
-          price: Number(course.price) || 0,
-          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: 4.5, // Static for now
-          reviews: 120, // Static for now
-          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: 150, // Static for now
-          lessons: 12, // Static for now
-          instructor: {
-            name: "Instructor",
-            avatar: "/placeholder.svg"
-          },
-          category: "Technology", // Static for now
-          image: course.image_url || "/placeholder.svg",
-          featured: true,
-          tags: [],
-          duration: course.duration_hours ? String(course.duration_hours) : "10",
-        }));
+        console.log("Number of courses fetched:", coursesData.length);
 
-        console.log("Transformed courses:", transformedCourses.length);
+        // Transform courses with fallback data
+        const transformedCourses: Course[] = coursesData.map((course: any) => {
+          console.log("Transforming course:", course.id, course.title);
+          return {
+            id: course.id,
+            title: course.title || "Untitled Course",
+            description: course.description || "No description available",
+            price: Number(course.price) || 0,
+            discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+            rating: 4.5,
+            reviews: 120,
+            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+            enrolledStudents: 150,
+            lessons: 12,
+            instructor: {
+              name: "Expert Instructor",
+              avatar: "/placeholder.svg"
+            },
+            category: "Technology",
+            image: course.image_url || "/placeholder.svg",
+            featured: true,
+            tags: [],
+            duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
+          };
+        });
+
+        console.log("Successfully transformed courses:", transformedCourses.length);
         setCourses(transformedCourses);
+        
       } catch (error: any) {
         console.error("Error in fetchCourses:", error);
-        setError("Failed to load courses. Please try again later.");
+        console.error("Error message:", error.message);
+        console.error("Error details:", error);
+        
+        // Set fallback data on error
+        const fallbackCourses: Course[] = [
+          {
+            id: "fallback-1",
+            title: "Introduction to Web Development",
+            description: "Learn the basics of web development with HTML, CSS, and JavaScript",
+            price: 99,
+            level: "beginner",
+            rating: 4.5,
+            reviews: 120,
+            mode: "self-paced",
+            enrolledStudents: 150,
+            lessons: 12,
+            instructor: {
+              name: "Expert Instructor",
+              avatar: "/placeholder.svg"
+            },
+            category: "Technology",
+            image: "/placeholder.svg",
+            featured: true,
+            tags: [],
+            duration: "10 hours",
+          },
+          {
+            id: "fallback-2",
+            title: "Advanced React Development",
+            description: "Master React with hooks, state management, and modern patterns",
+            price: 149,
+            level: "advanced",
+            rating: 4.8,
+            reviews: 85,
+            mode: "virtual",
+            enrolledStudents: 95,
+            lessons: 18,
+            instructor: {
+              name: "React Expert",
+              avatar: "/placeholder.svg"
+            },
+            category: "Technology",
+            image: "/placeholder.svg",
+            featured: true,
+            tags: [],
+            duration: "15 hours",
+          }
+        ];
+        
+        console.log("Setting fallback courses due to error");
+        setCourses(fallbackCourses);
+        setError("Unable to load courses from database. Showing sample courses.");
       } finally {
         setLoading(false);
       }
@@ -99,6 +165,8 @@ const FeaturedCoursesSection = () => {
 
     fetchCourses();
   }, []);
+
+  console.log("Render state - loading:", loading, "courses:", courses.length, "error:", error);
 
   if (loading) {
     return (
@@ -115,29 +183,10 @@ const FeaturedCoursesSection = () => {
             </p>
           </div>
           <div className="flex justify-center py-12">
-            <Loader className="animate-spin h-10 w-10 text-brand-500" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="py-24 bg-background border-t border-border">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-primary font-semibold">FEATURED COURSES</span>
-            <h2 className="text-4xl font-bold mt-2 mb-6 text-foreground">
-              Learn From Industry Experts
-            </h2>
-          </div>
-          <div className="text-center text-destructive py-12">
-            <p className="mb-4">{error}</p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              <Loader className="mr-2 h-4 w-4" />
-              Retry
-            </Button>
+            <div className="flex flex-col items-center space-y-4">
+              <Loader className="animate-spin h-10 w-10 text-primary" />
+              <p className="text-muted-foreground">Loading featured courses...</p>
+            </div>
           </div>
         </div>
       </section>
@@ -158,7 +207,13 @@ const FeaturedCoursesSection = () => {
           </p>
         </div>
 
-        {courses.length === 0 ? (
+        {error && (
+          <div className="text-center mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800">{error}</p>
+          </div>
+        )}
+
+        {courses.length === 0 && !loading && !error ? (
           <div className="text-center text-muted-foreground py-12">
             No featured courses available yet. Check back soon!
           </div>
