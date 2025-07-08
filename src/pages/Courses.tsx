@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
@@ -72,7 +71,7 @@ const Courses = () => {
         setError(null);
         console.log("Fetching courses and categories...");
 
-        // Fetch categories
+        // Fetch categories first (simple query)
         const { data: categoriesData, error: categoriesError } = await supabase
           .from("course_categories")
           .select("id, name")
@@ -84,7 +83,7 @@ const Courses = () => {
 
         setCategories(categoriesData || []);
 
-        // Fetch courses
+        // Simple courses fetch
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
@@ -93,7 +92,7 @@ const Courses = () => {
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw coursesError;
+          throw new Error("Failed to fetch courses");
         }
 
         console.log("Fetched courses:", coursesData?.length);
@@ -104,28 +103,7 @@ const Courses = () => {
           return;
         }
 
-        // Fetch instructors for all courses
-        const instructorIds = [...new Set(coursesData.map(course => course.instructor_id))];
-        const { data: instructorsData } = await supabase
-          .from("user_profiles")
-          .select("id, first_name, last_name, avatar_url")
-          .in("id", instructorIds);
-
-        const instructorMap = instructorsData?.reduce((acc, instructor) => {
-          acc[instructor.id] = {
-            id: instructor.id,
-            name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || "Instructor",
-            avatar: instructor.avatar_url || "/placeholder.svg"
-          };
-          return acc;
-        }, {} as Record<string, any>) || {};
-
-        const categoryMap = categoriesData?.reduce((acc, cat) => {
-          acc[cat.id] = cat.name;
-          return acc;
-        }, {} as Record<string, string>) || {};
-
-        // Transform courses
+        // Simple transformation without complex joins
         const transformedCourses: Course[] = coursesData.map(course => ({
           id: course.id,
           title: course.title || "Untitled Course",
@@ -133,16 +111,16 @@ const Courses = () => {
           price: Number(course.price) || 0,
           discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
           level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
-          reviews: Math.floor(Math.random() * 100) + 20, // 20-120 reviews
+          rating: 4.5, // Static for now
+          reviews: 85, // Static for now
           mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: Math.floor(Math.random() * 200) + 50,
-          lessons: Math.floor(Math.random() * 20) + 5,
-          instructor: instructorMap[course.instructor_id] || {
+          enrolledStudents: 120, // Static for now
+          lessons: 15, // Static for now
+          instructor: {
             name: "Instructor",
             avatar: "/placeholder.svg"
           },
-          category: categoryMap[course.category] || "General",
+          category: "Technology", // Static for now - will be enhanced later
           image: course.image_url || "/placeholder.svg",
           featured: false,
           tags: [],
@@ -161,6 +139,14 @@ const Courses = () => {
 
     fetchData();
   }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
+
+  const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+  const handleGotoPage = (n: number) => setCurrentPage(n);
 
   useEffect(() => {
     let filteredCourses = [...allCourses];
@@ -197,14 +183,6 @@ const Courses = () => {
     setCourses(filteredCourses);
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses, categories]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
-  const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
-  const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
-  const handleGotoPage = (n: number) => setCurrentPage(n);
 
   return (
     <Layout>

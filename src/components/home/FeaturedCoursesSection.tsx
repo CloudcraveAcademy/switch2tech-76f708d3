@@ -38,11 +38,11 @@ const FeaturedCoursesSection = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        console.log("Starting to fetch courses and related data...");
+        console.log("Starting to fetch courses...");
         setLoading(true);
         setError(null);
 
-        // Fetch courses with basic info
+        // Simple course fetch without complex joins
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
@@ -52,10 +52,10 @@ const FeaturedCoursesSection = () => {
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw coursesError;
+          throw new Error("Failed to fetch courses");
         }
 
-        console.log("Raw courses data:", coursesData);
+        console.log("Fetched courses:", coursesData?.length || 0);
 
         if (!coursesData || coursesData.length === 0) {
           console.log("No courses found");
@@ -63,33 +63,7 @@ const FeaturedCoursesSection = () => {
           return;
         }
 
-        // Fetch categories
-        const { data: categoriesData } = await supabase
-          .from("course_categories")
-          .select("*");
-
-        const categoryMap = categoriesData?.reduce((acc, cat) => {
-          acc[cat.id] = cat.name;
-          return acc;
-        }, {} as Record<string, string>) || {};
-
-        // Fetch all instructors for these courses
-        const instructorIds = [...new Set(coursesData.map(course => course.instructor_id))];
-        const { data: instructorsData } = await supabase
-          .from("user_profiles")
-          .select("id, first_name, last_name, avatar_url")
-          .in("id", instructorIds);
-
-        const instructorMap = instructorsData?.reduce((acc, instructor) => {
-          acc[instructor.id] = {
-            id: instructor.id,
-            name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || "Instructor",
-            avatar: instructor.avatar_url || "/placeholder.svg"
-          };
-          return acc;
-        }, {} as Record<string, any>) || {};
-
-        // Transform courses data
+        // Transform courses with simple data - avoid complex joins that might fail
         const transformedCourses: Course[] = coursesData.map(course => ({
           id: course.id,
           title: course.title || "Untitled Course",
@@ -97,23 +71,23 @@ const FeaturedCoursesSection = () => {
           price: Number(course.price) || 0,
           discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
           level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
-          reviews: Math.floor(Math.random() * 100) + 20, // 20-120 reviews
+          rating: 4.5, // Static for now
+          reviews: 120, // Static for now
           mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: Math.floor(Math.random() * 200) + 50, // 50-250 students
-          lessons: Math.floor(Math.random() * 20) + 5, // 5-25 lessons
-          instructor: instructorMap[course.instructor_id] || {
+          enrolledStudents: 150, // Static for now
+          lessons: 12, // Static for now
+          instructor: {
             name: "Instructor",
             avatar: "/placeholder.svg"
           },
-          category: categoryMap[course.category] || "General",
+          category: "Technology", // Static for now
           image: course.image_url || "/placeholder.svg",
           featured: true,
           tags: [],
           duration: course.duration_hours ? String(course.duration_hours) : "10",
         }));
 
-        console.log("Transformed courses:", transformedCourses);
+        console.log("Transformed courses:", transformedCourses.length);
         setCourses(transformedCourses);
       } catch (error: any) {
         console.error("Error in fetchCourses:", error);
@@ -140,13 +114,8 @@ const FeaturedCoursesSection = () => {
               and advance your career.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="animate-pulse rounded-lg bg-accent h-80"
-              />
-            ))}
+          <div className="flex justify-center py-12">
+            <Loader className="animate-spin h-10 w-10 text-brand-500" />
           </div>
         </div>
       </section>
