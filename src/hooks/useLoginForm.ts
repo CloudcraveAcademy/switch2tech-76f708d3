@@ -58,7 +58,7 @@ export const useLoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt for:", email);
+    console.log("Login form submitted for:", email);
 
     if (!validate()) {
       return;
@@ -84,8 +84,7 @@ export const useLoginForm = () => {
         description: "Welcome back!",
       });
       
-      // Navigate to dashboard
-      navigate('/dashboard');
+      // The navigation will be handled by the auth state change in Login.tsx
       
     } catch (error: any) {
       console.error("Login error:", error);

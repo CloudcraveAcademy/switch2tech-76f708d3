@@ -62,13 +62,6 @@ const Login = () => {
     setupDemoAccounts();
   }, []);
 
-  // Update the login form's handleSubmit to redirect after successful login
-  const handleLogin = async (e: React.FormEvent) => {
-    const result = await handleSubmit(e);
-    // After successful login, the auth state change will trigger the redirect
-    // No need to manually redirect here as the useEffect above handles it
-  };
-
   return (
     <Layout>
       <div className="max-w-md mx-auto px-4 py-12">
@@ -90,7 +83,7 @@ const Login = () => {
               loading={loading}
               loginInProgress={loginInProgress}
               setShowForgotPassword={setShowForgotPassword}
-              handleSubmit={handleLogin}
+              handleSubmit={handleSubmit}
               authError={authError}
             />
           ) : (
@@ -146,7 +139,7 @@ const Login = () => {
           <p className="mt-8 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link 
-              to={`/register${redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""}`} 
+              to={`/register${redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""}`}
               className="text-brand-600 hover:text-brand-700 font-medium"
             >
               Sign up
