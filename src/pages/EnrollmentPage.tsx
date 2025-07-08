@@ -24,7 +24,6 @@ import {
   Calendar,
   CreditCard,
   ArrowLeft,
-  Play,
   User,
   Mail,
   Phone,
@@ -47,7 +46,6 @@ import {
 } from "@/components/ui/select";
 import { COUNTRIES } from "@/utils/countries";
 import LiveCourseDetails from "@/components/course/LiveCourseDetails";
-import type { UserWithProfile } from "@/types/auth";
 
 const enrollmentSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -126,7 +124,6 @@ const EnrollmentPage = () => {
     },
   });
 
-  // Watch the currency field to trigger price updates
   const watchedCurrency = form.watch("currency");
 
   const { data: flutterwaveConfig, isLoading: isLoadingPaymentConfig, error: paymentConfigError } = useQuery({
@@ -234,7 +231,6 @@ const EnrollmentPage = () => {
   const basePriceUSD = getEffectivePrice();
   const isFree = basePriceUSD === 0;
   
-  // Calculate display price based on watched currency
   const displayPrice = React.useMemo(() => {
     if (isFree) return 0;
     return watchedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, watchedCurrency);
@@ -246,7 +242,6 @@ const EnrollmentPage = () => {
       console.log('User ID:', userId);
       console.log('Course ID:', courseId);
       
-      // Check if user is already enrolled
       const { data: existingEnrollment, error: checkError } = await supabase
         .from("enrollments")
         .select("id")
@@ -266,13 +261,10 @@ const EnrollmentPage = () => {
           description: "You are already enrolled in this course!",
         });
         
-        // Direct navigation without delay
-        console.log('Navigating to:', `/dashboard/courses/${courseId}`);
         navigate(`/dashboard/courses/${courseId}`, { replace: true });
         return;
       }
 
-      // Create new enrollment
       console.log('Creating new enrollment...');
       const { error: enrollmentError } = await supabase
         .from("enrollments")
@@ -290,7 +282,6 @@ const EnrollmentPage = () => {
 
       console.log('Enrollment created successfully!');
       
-      // Clear any stored enrollment data
       localStorage.removeItem(`enrollment_${courseId}`);
       
       toast({
@@ -298,7 +289,6 @@ const EnrollmentPage = () => {
         description: "Welcome to the course! Redirecting to your course dashboard...",
       });
 
-      // Immediate navigation to course dashboard
       console.log('=== REDIRECTING TO COURSE DASHBOARD ===');
       console.log('Target URL:', `/dashboard/courses/${courseId}`);
       navigate(`/dashboard/courses/${courseId}`, { replace: true });
@@ -317,19 +307,10 @@ const EnrollmentPage = () => {
     try {
       console.log('=== PAYMENT VERIFICATION STARTED ===');
       console.log('Transaction ID:', transactionId);
-      console.log('Current user from context:', user?.id);
       
       setPaymentProcessing(true);
       
-      // First check: Current user from context
-      if (user?.id) {
-        console.log('✅ User authenticated via context, proceeding with enrollment');
-        await completeEnrollment(user.id);
-        return;
-      }
-      
-      // Second check: Get fresh session
-      console.log('No user in context, checking fresh session...');
+      // First: Get fresh session to ensure we have current auth state
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -339,12 +320,22 @@ const EnrollmentPage = () => {
       
       if (session?.user) {
         console.log('✅ Found valid session, proceeding with enrollment');
+        console.log('Session user:', session.user.id);
         await completeEnrollment(session.user.id);
         return;
       }
       
-      // If no authentication found, redirect to login with return path
-      console.log('❌ No authentication found, redirecting to login');
+      // Second: Check if we have stored enrollment data for later processing
+      const storedData = localStorage.getItem(`enrollment_${courseId}`);
+      if (storedData) {
+        console.log('Found stored enrollment data, but no session - redirecting to login');
+        const returnUrl = `/enroll/${courseId}?payment=success&transaction_id=${transactionId}`;
+        navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`, { replace: true });
+        return;
+      }
+      
+      // If no authentication and no stored data, something went wrong
+      console.log('❌ No authentication found and no stored data');
       toast({
         title: "Authentication Required",
         description: "Please log in to complete your enrollment.",
@@ -400,7 +391,7 @@ const EnrollmentPage = () => {
         }
       }
 
-      // Wait a bit for auth state to update, then proceed with enrollment
+      // Wait for auth state to update, then proceed with enrollment
       setTimeout(async () => {
         await verifyPaymentAndEnroll(transactionId);
       }, 2000);
@@ -535,7 +526,7 @@ const EnrollmentPage = () => {
         email: user.email || "",
         phone: profileData.phone || "",
         country: profileData.country || "",
-        currency: "USD", // Keep default currency
+        currency: "USD",
         motivation: "",
       });
       setFormInitialized(true);
@@ -571,7 +562,6 @@ const EnrollmentPage = () => {
     };
   }, []);
 
-  // Enhanced payment success handling effect
   useEffect(() => {
     if (authLoading) {
       console.log('Auth still loading, skipping payment success check');
@@ -587,11 +577,12 @@ const EnrollmentPage = () => {
       console.log('Transaction ID:', transactionId);
       console.log('Current user:', user?.id);
       
-      // Clean up URL immediately to prevent re-processing
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // Start payment verification
-      verifyPaymentAndEnroll(transactionId);
+      setTimeout(() => {
+        verifyPaymentAndEnroll(transactionId);
+      }, 1000);
+      
     } else if (paymentStatus === 'cancelled') {
       console.log('Payment was cancelled');
       toast({
@@ -601,7 +592,7 @@ const EnrollmentPage = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [courseId, navigate, authLoading, user]);
+  }, [courseId, authLoading, user]);
 
   if (paymentProcessing) {
     return (
