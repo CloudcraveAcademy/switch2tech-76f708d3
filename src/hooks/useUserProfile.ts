@@ -29,66 +29,51 @@ export const useUserProfile = () => {
       
       console.log("Fetching profile for user:", user.id);
       
-      // Use a direct query with the security definer function to avoid recursion
-      const { data: profile, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
+      });
+      
+      const fetchPromise = supabase
         .from('user_profiles')
         .select('id, first_name, last_name, role, avatar_url')
         .eq('id', user.id)
         .maybeSingle();
       
+      const { data: profile, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      
       if (error) {
         console.error("Error fetching user profile:", error);
         
-        // Fallback to query with fewer columns as a backup approach
-        const { data: fallbackProfile, error: fallbackError } = await supabase
-          .from('user_profiles')
-          .select('first_name, last_name, role, avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
-          
-        if (fallbackError) {
-          console.error("Fallback profile fetch failed:", fallbackError);
-          // Return basic user information as a last resort
-          return {
-            ...user,
-            role: 'instructor' // Default role if profile can't be fetched
-          } as UserWithProfile;
-        }
-        
-        // Cache fallback result
-        profileCache.set(user.id, {
-          data: fallbackProfile,
-          timestamp: now
-        });
-        
+        // Return basic user information as fallback
         return {
           ...user,
-          name: `${fallbackProfile.first_name || ''} ${fallbackProfile.last_name || ''}`.trim() || undefined,
-          avatar: fallbackProfile.avatar_url,
-          role: fallbackProfile.role as UserWithProfile['role']
-        };
+          role: 'student' // Default role if profile can't be fetched
+        } as UserWithProfile;
       }
       
       console.log("Profile data fetched:", profile);
       
       // Cache the result
-      profileCache.set(user.id, {
-        data: profile,
-        timestamp: now
-      });
+      if (profile) {
+        profileCache.set(user.id, {
+          data: profile,
+          timestamp: now
+        });
+      }
       
       return {
         ...user,
-        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || undefined,
-        avatar: profile.avatar_url,
-        role: profile.role as UserWithProfile['role']
+        name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || undefined : undefined,
+        avatar: profile?.avatar_url,
+        role: (profile?.role as UserWithProfile['role']) || 'student'
       };
     } catch (error) {
       console.error("Error enriching user data:", error);
       // Return basic user information even if there's an exception
       return {
         ...user,
-        role: 'instructor' // Default role as requested by the user
+        role: 'student' // Default role as fallback
       } as UserWithProfile;
     }
   };
