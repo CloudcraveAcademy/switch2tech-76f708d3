@@ -14,10 +14,10 @@ const Dashboard = () => {
   const { user, loading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Redirect to login if not authenticated
+  // Handle authentication and redirection
   useEffect(() => {
     if (!loading && !user) {
-      console.log("No user found, redirecting to login");
+      console.log("User not authenticated, redirecting to login");
       navigate("/login", { 
         replace: true,
         state: { from: location.pathname } 
@@ -25,15 +25,7 @@ const Dashboard = () => {
     }
   }, [user, loading, navigate, location.pathname]);
 
-  // Redirect users without role to home
-  useEffect(() => {
-    if (user && !user.role) {
-      console.log("User has no role, redirecting to home");
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate]);
-
-  // Loading state
+  // Show loading while auth is being determined
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -46,18 +38,19 @@ const Dashboard = () => {
     );
   }
 
-  // Not authenticated
+  // If not authenticated after loading, show redirecting message
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="space-y-4 w-64">
-          <p className="text-center">Redirecting to login...</p>
+        <div className="text-center">
+          <p className="text-lg mb-2">Redirecting to login...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div>
         </div>
       </div>
     );
   }
 
-  // Authenticated - render dashboard
+  // Render dashboard for authenticated users
   return (
     <div className="flex h-screen bg-gray-100">
       <DashboardSidebar />

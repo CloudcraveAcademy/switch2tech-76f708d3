@@ -52,62 +52,67 @@ const FeaturedCoursesSection = () => {
     queryFn: async () => {
       console.log("Fetching featured courses...");
       
-      const { data: coursesData, error: coursesError } = await supabase
-        .from("courses")
-        .select(`
-          *,
-          instructor:user_profiles!instructor_id (
-            first_name,
-            last_name
-          )
-        `)
-        .eq("is_published", true)
-        .order("created_at", { ascending: false })
-        .limit(6);
+      try {
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("courses")
+          .select(`
+            *,
+            instructor:user_profiles!instructor_id (
+              first_name,
+              last_name
+            )
+          `)
+          .eq("is_published", true)
+          .order("created_at", { ascending: false })
+          .limit(6);
 
-      if (coursesError) {
-        console.error("Error fetching courses:", coursesError);
-        throw coursesError;
+        if (coursesError) {
+          console.error("Error fetching courses:", coursesError);
+          throw coursesError;
+        }
+
+        console.log("Fetched courses data:", coursesData?.length || 0, "courses");
+
+        if (!coursesData || coursesData.length === 0) {
+          console.log("No courses found, returning empty array");
+          return [];
+        }
+
+        const transformedCourses: Course[] = coursesData.map(course => ({
+          id: course.id,
+          title: course.title || "Untitled Course",
+          description: course.description,
+          price: Number(course.price) || 0,
+          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+          level: parseLevel(course.level),
+          rating: 4.5,
+          reviews: 42,
+          mode: parseMode(course.mode),
+          enrolledStudents: 156,
+          lessons: 8,
+          instructor: {
+            id: course.instructor_id,
+            name: course.instructor ? 
+              `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Instructor' 
+              : 'Instructor',
+            avatar: "/placeholder.svg"
+          },
+          category: "Technology",
+          image: course.image_url || "/placeholder.svg",
+          featured: true,
+          tags: [],
+          duration: course.duration_hours ? `${course.duration_hours}h` : "10h",
+        }));
+
+        console.log("Successfully transformed", transformedCourses.length, "courses");
+        return transformedCourses;
+      } catch (error) {
+        console.error("Course fetch failed:", error);
+        throw error;
       }
-
-      if (!coursesData || coursesData.length === 0) {
-        console.log("No courses found");
-        return [];
-      }
-
-      console.log("Raw courses data:", coursesData);
-
-      const transformedCourses: Course[] = coursesData.map(course => ({
-        id: course.id,
-        title: course.title || "Untitled Course",
-        description: course.description,
-        price: Number(course.price) || 0,
-        discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-        level: parseLevel(course.level),
-        rating: 4.5,
-        reviews: 42,
-        mode: parseMode(course.mode),
-        enrolledStudents: 156,
-        lessons: 8,
-        instructor: {
-          id: course.instructor_id,
-          name: course.instructor ? 
-            `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Instructor' 
-            : 'Instructor',
-          avatar: "/placeholder.svg"
-        },
-        category: "Technology",
-        image: course.image_url || "/placeholder.svg",
-        featured: true,
-        tags: [],
-        duration: course.duration_hours ? `${course.duration_hours}h` : "10h",
-      }));
-
-      console.log("Transformed courses:", transformedCourses.length);
-      return transformedCourses;
     },
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading) {
@@ -144,9 +149,9 @@ const FeaturedCoursesSection = () => {
             </h2>
           </div>
           <div className="text-center text-destructive py-12">
-            <p className="mb-4">Unable to load courses. Please try refreshing the page.</p>
+            <p className="mb-4">Unable to load courses at the moment.</p>
             <Button variant="outline" onClick={() => window.location.reload()}>
-              Refresh Page
+              Try Again
             </Button>
           </div>
         </div>
@@ -170,7 +175,8 @@ const FeaturedCoursesSection = () => {
 
         {!courses || courses.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
-            No featured courses available yet. Check back soon!
+            <p>No featured courses available yet.</p>
+            <p className="text-sm mt-2">Check back soon for exciting new content!</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">

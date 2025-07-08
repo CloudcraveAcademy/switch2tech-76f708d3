@@ -58,7 +58,7 @@ export const useLoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login form submitted for:", email);
+    console.log("Login attempt for:", email);
 
     if (!validate()) {
       return;
@@ -68,32 +68,36 @@ export const useLoginForm = () => {
     setAuthError(null);
     
     try {
+      console.log("Calling login function...");
       await login(email, password);
       
+      // Handle remember me
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
       
-      console.log("Login successful, redirecting...");
+      console.log("Login successful");
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
       
-      // Navigate to dashboard after successful login
+      // Navigate to dashboard
       navigate('/dashboard');
       
     } catch (error: any) {
       console.error("Login error:", error);
       
-      let errorMessage = "Invalid email or password. Please try again.";
+      let errorMessage = "Login failed. Please try again.";
       
       if (error.message?.includes("Invalid login credentials")) {
         errorMessage = "Invalid email or password. Please check your credentials.";
       } else if (error.message?.includes("Email not confirmed")) {
         errorMessage = "Please check your email to confirm your account before logging in.";
+      } else if (error.message?.includes("Too many requests")) {
+        errorMessage = "Too many login attempts. Please try again later.";
       } else if (error.message) {
         errorMessage = error.message;
       }

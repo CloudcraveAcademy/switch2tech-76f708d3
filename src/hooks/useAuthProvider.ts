@@ -12,30 +12,44 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const { login, register, logout: performLogout } = useAuthOperations();
   const { enrichUserWithProfile } = useUserProfile();
 
-  // Simple initialization
+  // Initialize auth state
   useEffect(() => {
     let mounted = true;
-    
-    const initAuth = async () => {
+
+    const initializeAuth = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log("Initializing auth state...");
         
-        if (!mounted) return;
+        // Get current session
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
-        if (currentSession?.user) {
+        if (error) {
+          console.error("Error getting session:", error);
+          if (mounted) {
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (currentSession?.user && mounted) {
+          console.log("Found existing session for user:", currentSession.user.id);
           setSession(currentSession);
           
+          // Try to enrich user profile
           try {
             const enrichedUser = await enrichUserWithProfile(currentSession.user);
             if (mounted) {
+              console.log("User profile enriched successfully");
               setUser(enrichedUser);
             }
-          } catch (error) {
-            console.error("Profile enrichment failed:", error);
+          } catch (profileError) {
+            console.error("Profile enrichment failed, using basic user:", profileError);
             if (mounted) {
               setUser(currentSession.user);
             }
           }
+        } else {
+          console.log("No existing session found");
         }
       } catch (error) {
         console.error("Auth initialization failed:", error);
@@ -51,27 +65,34 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
       async (event, newSession) => {
         if (!mounted) return;
         
-        console.log("Auth state changed:", event);
+        console.log("Auth state changed:", event, newSession ? "with session" : "no session");
         
+        if (event === 'SIGNED_OUT' || !newSession) {
+          setUser(null);
+          setSession(null);
+          setLoading(false);
+          return;
+        }
+
         if (newSession?.user) {
           setSession(newSession);
+          
           try {
             const enrichedUser = await enrichUserWithProfile(newSession.user);
             setUser(enrichedUser);
+            console.log("User authenticated and profile loaded:", enrichedUser.role);
           } catch (error) {
-            console.error("Profile enrichment failed:", error);
+            console.error("Profile enrichment failed in auth listener:", error);
             setUser(newSession.user);
           }
-        } else {
-          setUser(null);
-          setSession(null);
         }
         
         setLoading(false);
       }
     );
 
-    initAuth();
+    // Initialize
+    initializeAuth();
     
     return () => {
       mounted = false;
@@ -80,9 +101,13 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   }, [enrichUserWithProfile]);
 
   const logout = useCallback(async () => {
-    await performLogout();
-    if (onLogout) {
-      onLogout();
+    try {
+      await performLogout();
+      if (onLogout) {
+        onLogout();
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
     }
   }, [performLogout, onLogout]);
 
