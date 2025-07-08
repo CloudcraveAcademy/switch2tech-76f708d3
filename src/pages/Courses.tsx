@@ -15,11 +15,6 @@ import { Search, LoaderCircle } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Category {
-  id: string;
-  name: string;
-}
-
 interface Course {
   id: string;
   title: string;
@@ -53,7 +48,6 @@ const Courses = () => {
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(categoryFromURL || "all");
@@ -66,25 +60,13 @@ const Courses = () => {
   const pagedCourses = courses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCourses = async () => {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching courses and categories...");
+        console.log("Fetching courses...");
 
-        // Fetch categories
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from("course_categories")
-          .select("id, name")
-          .order("name");
-
-        if (categoriesError) {
-          console.error("Error fetching categories:", categoriesError);
-        }
-
-        setCategories(categoriesData || []);
-
-        // Fetch courses
+        // Simple query to get all published courses
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
@@ -93,7 +75,7 @@ const Courses = () => {
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw coursesError;
+          throw new Error("Failed to fetch courses");
         }
 
         console.log("Fetched courses:", coursesData?.length);
@@ -104,28 +86,7 @@ const Courses = () => {
           return;
         }
 
-        // Fetch instructors for all courses
-        const instructorIds = [...new Set(coursesData.map(course => course.instructor_id))];
-        const { data: instructorsData } = await supabase
-          .from("user_profiles")
-          .select("id, first_name, last_name, avatar_url")
-          .in("id", instructorIds);
-
-        const instructorMap = instructorsData?.reduce((acc, instructor) => {
-          acc[instructor.id] = {
-            id: instructor.id,
-            name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || "Instructor",
-            avatar: instructor.avatar_url || "/placeholder.svg"
-          };
-          return acc;
-        }, {} as Record<string, any>) || {};
-
-        const categoryMap = categoriesData?.reduce((acc, cat) => {
-          acc[cat.id] = cat.name;
-          return acc;
-        }, {} as Record<string, string>) || {};
-
-        // Transform courses
+        // Transform courses with simple fallbacks
         const transformedCourses: Course[] = coursesData.map(course => ({
           id: course.id,
           title: course.title || "Untitled Course",
@@ -133,16 +94,17 @@ const Courses = () => {
           price: Number(course.price) || 0,
           discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
           level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
-          reviews: Math.floor(Math.random() * 100) + 20, // 20-120 reviews
+          rating: 4.5, // Static for now
+          reviews: 42, // Static for now
           mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: Math.floor(Math.random() * 200) + 50,
-          lessons: Math.floor(Math.random() * 20) + 5,
-          instructor: instructorMap[course.instructor_id] || {
+          enrolledStudents: 156, // Static for now
+          lessons: 8, // Static for now
+          instructor: {
+            id: course.instructor_id,
             name: "Instructor",
             avatar: "/placeholder.svg"
           },
-          category: categoryMap[course.category] || "General",
+          category: "Technology", // Static for now
           image: course.image_url || "/placeholder.svg",
           featured: false,
           tags: [],
@@ -152,14 +114,14 @@ const Courses = () => {
         console.log("Transformed courses:", transformedCourses.length);
         setAllCourses(transformedCourses);
       } catch (error: any) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching courses:", error);
         setError("Failed to load courses. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchCourses();
   }, []);
 
   useEffect(() => {
@@ -171,15 +133,6 @@ const Courses = () => {
           course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
       );
-    }
-
-    if (selectedCategory !== "all") {
-      const categoryName = categories.find(cat => cat.id === selectedCategory)?.name;
-      if (categoryName) {
-        filteredCourses = filteredCourses.filter(
-          (course) => course.category === categoryName
-        );
-      }
     }
 
     if (selectedLevel !== "all") {
@@ -196,7 +149,7 @@ const Courses = () => {
 
     setCourses(filteredCourses);
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses, categories]);
+  }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,24 +184,7 @@ const Courses = () => {
               </div>
             </form>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
                 <Select value={selectedLevel} onValueChange={setSelectedLevel}>

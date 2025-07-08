@@ -7,8 +7,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 
 export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const [loading, setLoading] = useState(true);
-  const authListenerInitialized = useRef(false);
-  const initializationComplete = useRef(false);
+  const isInitialized = useRef(false);
   
   const {
     login,
@@ -24,17 +23,56 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     setUser,
     setSession,
     validateSession,
-    initializeSession,
   } = useSessionManager();
 
-  // Simplified auth state management effect
+  // Initialize auth state
   useEffect(() => {
-    if (authListenerInitialized.current) return;
+    if (isInitialized.current) return;
     
     let mounted = true;
-    console.log("Setting up auth state listener");
-    authListenerInitialized.current = true;
+    console.log("Initializing auth provider");
+    isInitialized.current = true;
     
+    const initializeAuth = async () => {
+      try {
+        // Get current session first
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (currentSession) {
+          console.log("Found existing session during initialization");
+          setSession(currentSession);
+          
+          try {
+            const enrichedUser = await enrichUserWithProfile(currentSession.user);
+            if (mounted) {
+              setUser(enrichedUser);
+            }
+          } catch (error) {
+            console.error("Error enriching user during init:", error);
+            if (mounted) {
+              setUser(currentSession.user as any);
+            }
+          }
+        } else {
+          console.log("No existing session found");
+          setUser(null);
+          setSession(null);
+        }
+        
+        if (mounted) {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Failed to initialize auth:", error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state changed:", event, newSession ? "session exists" : "no session");
@@ -46,9 +84,14 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
             setSession(newSession);
             
             if (newSession?.user) {
-              const enrichedUser = await enrichUserWithProfile(newSession.user);
-              console.log("User authenticated:", enrichedUser?.email);
-              setUser(enrichedUser);
+              try {
+                const enrichedUser = await enrichUserWithProfile(newSession.user);
+                console.log("User authenticated:", enrichedUser?.email);
+                setUser(enrichedUser);
+              } catch (error) {
+                console.error("Error enriching user:", error);
+                setUser(newSession.user as any);
+              }
             }
             setLoading(false);
           } else if (event === 'SIGNED_OUT') {
@@ -67,41 +110,15 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
       }
     );
 
-    // Initialize session
-    const initialize = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (currentSession) {
-          console.log("Found existing session during initialization");
-          setSession(currentSession);
-          
-          try {
-            const enrichedUser = await enrichUserWithProfile(currentSession.user);
-            setUser(enrichedUser);
-          } catch (error) {
-            console.error("Error enriching user during init:", error);
-            setUser(currentSession.user as any);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to initialize session:", error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-    
-    initialize();
+    // Initialize
+    initializeAuth();
     
     return () => {
       mounted = false;
-      authListenerInitialized.current = false;
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
-  }, [enrichUserWithProfile, setUser, setSession, setLoading]);
+  }, [enrichUserWithProfile, setUser, setSession]);
 
   const logout = useCallback(async () => {
     await performLogout();

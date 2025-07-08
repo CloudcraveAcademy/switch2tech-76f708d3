@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -41,46 +42,20 @@ const FeaturedCoursesSection = () => {
         setLoading(true);
         setError(null);
 
-        // Test database connection first
-        const { data: testData, error: testError } = await supabase
-          .from("courses")
-          .select("count")
-          .limit(1);
-
-        if (testError) {
-          console.error("Database connection test failed:", testError);
-          throw new Error("Unable to connect to database");
-        }
-
-        console.log("Database connection successful");
-
-        // Fetch courses
+        // Simple query to get courses
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
-          .select(`
-            id,
-            title,
-            description,
-            price,
-            discounted_price,
-            level,
-            mode,
-            duration_hours,
-            image_url,
-            instructor_id,
-            category,
-            is_published
-          `)
+          .select("*")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(6);
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw coursesError;
+          throw new Error("Failed to fetch courses");
         }
 
-        console.log("Courses fetched:", coursesData?.length || 0);
+        console.log("Raw courses data:", coursesData);
 
         if (!coursesData || coursesData.length === 0) {
           console.log("No courses found");
@@ -88,53 +63,36 @@ const FeaturedCoursesSection = () => {
           return;
         }
 
-        // Fetch categories and instructors separately to avoid complex joins
-        const [categoriesResponse, instructorsResponse] = await Promise.all([
-          supabase.from("course_categories").select("id, name"),
-          supabase.from("user_profiles").select("id, first_name, last_name, avatar_url")
-        ]);
-
-        const categories = categoriesResponse.data || [];
-        const instructors = instructorsResponse.data || [];
-
-        console.log("Categories fetched:", categories.length);
-        console.log("Instructors fetched:", instructors.length);
-
-        // Transform courses data
-        const transformedCourses: Course[] = coursesData.map(course => {
-          const category = categories.find(cat => cat.id === course.category);
-          const instructor = instructors.find(inst => inst.id === course.instructor_id);
-
-          return {
-            id: course.id,
-            title: course.title || "Untitled Course",
-            description: course.description || "",
-            price: Number(course.price) || 0,
-            discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-            rating: Math.floor(Math.random() * 2) + 4,
-            reviews: Math.floor(Math.random() * 100) + 20,
-            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-            enrolledStudents: Math.floor(Math.random() * 200) + 50,
-            lessons: Math.floor(Math.random() * 20) + 5,
-            instructor: {
-              id: instructor?.id,
-              name: instructor ? `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() : "Instructor",
-              avatar: instructor?.avatar_url || "/placeholder.svg"
-            },
-            category: category?.name || "General",
-            image: course.image_url || "/placeholder.svg",
-            featured: true,
-            tags: [],
-            duration: course.duration_hours ? String(course.duration_hours) : "10",
-          };
-        });
+        // Transform courses data with simple fallbacks
+        const transformedCourses: Course[] = coursesData.map(course => ({
+          id: course.id,
+          title: course.title || "Untitled Course",
+          description: course.description || "",
+          price: Number(course.price) || 0,
+          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+          rating: 4.5, // Static rating for now
+          reviews: 42, // Static reviews for now
+          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+          enrolledStudents: 156, // Static number for now
+          lessons: 8, // Static number for now
+          instructor: {
+            id: course.instructor_id,
+            name: "Instructor", // Static name for now
+            avatar: "/placeholder.svg"
+          },
+          category: "Technology", // Static category for now
+          image: course.image_url || "/placeholder.svg",
+          featured: true,
+          tags: [],
+          duration: course.duration_hours ? String(course.duration_hours) : "10",
+        }));
 
         console.log("Courses transformed successfully:", transformedCourses.length);
         setCourses(transformedCourses);
       } catch (error: any) {
         console.error("Error in fetchCourses:", error);
-        setError(error.message || "Failed to load courses. Please try again later.");
+        setError("Failed to load courses. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -157,13 +115,8 @@ const FeaturedCoursesSection = () => {
               and advance your career.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="animate-pulse rounded-lg bg-accent h-80"
-              />
-            ))}
+          <div className="flex justify-center py-12">
+            <Loader className="animate-spin h-10 w-10 text-brand-500" />
           </div>
         </div>
       </section>
