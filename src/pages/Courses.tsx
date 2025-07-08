@@ -15,120 +15,45 @@ import { Search, LoaderCircle } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-interface SupabaseCategory {
+interface Category {
   id: string;
   name: string;
 }
 
-interface SupabaseInstructor {
-  id: string;
-  first_name: string;
-  last_name: string;
-  avatar_url: string | null;
-}
-
-interface SupabaseCourse {
+interface Course {
   id: string;
   title: string;
   description: string | null;
-  price: number | null;
-  discounted_price?: number | null;
-  level: "beginner" | "intermediate" | "advanced" | null;
-  rating?: number;
-  reviews?: number;
-  mode: "self-paced" | "virtual" | "live" | null;
-  enrolledStudents?: number;
-  lessons?: number;
-  image_url: string | null;
-  category: string | null;
-  instructor_id: string;
-  instructor?: SupabaseInstructor;
-  course_categories?: SupabaseCategory;
-  duration_hours?: number;
+  price: number;
+  discounted_price?: number;
+  level: "beginner" | "intermediate" | "advanced";
+  rating: number;
+  reviews: number;
+  mode: "self-paced" | "virtual" | "live";
+  enrolledStudents: number;
+  lessons: number;
+  instructor: {
+    id?: string;
+    name: string;
+    avatar: string | null;
+  };
+  category: string;
+  image: string;
+  featured: boolean;
+  tags: string[];
+  duration: string;
 }
 
 const PAGE_SIZE = 9;
-
-const fetchCoursesWithExtra = async (): Promise<SupabaseCourse[]> => {
-  try {
-    console.log("Fetching courses from database...");
-    
-    const { data, error } = await supabase
-      .from("courses")
-      .select(
-        `
-        *,
-        course_categories (
-          id,
-          name
-        )
-        `
-      )
-      .eq("is_published", true);
-
-    if (error) {
-      console.error("Error fetching courses:", error);
-      throw error;
-    }
-
-    const coursesWithInstructors = await Promise.all(
-      data.map(async (course) => {
-        if (course.instructor_id) {
-          const { data: instructor, error: instructorError } = await supabase
-            .from("user_profiles")
-            .select("id, first_name, last_name, avatar_url")
-            .eq("id", course.instructor_id)
-            .single();
-
-          if (instructorError) {
-            console.warn("Could not fetch instructor:", instructorError);
-            return {
-              ...course,
-              instructor: null
-            };
-          }
-
-          return {
-            ...course,
-            instructor
-          };
-        }
-        return course;
-      })
-    );
-
-    return (
-      coursesWithInstructors?.map((course: any) => ({
-        ...course,
-        rating: course.rating || Math.round(4 + Math.random()),
-        reviews: course.reviews || Math.floor(20 + Math.random() * 500),
-        enrolledStudents: course.enrolledStudents || Math.floor(Math.random() * 200),
-        lessons: course.lessons || Math.floor(Math.random() * 25 + 5),
-      })) || []
-    );
-  } catch (error) {
-    console.error("Failed to fetch courses:", error);
-    return [];
-  }
-};
-
-const fetchCategories = async (): Promise<SupabaseCategory[]> => {
-  const { data, error } = await supabase.from("course_categories").select("*");
-  if (error) {
-    console.error("Error fetching categories:", error);
-    throw error;
-  }
-  return data || [];
-};
 
 const Courses = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const categoryFromURL = queryParams.get("category");
 
-  const [courses, setCourses] = useState<SupabaseCourse[]>([]);
-  const [allCourses, setAllCourses] = useState<SupabaseCourse[]>([]);
-  const [categories, setCategories] = useState<SupabaseCategory[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(categoryFromURL || "all");
@@ -141,23 +66,100 @@ const Courses = () => {
   const pagedCourses = courses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchCategories(), fetchCoursesWithExtra()])
-      .then(([cats, courses]) => {
-        console.log("Successfully fetched categories and courses:", { 
-          categoriesCount: cats.length, 
-          coursesCount: courses.length 
-        });
-        setCategories(cats);
-        setAllCourses(courses);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("Fetching courses and categories...");
+
+        // Fetch categories
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from("course_categories")
+          .select("id, name")
+          .order("name");
+
+        if (categoriesError) {
+          console.error("Error fetching categories:", categoriesError);
+        }
+
+        setCategories(categoriesData || []);
+
+        // Fetch courses
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("courses")
+          .select("*")
+          .eq("is_published", true)
+          .order("created_at", { ascending: false });
+
+        if (coursesError) {
+          console.error("Error fetching courses:", coursesError);
+          throw coursesError;
+        }
+
+        console.log("Fetched courses:", coursesData?.length);
+
+        if (!coursesData || coursesData.length === 0) {
+          setAllCourses([]);
+          setCourses([]);
+          return;
+        }
+
+        // Fetch instructors for all courses
+        const instructorIds = [...new Set(coursesData.map(course => course.instructor_id))];
+        const { data: instructorsData } = await supabase
+          .from("user_profiles")
+          .select("id, first_name, last_name, avatar_url")
+          .in("id", instructorIds);
+
+        const instructorMap = instructorsData?.reduce((acc, instructor) => {
+          acc[instructor.id] = {
+            id: instructor.id,
+            name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || "Instructor",
+            avatar: instructor.avatar_url || "/placeholder.svg"
+          };
+          return acc;
+        }, {} as Record<string, any>) || {};
+
+        const categoryMap = categoriesData?.reduce((acc, cat) => {
+          acc[cat.id] = cat.name;
+          return acc;
+        }, {} as Record<string, string>) || {};
+
+        // Transform courses
+        const transformedCourses: Course[] = coursesData.map(course => ({
+          id: course.id,
+          title: course.title || "Untitled Course",
+          description: course.description || "",
+          price: Number(course.price) || 0,
+          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+          rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
+          reviews: Math.floor(Math.random() * 100) + 20, // 20-120 reviews
+          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+          enrolledStudents: Math.floor(Math.random() * 200) + 50,
+          lessons: Math.floor(Math.random() * 20) + 5,
+          instructor: instructorMap[course.instructor_id] || {
+            name: "Instructor",
+            avatar: "/placeholder.svg"
+          },
+          category: categoryMap[course.category] || "General",
+          image: course.image_url || "/placeholder.svg",
+          featured: false,
+          tags: [],
+          duration: course.duration_hours ? String(course.duration_hours) : "10",
+        }));
+
+        console.log("Transformed courses:", transformedCourses.length);
+        setAllCourses(transformedCourses);
+      } catch (error: any) {
+        console.error("Error fetching data:", error);
+        setError("Failed to load courses. Please try again later.");
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        console.error("Failed to load courses or categories:", e);
-        setError("Failed to load courses. Please try again.");
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -166,15 +168,18 @@ const Courses = () => {
     if (searchTerm) {
       filteredCourses = filteredCourses.filter(
         (course) =>
-          (course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
       );
     }
 
     if (selectedCategory !== "all") {
-      filteredCourses = filteredCourses.filter(
-        (course) => course.category === selectedCategory
-      );
+      const categoryName = categories.find(cat => cat.id === selectedCategory)?.name;
+      if (categoryName) {
+        filteredCourses = filteredCourses.filter(
+          (course) => course.category === categoryName
+        );
+      }
     }
 
     if (selectedLevel !== "all") {
@@ -191,7 +196,7 @@ const Courses = () => {
 
     setCourses(filteredCourses);
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses]);
+  }, [searchTerm, selectedCategory, selectedLevel, selectedMode, allCourses, categories]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,9 +283,7 @@ const Courses = () => {
               <p className="text-sm text-gray-600">
                 {loading
                   ? "Loading courses..."
-                  : (
-                    <>Showing <span className="font-medium">{courses.length}</span> results</>
-                  )}
+                  : `Showing ${courses.length} results`}
               </p>
               <Button 
                 variant="outline" 
@@ -306,19 +309,8 @@ const Courses = () => {
             <p>{error}</p>
             <Button
               variant="outline"
-              onClick={async () => {
-                setLoading(true);
-                setError(null);
-                try {
-                  const [cats, courses] = await Promise.all([fetchCategories(), fetchCoursesWithExtra()]);
-                  setCategories(cats);
-                  setAllCourses(courses);
-                } catch (e) {
-                  setError("Failed to load. Try again.");
-                } finally {
-                  setLoading(false);
-                }
-              }}
+              onClick={() => window.location.reload()}
+              className="mt-4"
             >
               Retry
             </Button>
@@ -326,37 +318,7 @@ const Courses = () => {
         ) : pagedCourses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {pagedCourses.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={{
-                  ...course,
-                  instructor: course.instructor
-                    ? {
-                        ...course.instructor,
-                        name: course.instructor.first_name + " " + course.instructor.last_name,
-                        avatar: course.instructor.avatar_url || "/placeholder.svg",
-                      }
-                    : {
-                        name: "Unknown",
-                        avatar: "/placeholder.svg",
-                      },
-                  category: categories.find((cat) => cat.id === course.category)?.name || "General",
-                  rating: course.rating,
-                  reviews: course.reviews,
-                  enrolledStudents: course.enrolledStudents,
-                  lessons: course.lessons,
-                  image: course.image_url || "/placeholder.svg",
-                  mode: course.mode || "self-paced",
-                  price: typeof course.price === "number" ? course.price : 0,
-                  discounted_price: typeof course.discounted_price === "number" ? course.discounted_price : undefined,
-                  level: course.level || "beginner",
-                  featured: false,
-                  tags: [],
-                  duration: (course.duration_hours !== undefined && course.duration_hours !== null)
-                    ? String(course.duration_hours)
-                    : "0",
-                }}
-              />
+              <CourseCard key={course.id} course={course} />
             ))}
           </div>
         ) : (

@@ -46,9 +46,9 @@ export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      console.log('Fetching categories from Supabase...');
-      
       try {
+        console.log('Fetching categories from Supabase...');
+        
         // First get the categories
         const { data: categoriesData, error: categoriesError } = await supabase
           .from('course_categories')
@@ -57,7 +57,8 @@ export function useCategories() {
         
         if (categoriesError) {
           console.error('Error fetching categories:', categoriesError);
-          throw categoriesError;
+          console.log('Returning fallback categories due to error');
+          return fallbackCategories;
         }
         
         if (!categoriesData || categoriesData.length === 0) {
@@ -66,16 +67,12 @@ export function useCategories() {
         }
 
         // Get course counts for each category
-        const { data: coursesData, error: coursesError } = await supabase
+        const { data: coursesData } = await supabase
           .from('courses')
-          .select('category');
+          .select('category')
+          .eq('is_published', true);
         
-        if (coursesError) {
-          console.error('Error fetching course counts:', coursesError);
-          // Continue with processing categories, even without counts
-        }
-        
-        // Create a map of category IDs to course counts by manually counting
+        // Create a map of category IDs to course counts
         const countMap: {[key: string]: number} = {};
         if (coursesData && coursesData.length > 0) {
           coursesData.forEach(course => {
@@ -92,22 +89,21 @@ export function useCategories() {
           id: cat.id || '',
           name: cat.name || '',
           description: cat.description || '',
-          icon: cat.icon || 'folder', // Default icon if none provided
-          count: countMap[cat.id] || 0 // Add the count from our map, default to 0
+          icon: cat.icon || 'folder',
+          count: countMap[cat.id] || 0
         }));
         
         console.log('Formatted categories:', formattedCategories);
         
-        // Always return something - either the formatted categories or fallback data
         return formattedCategories.length > 0 ? formattedCategories : fallbackCategories;
       } catch (err) {
         console.error('Exception in categories fetch:', err);
-        console.log('Returning fallback categories due to error');
+        console.log('Returning fallback categories due to exception');
         return fallbackCategories;
       }
     },
     staleTime: 60000, // Cache data for 1 minute
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnReconnect: true, // Refetch when reconnecting after being offline
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 }
