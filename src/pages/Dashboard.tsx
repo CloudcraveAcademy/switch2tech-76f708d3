@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -15,7 +15,6 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const redirectAttempted = useRef(false);
 
-  // Simple redirect logic - only redirect if no user after loading completes
   useEffect(() => {
     if (!loading && !user && !redirectAttempted.current) {
       console.log("Dashboard: No user found after loading, redirecting to login");
@@ -24,12 +23,10 @@ const Dashboard = () => {
     }
   }, [loading, user, navigate]);
 
-  // Reset redirect flag when location changes
   useEffect(() => {
     redirectAttempted.current = false;
   }, [location.pathname]);
 
-  // Show loading while auth is loading
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -42,7 +39,6 @@ const Dashboard = () => {
     );
   }
 
-  // Show message if no user (shouldn't happen due to redirect)
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -53,7 +49,6 @@ const Dashboard = () => {
     );
   }
 
-  // Redirect users without roles
   if (user && !user.role) {
     console.log("User has no role, redirecting to home");
     navigate("/", { replace: true });
@@ -72,7 +67,6 @@ const Dashboard = () => {
         onClose={() => setIsMobileMenuOpen(false)}
       />
       
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-gray-100 pt-16 md:pt-0">
         <DashboardRoutes />
       </main>

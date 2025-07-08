@@ -16,7 +16,6 @@ export const CourseEnrollmentService = {
     try {
       console.log("CourseEnrollmentService: Starting enrollment", { courseId, userId });
       
-      // Simple auth check without complex validation
       if (!userId) {
         console.log("CourseEnrollmentService: No user ID provided");
         return {
@@ -29,12 +28,20 @@ export const CourseEnrollmentService = {
 
       // Check if already enrolled
       console.log("CourseEnrollmentService: Checking existing enrollment");
-      const { data: existingEnrollment } = await supabase
+      const { data: existingEnrollment, error: enrollmentError } = await supabase
         .from("enrollments")
         .select("id")
         .eq("course_id", courseId)
         .eq("student_id", userId)
-        .single();
+        .maybeSingle();
+
+      if (enrollmentError) {
+        console.error("CourseEnrollmentService: Error checking enrollment:", enrollmentError);
+        return {
+          success: false,
+          error: enrollmentError.message
+        };
+      }
 
       if (existingEnrollment) {
         console.log("CourseEnrollmentService: User already enrolled");
@@ -47,24 +54,36 @@ export const CourseEnrollmentService = {
 
       // Check if course is free
       console.log("CourseEnrollmentService: Checking course pricing");
-      const { data: courseData } = await supabase
+      const { data: courseData, error: courseError } = await supabase
         .from("courses")
         .select("price")
         .eq("id", courseId)
-        .single();
+        .maybeSingle();
+
+      if (courseError) {
+        console.error("CourseEnrollmentService: Error fetching course:", courseError);
+        return {
+          success: false,
+          error: courseError.message
+        };
+      }
 
       const isFree = !courseData?.price || courseData.price === 0;
       console.log("CourseEnrollmentService: Course is free:", isFree);
 
       // If course is not free, check for payment
       if (!isFree) {
-        const { data: paymentRecord } = await supabase
+        const { data: paymentRecord, error: paymentError } = await supabase
           .from("payment_transactions")
           .select("id, status")
           .eq("course_id", courseId)
           .eq("user_id", userId)
           .eq("status", "successful")
           .maybeSingle();
+
+        if (paymentError) {
+          console.error("CourseEnrollmentService: Error checking payment:", paymentError);
+        }
 
         if (!paymentRecord) {
           console.log("CourseEnrollmentService: Payment required");
@@ -120,15 +139,15 @@ export const CourseEnrollmentService = {
 
   async trackLessonProgress(userId: string, courseId: string, lessonId: string): Promise<boolean> {
     try {
-      const { data: enrollment } = await supabase
+      const { data: enrollment, error: enrollmentError } = await supabase
         .from("enrollments")
         .select("id, progress")
         .eq("course_id", courseId)
         .eq("student_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (!enrollment) {
-        console.error("No enrollment found");
+      if (enrollmentError || !enrollment) {
+        console.error("No enrollment found or error:", enrollmentError);
         return false;
       }
 
@@ -139,7 +158,7 @@ export const CourseEnrollmentService = {
 
       if (!totalLessons) return false;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("student_lesson_progress")
         .upsert(
           {
@@ -188,7 +207,10 @@ export const CourseEnrollmentService = {
         .eq("course_id", courseId)
         .eq("student_id", userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching lesson progress:", error);
+        return {};
+      }
 
       const progressMap: Record<string, boolean> = {};
       
@@ -205,7 +227,7 @@ export const CourseEnrollmentService = {
 
   async recordClassAttendance(userId: string, courseId: string, classSessionId: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("class_attendance")
         .insert({
           student_id: userId,

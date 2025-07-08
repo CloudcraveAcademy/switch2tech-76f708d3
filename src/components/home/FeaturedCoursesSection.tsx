@@ -38,11 +38,26 @@ const FeaturedCoursesSection = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        console.log("Starting to fetch featured courses...");
+        console.log("=== STARTING COURSE FETCH ===");
         setLoading(true);
         setError(null);
 
-        // Simplified query without timeout
+        // Test basic connection first
+        console.log("Testing Supabase connection...");
+        const { data: testData, error: testError } = await supabase
+          .from("courses")
+          .select("count")
+          .limit(1);
+
+        if (testError) {
+          console.error("Supabase connection test failed:", testError);
+          throw new Error(`Database connection failed: ${testError.message}`);
+        }
+
+        console.log("Supabase connection test passed");
+
+        // Simple query for courses
+        console.log("Fetching courses...");
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
@@ -50,24 +65,24 @@ const FeaturedCoursesSection = () => {
           .order("created_at", { ascending: false })
           .limit(6);
 
+        console.log("Courses query result:", { coursesData, coursesError });
+
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
-          throw coursesError;
+          throw new Error(`Failed to fetch courses: ${coursesError.message}`);
         }
 
-        console.log("Raw courses data:", coursesData);
-
-        if (!coursesData || coursesData.length === 0) {
-          console.log("No courses data received");
+        if (!coursesData) {
+          console.log("No courses data received - setting empty array");
           setCourses([]);
           return;
         }
 
-        console.log("Number of courses fetched:", coursesData.length);
+        console.log("Processing", coursesData.length, "courses");
 
-        // Transform courses with fallback data
+        // Transform courses
         const transformedCourses: Course[] = coursesData.map((course: any) => {
-          console.log("Transforming course:", course.id, course.title);
+          console.log("Processing course:", course.id, course.title);
           return {
             id: course.id,
             title: course.title || "Untitled Course",
@@ -92,16 +107,15 @@ const FeaturedCoursesSection = () => {
           };
         });
 
-        console.log("Successfully transformed courses:", transformedCourses.length);
+        console.log("Successfully transformed", transformedCourses.length, "courses");
         setCourses(transformedCourses);
         
       } catch (error: any) {
-        console.error("Error in fetchCourses:", error);
-        setError("Unable to load courses from database. Please try refreshing the page.");
-        
-        // Use empty array instead of fallback data to show the error state
+        console.error("=== COURSE FETCH ERROR ===", error);
+        setError(error.message || "Failed to load courses");
         setCourses([]);
       } finally {
+        console.log("=== COURSE FETCH COMPLETED ===");
         setLoading(false);
       }
     };
@@ -109,7 +123,7 @@ const FeaturedCoursesSection = () => {
     fetchCourses();
   }, []);
 
-  console.log("Render state - loading:", loading, "courses:", courses.length, "error:", error);
+  console.log("Component render - loading:", loading, "courses:", courses.length, "error:", error);
 
   if (loading) {
     return (

@@ -34,7 +34,6 @@ const CourseEnrollButton = ({
     
     if (!user) {
       console.log("No user found, redirecting to login");
-      // Simple redirect without complex query params
       navigate("/login");
       return;
     }
@@ -54,7 +53,6 @@ const CourseEnrollButton = ({
       } else if (result.success && result.error === "Already enrolled") {
         navigate(`/dashboard/courses/${courseId}`);
       } else if (result.requiresPayment) {
-        // Redirect to enrollment page for payment
         navigate(`/enroll/${courseId}`);
       } else {
         toast({
