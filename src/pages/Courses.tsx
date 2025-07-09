@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Loader } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCategories } from "@/hooks/useCategories";
 import {
   Select,
   SelectContent,
@@ -48,17 +49,27 @@ const Courses = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
+  
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   useEffect(() => {
     let isMounted = true;
     
     const fetchCourses = async () => {
       try {
-        console.log("Fetching all courses...");
+        console.log("Fetching courses from database...");
         
         const { data: coursesData, error } = await supabase
           .from("courses")
-          .select("*")
+          .select(`
+            *,
+            instructor:user_profiles!courses_instructor_id_fkey(
+              id,
+              first_name,
+              last_name,
+              avatar_url
+            )
+          `)
           .eq("is_published", true);
 
         if (!isMounted) return;
@@ -79,30 +90,37 @@ const Courses = () => {
 
         console.log("Processing", coursesData.length, "courses");
 
-        const transformedCourses: Course[] = coursesData.map((course: any) => ({
-          id: course.id,
-          title: course.title || "Untitled Course",
-          description: course.description || "No description available",
-          price: Number(course.price) || 0,
-          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: 4.5,
-          reviews: 120,
-          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: 150,
-          lessons: 12,
-          instructor: {
-            name: "Expert Instructor",
-            avatar: "/placeholder.svg"
-          },
-          category: "Technology",
-          image: course.image_url || "/placeholder.svg",
-          featured: course.id.includes("featured"),
-          tags: [],
-          duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
-        }));
+        const transformedCourses: Course[] = coursesData.map((course: any) => {
+          const instructorName = course.instructor 
+            ? `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Unknown Instructor'
+            : 'Unknown Instructor';
 
-        console.log("Successfully processed courses");
+          return {
+            id: course.id,
+            title: course.title || "Untitled Course",
+            description: course.description || "No description available",
+            price: Number(course.price) || 0,
+            discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+            rating: 4.5,
+            reviews: 120,
+            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+            enrolledStudents: 150,
+            lessons: 12,
+            instructor: {
+              id: course.instructor?.id,
+              name: instructorName,
+              avatar: course.instructor?.avatar_url || "/placeholder.svg"
+            },
+            category: course.category || "General",
+            image: course.image_url || "/placeholder.svg",
+            featured: course.id.includes("featured"),
+            tags: [],
+            duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
+          };
+        });
+
+        console.log("Successfully processed courses:", transformedCourses);
         setCourses(transformedCourses);
         setLoading(false);
 
@@ -133,9 +151,7 @@ const Courses = () => {
     return matchesSearch && matchesCategory && matchesLevel && matchesMode;
   });
 
-  const categories = ["Technology", "Business", "Design", "Marketing"];
-
-  if (loading) {
+  if (loading || categoriesLoading) {
     return (
       <Layout>
         <div className="min-h-screen bg-gray-50">
@@ -184,9 +200,9 @@ const Courses = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    {categories?.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

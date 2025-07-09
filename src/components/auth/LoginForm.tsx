@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import type { LoginFormErrors } from "@/hooks/useLoginForm";
-import { demoAccounts } from "@/utils/demoAccounts";
 
 interface LoginFormProps {
   email: string;
@@ -37,11 +36,6 @@ export const LoginForm = ({
   handleSubmit,
   authError,
 }: LoginFormProps) => {
-  // Get demo accounts from the exported array
-  const adminAccount = demoAccounts.find(account => account.role === "admin");
-  const instructorAccount = demoAccounts.find(account => account.role === "instructor");
-  const studentAccount = demoAccounts.find(account => account.role === "student");
-
   return (
     <form onSubmit={handleSubmit}>
       <div className="space-y-4">
@@ -119,52 +113,6 @@ export const LoginForm = ({
         >
           {loginInProgress ? "Logging in..." : "Log in"}
         </Button>
-        
-        {/* Demo credentials */}
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-500">Demo credentials</p>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="text-xs"
-              onClick={() => {
-                setEmail(adminAccount?.email || "admin@example.com");
-                setPassword(adminAccount?.password || "password");
-              }}
-              disabled={loginInProgress}
-            >
-              Admin
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="text-xs"
-              onClick={() => {
-                setEmail(instructorAccount?.email || "instructor@example.com");
-                setPassword(instructorAccount?.password || "password");
-              }}
-              disabled={loginInProgress}
-            >
-              Instructor
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="text-xs"
-              onClick={() => {
-                setEmail(studentAccount?.email || "student@example.com");
-                setPassword(studentAccount?.password || "password");
-              }}
-              disabled={loginInProgress}
-            >
-              Student
-            </Button>
-          </div>
-        </div>
       </div>
     </form>
   );
