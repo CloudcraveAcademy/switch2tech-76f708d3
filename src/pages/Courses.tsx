@@ -54,11 +54,9 @@ const Courses = () => {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   useEffect(() => {
-    let isMounted = true;
-    
     const fetchCourses = async () => {
       try {
-        console.log("Starting to fetch courses...");
+        console.log("Fetching courses from database...");
         setError(null);
         
         const { data: coursesData, error: coursesError } = await supabase
@@ -74,10 +72,7 @@ const Courses = () => {
           `)
           .eq("is_published", true);
 
-        console.log("Raw courses data:", coursesData);
-        console.log("Courses error:", coursesError);
-
-        if (!isMounted) return;
+        console.log("Courses query completed:", { coursesData, coursesError });
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
@@ -86,8 +81,8 @@ const Courses = () => {
           return;
         }
 
-        if (!coursesData) {
-          console.log("No courses data received");
+        if (!coursesData || coursesData.length === 0) {
+          console.log("No courses found");
           setCourses([]);
           setLoading(false);
           return;
@@ -96,9 +91,6 @@ const Courses = () => {
         console.log("Processing", coursesData.length, "courses");
 
         const transformedCourses: Course[] = coursesData.map((course: any) => {
-          console.log("Processing course:", course.id, course.title);
-          console.log("Course instructor:", course.instructor);
-          
           const instructorName = course.instructor 
             ? `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Unknown Instructor'
             : 'Unknown Instructor';
@@ -128,25 +120,19 @@ const Courses = () => {
           };
         });
 
-        console.log("Successfully processed courses:", transformedCourses);
+        console.log("Successfully processed courses:", transformedCourses.length);
         setCourses(transformedCourses);
         setLoading(false);
 
       } catch (error) {
         console.error("Exception while fetching courses:", error);
-        if (isMounted) {
-          setError(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setCourses([]);
-          setLoading(false);
-        }
+        setError(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setCourses([]);
+        setLoading(false);
       }
     };
 
     fetchCourses();
-    
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   // Filter courses based on search and filters
@@ -169,9 +155,6 @@ const Courses = () => {
               <div className="flex flex-col items-center space-y-4">
                 <Loader className="animate-spin h-10 w-10 text-primary" />
                 <p className="text-muted-foreground">Loading courses...</p>
-                {error && (
-                  <p className="text-red-500 text-sm mt-2">{error}</p>
-                )}
               </div>
             </div>
           </div>
