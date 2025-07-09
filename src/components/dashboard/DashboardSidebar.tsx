@@ -19,11 +19,6 @@ const DashboardSidebar = () => {
     return location.pathname === path;
   };
 
-  // Add a timestamp to avatar URL to prevent caching issues
-  const avatarUrl = user?.avatar 
-    ? `${user.avatar}?t=${new Date().getTime()}`
-    : undefined;
-
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200">
       <div className="p-4 border-b">
@@ -33,7 +28,11 @@ const DashboardSidebar = () => {
       {/* User profile section */}
       <div className="p-4 border-b flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          <AvatarImage src={avatarUrl} alt={user?.name || "User avatar"} />
+          <AvatarImage 
+            src={user?.avatar || undefined} 
+            alt={user?.name || "User avatar"}
+            loading="lazy"
+          />
           <AvatarFallback>
             {user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "U"}
           </AvatarFallback>

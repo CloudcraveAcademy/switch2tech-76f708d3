@@ -26,11 +26,6 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
 
   const fullName = `${profileData?.first_name || ""} ${profileData?.last_name || ""}`.trim();
 
-  // If avatar url exists, append a cache-busting param.
-  const avatarSrc = profileData?.avatar_url
-    ? `${profileData.avatar_url}?cb=${Date.now()}`
-    : undefined;
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
@@ -106,7 +101,11 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
   return (
     <div className="flex items-center space-x-4 mt-2">
       <Avatar className="h-24 w-24">
-        <AvatarImage src={avatarSrc} alt={fullName || "User avatar"} />
+        <AvatarImage 
+          src={profileData?.avatar_url || undefined} 
+          alt={fullName || "User avatar"}
+          loading="lazy"
+        />
         <AvatarFallback>
           {fullName
             ? fullName
@@ -143,4 +142,4 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
       </div>
     </div>
   );
-}
+};

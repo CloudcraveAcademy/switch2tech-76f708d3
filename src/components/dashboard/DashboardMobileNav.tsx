@@ -15,11 +15,6 @@ const DashboardMobileNav = ({
   setIsMobileMenuOpen
 }: DashboardMobileNavProps) => {
   const { user } = useAuth();
-  
-  // Add a timestamp to avatar URL to prevent caching issues
-  const avatarUrl = user?.avatar 
-    ? `${user.avatar}?t=${new Date().getTime()}`
-    : undefined;
 
   return (
     <div className="fixed top-0 left-0 right-0 z-10 md:hidden bg-white border-b border-gray-200">
@@ -28,7 +23,11 @@ const DashboardMobileNav = ({
         
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={avatarUrl} alt={user?.name || "User avatar"} />
+            <AvatarImage 
+              src={user?.avatar || undefined} 
+              alt={user?.name || "User avatar"}
+              loading="lazy"
+            />
             <AvatarFallback>
               {user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "U"}
             </AvatarFallback>

@@ -54,7 +54,9 @@ const Dashboard = () => {
         averageProgress: 0 // Will be calculated below if there are enrolled courses
       };
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 30000, // Cache for 30 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
   });
 
   // Calculate average progress across all enrolled courses
@@ -73,7 +75,9 @@ const Dashboard = () => {
       const total = data.reduce((sum, course) => sum + (course.progress || 0), 0);
       return Math.round(total / data.length);
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 30000,
+    gcTime: 300000,
   });
 
   // Combine stats with average progress
