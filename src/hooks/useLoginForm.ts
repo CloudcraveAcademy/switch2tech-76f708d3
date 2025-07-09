@@ -69,20 +69,22 @@ export const useLoginForm = () => {
     
     try {
       console.log("Attempting login...");
-      await login(email, password);
+      const result = await login(email, password);
       
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-      } else {
-        localStorage.removeItem('rememberedEmail');
+      if (result && !result.error) {
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+        
+        console.log("Login successful");
+        
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
       }
-      
-      console.log("Login successful, will redirect via useEffect");
-      
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
       
     } catch (error: any) {
       console.error("Login error:", error);
