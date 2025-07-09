@@ -533,11 +533,13 @@ const EnrollmentPage = () => {
           } else {
             console.log('Payment not successful:', response.status);
             setIsProcessingPayment(false);
+            setIsEnrolling(false);
           }
         },
         onclose: () => {
           console.log('Payment modal closed by user');
           setIsProcessingPayment(false);
+          setIsEnrolling(false);
         },
       };
 
@@ -557,7 +559,6 @@ const EnrollmentPage = () => {
         variant: "destructive",
       });
       setIsProcessingPayment(false);
-    } finally {
       setIsEnrolling(false);
     }
   };
@@ -957,9 +958,15 @@ const EnrollmentPage = () => {
                           }
                         >
                           {isProcessingPayment ? (
-                            "Processing Payment..."
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              "Processing Payment..."
+                            </div>
                           ) : isEnrolling ? (
-                            "Processing..."
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              "Processing..."
+                            </div>
                           ) : authLoading ? (
                             "Loading..."
                           ) : !flutterwaveLoaded && !isFree ? (
