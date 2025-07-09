@@ -40,7 +40,7 @@ const Login = () => {
     }
   }, [user, loading, navigate, redirectPath]);
 
-  // Show loading state while auth is initializing
+  // Show loading state while auth is initializing - but only for a short time
   if (loading) {
     return (
       <Layout>

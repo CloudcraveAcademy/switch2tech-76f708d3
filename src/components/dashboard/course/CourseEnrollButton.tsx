@@ -30,19 +30,19 @@ const CourseEnrollButton = ({
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleEnroll = async () => {
-    console.log("Enroll button clicked, user:", user?.id);
+    console.log("Enroll button clicked, user:", user?.id, "loading:", loading);
     
-    // If user is not logged in, redirect to login with return path
-    if (!user && !loading) {
-      console.log("No user found, redirecting to login");
-      const returnPath = `/enroll/${courseId}`;
-      navigate(`/login?redirect=${encodeURIComponent(returnPath)}`);
+    // If auth is still loading, don't do anything
+    if (loading) {
+      console.log("Auth still loading, waiting...");
       return;
     }
 
-    // If still loading, don't do anything
-    if (loading) {
-      console.log("Auth still loading, waiting...");
+    // If user is not logged in, redirect to login with return path
+    if (!user) {
+      console.log("No user found, redirecting to login");
+      const returnPath = `/courses/${courseId}`;
+      navigate(`/login?redirect=${encodeURIComponent(returnPath)}`);
       return;
     }
 
@@ -85,6 +85,15 @@ const CourseEnrollButton = ({
     setShowConfirmation(false);
   };
 
+  // Don't show button if auth is loading and we don't know user state yet
+  if (loading) {
+    return (
+      <Button className={className} disabled>
+        Loading...
+      </Button>
+    );
+  }
+
   return (
     <>
       {isEnrolled ? (
@@ -100,9 +109,9 @@ const CourseEnrollButton = ({
         <Button 
           className={className} 
           onClick={handleEnroll} 
-          disabled={enrolling || loading}
+          disabled={enrolling}
         >
-          {enrolling ? "Processing..." : loading ? "Loading..." : user ? "Enroll Now" : "Login to Enroll"}
+          {enrolling ? "Processing..." : user ? "Enroll Now" : "Login to Enroll"}
         </Button>
       )}
 
