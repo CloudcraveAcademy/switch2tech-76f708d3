@@ -25,6 +25,7 @@ export const useAuthOperations = () => {
       }
       
       console.log("Login successful, auth state listener will handle session");
+      // Don't show toast here - let the login form handle it to prevent duplicates
       return data;
       
     } catch (error: any) {

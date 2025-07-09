@@ -10,6 +10,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const initializationStarted = useRef(false);
   const authListenerSet = useRef(false);
   const mountedRef = useRef(true);
+  const subscriptionRef = useRef<any>(null);
   
   const {
     login,
@@ -33,6 +34,12 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      // Clean up subscription on unmount
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+        authListenerSet.current = false;
+      }
     };
   }, []);
 
@@ -47,7 +54,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
       try {
         console.log("Initializing auth state...");
         
-        // Set up auth state listener FIRST
+        // Set up auth state listener FIRST - only once
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
             if (!mountedRef.current) return;
@@ -65,7 +72,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
             }
             
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-              console.log("User signed in, token refreshed, or initial session");
+              console.log("Processing auth event:", event);
               setSession(newSession);
               
               if (newSession?.user) {
@@ -94,6 +101,9 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
             }
           }
         );
+        
+        // Store subscription reference for cleanup
+        subscriptionRef.current = subscription;
         
         // THEN get current session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
@@ -137,13 +147,6 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
           }
         }
         
-        // Cleanup function
-        return () => {
-          console.log("Cleaning up auth subscription");
-          subscription.unsubscribe();
-          authListenerSet.current = false;
-        };
-        
       } catch (error) {
         console.error("Auth initialization error:", error);
         if (mountedRef.current) {
@@ -154,13 +157,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
       }
     };
 
-    const cleanup = initializeAuth();
-    
-    return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
-        cleanup.then(cleanupFn => cleanupFn && cleanupFn());
-      }
-    };
+    initializeAuth();
   }, [enrichUserWithProfile, setUser, setSession]);
 
   const logout = useCallback(async () => {
