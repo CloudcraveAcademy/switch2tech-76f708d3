@@ -8,7 +8,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const [loading, setLoading] = useState(true);
   const authListenerInitialized = useRef(false);
-  const initializationComplete = useRef(false);
+  const initializationInProgress = useRef(false);
   
   const {
     login,
@@ -27,15 +27,19 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     initializeSession,
   } = useSessionManager();
 
-  // Clear any stale auth data on initialization
+  // Single initialization effect
   useEffect(() => {
-    const clearStaleAuth = async () => {
+    if (initializationInProgress.current) return;
+    
+    const initializeAuth = async () => {
+      initializationInProgress.current = true;
+      
       try {
-        console.log("Checking for valid session...");
+        console.log("Initializing auth state...");
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.log("Session error, clearing auth:", error);
+          console.log("Session error during initialization:", error);
           await supabase.auth.signOut();
           setUser(null);
           setSession(null);
@@ -44,19 +48,18 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
         }
         
         if (!currentSession) {
-          console.log("No valid session found, ensuring clean state");
+          console.log("No session found during initialization");
           setUser(null);
           setSession(null);
           setLoading(false);
           return;
         }
         
-        // If we have a session, verify it's actually valid
-        console.log("Validating existing session...");
+        // Verify session is valid
         const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !currentUser) {
-          console.log("Invalid session detected, clearing:", userError);
+          console.log("Invalid session detected during initialization:", userError);
           await supabase.auth.signOut();
           setUser(null);
           setSession(null);
@@ -64,33 +67,37 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
           return;
         }
         
-        // Session is valid, enrich with profile
         console.log("Valid session found, enriching user profile");
+        setSession(currentSession);
+        
         try {
           const enrichedUser = await enrichUserWithProfile(currentUser);
-          setSession(currentSession);
           setUser(enrichedUser);
         } catch (profileError) {
-          console.log("Profile enrichment failed, using basic user:", profileError);
-          setSession(currentSession);
-          setUser(currentUser as any);
+          console.log("Profile enrichment failed, using basic user data:", profileError);
+          // Use basic user data as fallback instead of clearing everything
+          setUser({
+            ...currentUser,
+            role: 'student' // Safe fallback
+          } as any);
         }
         
         setLoading(false);
         
       } catch (error) {
         console.error("Auth initialization error:", error);
-        await supabase.auth.signOut();
         setUser(null);
         setSession(null);
         setLoading(false);
+      } finally {
+        initializationInProgress.current = false;
       }
     };
 
-    clearStaleAuth();
+    initializeAuth();
   }, [enrichUserWithProfile, setUser, setSession]);
 
-  // Auth state management effect
+  // Auth state listener effect
   useEffect(() => {
     if (authListenerInitialized.current) return;
     
@@ -108,7 +115,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
           console.log("User signed out or no session, clearing state");
           setUser(null);
           setSession(null);
-          setLoading(false);
+          if (mounted) setLoading(false);
           return;
         }
         
@@ -127,7 +134,11 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
             } catch (error) {
               console.error("Error enriching user data:", error);
               if (mounted) {
-                setUser(newSession.user as any);
+                // Use basic user data as fallback
+                setUser({
+                  ...newSession.user,
+                  role: 'student' // Safe fallback
+                } as any);
                 setLoading(false);
               }
             }

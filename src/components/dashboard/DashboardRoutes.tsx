@@ -1,6 +1,6 @@
 
 import { Routes, Route } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import StudentDashboard from "./student/Dashboard";
 import InstructorDashboard from "./InstructorDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -32,61 +32,20 @@ import AnnouncementsPage from "@/pages/admin/AnnouncementsPage";
 import SystemPage from "@/pages/admin/SystemPage";
 
 const DashboardRoutes = () => {
-  // Always call hooks at the top level
   const { user } = useAuth();
-  const [currentRole, setCurrentRole] = useState(user?.role || "student");
   
-  // Update the role only when the user is loaded and different from current role
+  // Stable role determination
+  const currentRole = useMemo(() => {
+    return user?.role || "student";
+  }, [user?.role]);
+  
+  // Debug logging only when role actually changes
   useEffect(() => {
-    if (user?.role && user.role !== currentRole) {
-      console.log("Dashboard role updated to:", user.role);
-      setCurrentRole(user.role);
-    }
-  }, [user?.role, currentRole]);
+    console.log("Dashboard role stabilized to:", currentRole);
+  }, [currentRole]);
 
-  // Add debug logging to help troubleshoot role-related issues
-  useEffect(() => {
-    console.log("Current user:", user);
-    console.log("Current role in state:", currentRole);
-  }, [user, currentRole]);
-
-  // Prepare all route fragments regardless of role
-  const studentRoutesFragment = (
-    <>
-      <Route path="/certificates" element={<Certificates />} />
-      <Route path="/courses/:courseId" element={<CourseView />} />
-    </>
-  );
-
-  const instructorRoutesFragment = (
-    <>
-      <Route path="/students" element={<MyStudents />} />
-      <Route path="/revenue" element={<MyRevenue />} />
-      <Route path="/certificates" element={<InstructorCertificates />} />
-      <Route path="/create-course" element={<CreateCourse />} />
-      <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
-      <Route path="/courses/:courseId/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
-    </>
-  );
-
-  const adminRoutesFragment = (
-    <>
-      <Route path="/users" element={<UsersPage />} />
-      <Route path="/courses" element={<CoursesPage />} />
-      <Route path="/certificates" element={<AdminCertificates />} />
-      <Route path="/finance" element={<FinancePage />} />
-      <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/support-tickets" element={<SupportTicketsPage />} />
-      <Route path="/announcements" element={<AnnouncementsPage />} />
-      <Route path="/system" element={<SystemPage />} />
-    </>
-  );
-
-  // Get dashboard component based on role
-  const dashboardComponent = (() => {
-    // Force log to debug
-    console.log("Selecting dashboard for role:", currentRole);
-    
+  // Get dashboard component based on stable role
+  const dashboardComponent = useMemo(() => {
     switch (currentRole) {
       case "instructor":
         return <InstructorDashboard />;
@@ -97,9 +56,40 @@ const DashboardRoutes = () => {
       default:
         return <StudentDashboard />;
     }
-  })();
+  }, [currentRole]);
 
-  // Return routes with conditional fragments
+  // Define route fragments based on role
+  const studentRoutesFragment = useMemo(() => (
+    <>
+      <Route path="/certificates" element={<Certificates />} />
+      <Route path="/courses/:courseId" element={<CourseView />} />
+    </>
+  ), []);
+
+  const instructorRoutesFragment = useMemo(() => (
+    <>
+      <Route path="/students" element={<MyStudents />} />
+      <Route path="/revenue" element={<MyRevenue />} />
+      <Route path="/certificates" element={<InstructorCertificates />} />
+      <Route path="/create-course" element={<CreateCourse />} />
+      <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
+      <Route path="/courses/:courseId/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
+    </>
+  ), []);
+
+  const adminRoutesFragment = useMemo(() => (
+    <>
+      <Route path="/users" element={<UsersPage />} />
+      <Route path="/courses" element={<CoursesPage />} />
+      <Route path="/certificates" element={<AdminCertificates />} />
+      <Route path="/finance" element={<FinancePage />} />
+      <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/support-tickets" element={<SupportTicketsPage />} />
+      <Route path="/announcements" element={<AnnouncementsPage />} />
+      <Route path="/system" element={<SystemPage />} />
+    </>
+  ), []);
+
   return (
     <Routes>
       <Route path="/" element={dashboardComponent} />

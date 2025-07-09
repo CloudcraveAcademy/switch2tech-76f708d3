@@ -4,15 +4,15 @@ import type { User } from '@supabase/supabase-js';
 import type { UserWithProfile } from '@/types/auth';
 
 export const useUserProfile = () => {
-  // Cache to prevent duplicate fetches for the same user ID
+  // Simple cache to reduce duplicate requests
   const profileCache = new Map<string, {data: any, timestamp: number}>();
-  const CACHE_TTL = 30000; // 30 seconds cache TTL
+  const CACHE_TTL = 60000; // 1 minute cache TTL
   
   const enrichUserWithProfile = async (user: User | null): Promise<UserWithProfile | null> => {
     if (!user) return null;
     
     try {
-      // Check cache first to reduce database calls
+      // Check cache first
       const cachedProfile = profileCache.get(user.id);
       const now = Date.now();
       
@@ -29,38 +29,31 @@ export const useUserProfile = () => {
       
       console.log("Fetching profile for user:", user.id);
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
-      });
-      
-      const fetchPromise = supabase
+      // Simpler fetch with shorter timeout
+      const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('id, first_name, last_name, role, avatar_url')
         .eq('id', user.id)
-        .maybeSingle();
-      
-      const { data: profile, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        .single();
       
       if (error) {
         console.error("Error fetching user profile:", error);
         
-        // Return basic user information as fallback
+        // Return user with role from user metadata as fallback
+        const fallbackRole = user.user_metadata?.role || 'student';
         return {
           ...user,
-          role: 'student' // Default role if profile can't be fetched
+          role: fallbackRole as UserWithProfile['role']
         } as UserWithProfile;
       }
       
       console.log("Profile data fetched:", profile);
       
       // Cache the result
-      if (profile) {
-        profileCache.set(user.id, {
-          data: profile,
-          timestamp: now
-        });
-      }
+      profileCache.set(user.id, {
+        data: profile,
+        timestamp: now
+      });
       
       return {
         ...user,
@@ -70,10 +63,12 @@ export const useUserProfile = () => {
       };
     } catch (error) {
       console.error("Error enriching user data:", error);
-      // Return basic user information even if there's an exception
+      
+      // Return user with role from user metadata as fallback
+      const fallbackRole = user.user_metadata?.role || 'student';
       return {
         ...user,
-        role: 'student' // Default role as fallback
+        role: fallbackRole as UserWithProfile['role']
       } as UserWithProfile;
     }
   };
