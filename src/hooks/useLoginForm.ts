@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export interface LoginFormErrors {
   email: string;
@@ -11,6 +11,7 @@ export interface LoginFormErrors {
 
 export const useLoginForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { login, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
@@ -21,6 +22,10 @@ export const useLoginForm = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Extract redirect path from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get('redirect') || "/dashboard";
 
   // Load remembered email from localStorage on initial render
   useEffect(() => {
@@ -69,7 +74,7 @@ export const useLoginForm = () => {
     
     try {
       console.log("Attempting login...");
-      await login(email, password);
+      const result = await login(email, password);
       
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
@@ -77,12 +82,15 @@ export const useLoginForm = () => {
         localStorage.removeItem('rememberedEmail');
       }
       
-      console.log("Login successful, will redirect via useEffect");
+      console.log("Login successful, redirecting to:", redirectPath);
       
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
+
+      // Navigate immediately after successful login
+      navigate(redirectPath, { replace: true });
       
     } catch (error: any) {
       console.error("Login error:", error);

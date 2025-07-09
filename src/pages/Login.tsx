@@ -32,11 +32,11 @@ const Login = () => {
   const searchParams = new URLSearchParams(location.search);
   const redirectPath = searchParams.get('redirect') || "/dashboard";
 
-  // Redirect authenticated users
+  // Redirect authenticated users - but only after auth has finished loading
   useEffect(() => {
-    if (user && !loading) {
+    if (!loading && user) {
       console.log("Login: User authenticated, redirecting to:", redirectPath);
-      navigate(redirectPath);
+      navigate(redirectPath, { replace: true });
     }
   }, [user, loading, navigate, redirectPath]);
 
