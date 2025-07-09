@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -27,13 +28,17 @@ const Login = () => {
     handleSubmit,
   } = useLoginForm();
 
-  // Simple redirect logic - only redirect if user is authenticated and not loading
+  // Extract redirect path from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get('redirect') || "/dashboard";
+
+  // Redirect authenticated users
   useEffect(() => {
     if (user && !loading) {
-      console.log("Login: User authenticated, redirecting to dashboard");
-      navigate("/dashboard");
+      console.log("Login: User authenticated, redirecting to:", redirectPath);
+      navigate(redirectPath);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, redirectPath]);
 
   // Show loading state while auth is initializing
   if (loading) {
@@ -134,7 +139,7 @@ const Login = () => {
           <p className="mt-8 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link 
-              to="/register" 
+              to={`/register${redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""}`} 
               className="text-brand-600 hover:text-brand-700 font-medium"
             >
               Sign up

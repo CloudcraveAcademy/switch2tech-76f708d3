@@ -24,7 +24,7 @@ const CourseEnrollButton = ({
   isCompleted = false,
   className = "",
 }: CourseEnrollButtonProps) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [enrolling, setEnrolling] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -32,9 +32,17 @@ const CourseEnrollButton = ({
   const handleEnroll = async () => {
     console.log("Enroll button clicked, user:", user?.id);
     
-    if (!user) {
+    // If user is not logged in, redirect to login with return path
+    if (!user && !loading) {
       console.log("No user found, redirecting to login");
-      navigate("/login");
+      const returnPath = `/enroll/${courseId}`;
+      navigate(`/login?redirect=${encodeURIComponent(returnPath)}`);
+      return;
+    }
+
+    // If still loading, don't do anything
+    if (loading) {
+      console.log("Auth still loading, waiting...");
       return;
     }
 
@@ -92,9 +100,9 @@ const CourseEnrollButton = ({
         <Button 
           className={className} 
           onClick={handleEnroll} 
-          disabled={enrolling}
+          disabled={enrolling || loading}
         >
-          {enrolling ? "Processing..." : user ? "Enroll Now" : "Login to Enroll"}
+          {enrolling ? "Processing..." : loading ? "Loading..." : user ? "Enroll Now" : "Login to Enroll"}
         </Button>
       )}
 

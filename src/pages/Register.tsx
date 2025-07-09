@@ -9,7 +9,7 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const {
     firstName,
     setFirstName,
@@ -21,7 +21,7 @@ const Register = () => {
     setPassword,
     role,
     setRole,
-    loading,
+    loading: registerLoading,
     errors,
     authError,
     handleSubmit,
@@ -33,11 +33,11 @@ const Register = () => {
 
   // Check if user is already logged in
   useEffect(() => {
-    if (user) {
+    if (user && !loading) {
       console.log("User is already authenticated, redirecting to:", redirectPath);
       navigate(redirectPath);
     }
-  }, [user, navigate, redirectPath]);
+  }, [user, loading, navigate, redirectPath]);
 
   // Handle registration and redirect
   const handleRegister = async (e: React.FormEvent) => {
@@ -50,6 +50,28 @@ const Register = () => {
       }, 1000);
     }
   };
+
+  // Show loading state while auth is initializing
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto px-4 py-12">
+          <div className="text-center">Loading...</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Don't render register form if user is already authenticated
+  if (user) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto px-4 py-12">
+          <div className="text-center">Redirecting...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -71,7 +93,7 @@ const Register = () => {
             setPassword={setPassword}
             role={role}
             setRole={setRole}
-            loading={loading}
+            loading={registerLoading}
             errors={errors}
             authError={authError}
             handleSubmit={handleRegister}
