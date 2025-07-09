@@ -7,7 +7,7 @@ import { Course } from "@/types/Course";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { EnrollmentService } from "@/services/EnrollmentService";
 import { PaymentService } from "@/services/PaymentService";
 
@@ -277,7 +277,7 @@ const EnrollmentPage = () => {
             <div className="md:flex md:gap-8">
               <div className="md:w-1/3">
                 <img
-                  src={course.thumbnail || "/placeholder.svg"}
+                  src={course.thumbnail || course.image_url || "/placeholder.svg"}
                   alt={course.title}
                   className="rounded-md shadow-md mb-4"
                 />
