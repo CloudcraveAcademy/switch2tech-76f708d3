@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useRef } from "react";
+import React, { createContext, useContext, useRef, useState, useMemo, useEffect } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
 import type { AuthContextType } from "@/types/auth";
 import { Skeleton } from "@/components/ui/skeleton";
