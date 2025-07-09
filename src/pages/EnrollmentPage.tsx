@@ -465,6 +465,7 @@ const EnrollmentPage = () => {
             }
           }
 
+          // Wait for auth state to update
           setTimeout(() => {
             window.location.reload();
           }, 2000);
@@ -713,15 +714,13 @@ const EnrollmentPage = () => {
                      course.discounted_price < (course.price || 0);
 
   const isButtonDisabled = () => {
-    if (isEnrolling || isProcessingPayment || authLoading) {
+    if (isEnrolling || isProcessingPayment) {
       return true;
     }
     
     // For paid courses, check if payment system is ready
-    if (!isFree) {
-      if (!flutterwaveLoaded || !flutterwaveConfig?.is_active) {
-        return true;
-      }
+    if (!isFree && (!flutterwaveLoaded || !flutterwaveConfig?.is_active)) {
+      return true;
     }
     
     return false;
@@ -744,10 +743,6 @@ const EnrollmentPage = () => {
           Processing...
         </div>
       );
-    }
-    
-    if (authLoading) {
-      return "Loading...";
     }
     
     if (!flutterwaveLoaded && !isFree) {

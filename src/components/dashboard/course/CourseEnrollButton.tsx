@@ -32,7 +32,7 @@ const CourseEnrollButton = ({
   const handleEnroll = async () => {
     console.log("Enroll button clicked, user:", user?.id, "loading:", loading);
     
-    // If auth is still loading, don't do anything
+    // If auth is still loading, wait a moment
     if (loading) {
       console.log("Auth still loading, waiting...");
       return;
@@ -43,6 +43,12 @@ const CourseEnrollButton = ({
       console.log("No user found, redirecting to login");
       const returnPath = `/courses/${courseId}`;
       navigate(`/login?redirect=${encodeURIComponent(returnPath)}`);
+      return;
+    }
+
+    // Prevent double-clicking
+    if (enrolling) {
+      console.log("Enrollment already in progress");
       return;
     }
 
@@ -85,35 +91,31 @@ const CourseEnrollButton = ({
     setShowConfirmation(false);
   };
 
-  // Don't show button if auth is loading and we don't know user state yet
-  if (loading) {
+  // Show appropriate button state
+  if (isEnrolled) {
     return (
-      <Button className={className} disabled>
-        Loading...
+      <Button 
+        className={className} 
+        onClick={() => navigate(`/dashboard/courses/${courseId}`)}
+        disabled={isCompleted}
+        variant={isCompleted ? "secondary" : "default"}
+      >
+        {isCompleted ? "Course Completed" : "Continue Learning"}
       </Button>
     );
   }
 
   return (
     <>
-      {isEnrolled ? (
-        <Button 
-          className={className} 
-          onClick={() => navigate(`/dashboard/courses/${courseId}`)}
-          disabled={isCompleted}
-          variant={isCompleted ? "secondary" : "default"}
-        >
-          {isCompleted ? "Course Completed" : "Continue Learning"}
-        </Button>
-      ) : (
-        <Button 
-          className={className} 
-          onClick={handleEnroll} 
-          disabled={enrolling}
-        >
-          {enrolling ? "Processing..." : user ? "Enroll Now" : "Login to Enroll"}
-        </Button>
-      )}
+      <Button 
+        className={className} 
+        onClick={handleEnroll} 
+        disabled={loading || enrolling}
+      >
+        {enrolling ? "Processing..." : 
+         loading ? "Loading..." : 
+         user ? "Enroll Now" : "Login to Enroll"}
+      </Button>
 
       <EnrollmentConfirmationModal
         isOpen={showConfirmation}
