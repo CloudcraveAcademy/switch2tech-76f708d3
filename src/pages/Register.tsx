@@ -5,7 +5,6 @@ import Layout from "@/components/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRegisterForm } from "@/hooks/useRegisterForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
-import { setupDemoAccounts } from "@/utils/demoAccounts";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -39,11 +38,6 @@ const Register = () => {
       navigate(redirectPath);
     }
   }, [user, navigate, redirectPath]);
-
-  // Set up demo accounts when page loads
-  useEffect(() => {
-    setupDemoAccounts();
-  }, []);
 
   // Handle registration and redirect
   const handleRegister = async (e: React.FormEvent) => {
