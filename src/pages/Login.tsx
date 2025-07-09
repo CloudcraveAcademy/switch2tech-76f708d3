@@ -36,8 +36,7 @@ const Login = () => {
   useEffect(() => {
     if (user && !loading) {
       console.log("Login: User authenticated, redirecting to:", redirectPath);
-      // Use replace to prevent back button issues
-      navigate(redirectPath, { replace: true });
+      navigate(redirectPath);
     }
   }, [user, loading, navigate, redirectPath]);
 

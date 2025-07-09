@@ -78,9 +78,8 @@ export const useLoginForm = () => {
           localStorage.removeItem('rememberedEmail');
         }
         
-        console.log("Login successful, will redirect via useEffect");
+        console.log("Login successful");
         
-        // Show success toast only once here, not in the auth provider
         toast({
           title: "Login successful",
           description: "Welcome back!",
