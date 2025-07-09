@@ -310,7 +310,6 @@ const EnrollmentPage = () => {
       
       setPaymentProcessing(true);
       
-      // First: Get fresh session to ensure we have current auth state
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -325,7 +324,6 @@ const EnrollmentPage = () => {
         return;
       }
       
-      // Second: Check if we have stored enrollment data for later processing
       const storedData = localStorage.getItem(`enrollment_${courseId}`);
       if (storedData) {
         console.log('Found stored enrollment data, but no session - redirecting to login');
@@ -334,7 +332,6 @@ const EnrollmentPage = () => {
         return;
       }
       
-      // If no authentication and no stored data, something went wrong
       console.log('❌ No authentication found and no stored data');
       toast({
         title: "Authentication Required",
@@ -391,7 +388,6 @@ const EnrollmentPage = () => {
         }
       }
 
-      // Wait for auth state to update, then proceed with enrollment
       setTimeout(async () => {
         await verifyPaymentAndEnroll(transactionId);
       }, 2000);
@@ -408,9 +404,18 @@ const EnrollmentPage = () => {
   };
 
   const onSubmit = async (data: EnrollmentFormData) => {
-    console.log('Form submitted with data:', data);
+    console.log('=== FORM SUBMISSION STARTED ===');
+    console.log('Form data:', data);
+    console.log('User state:', { user: !!user, isNewUser, authLoading });
+    console.log('Course state:', { course: !!course, isFree, displayPrice });
+    console.log('Flutterwave state:', { 
+      loaded: flutterwaveLoaded, 
+      config: !!flutterwaveConfig,
+      isActive: flutterwaveConfig?.is_active 
+    });
     
     if (!course) {
+      console.error('No course data available');
       toast({
         title: "Error",
         description: "Course information not available. Please refresh the page.",
@@ -419,11 +424,20 @@ const EnrollmentPage = () => {
       return;
     }
 
+    // Prevent double submission
+    if (isEnrolling || isProcessingPayment) {
+      console.log('Already processing, ignoring submission');
+      return;
+    }
+
     setIsEnrolling(true);
 
     try {
+      // Handle free courses
       if (isFree) {
+        console.log('Processing free course enrollment');
         if (isNewUser) {
+          console.log('Creating new user for free course');
           const { data: authData, error: authError } = await supabase.auth.signUp({
             email: data.email,
             password: data.password!,
@@ -457,23 +471,44 @@ const EnrollmentPage = () => {
           return;
         }
 
+        console.log('Completing free enrollment for existing user');
         await completeEnrollment(user!.id);
         return;
       }
 
-      if (!flutterwaveConfig?.public_key || !flutterwaveConfig.is_active) {
+      // Handle paid courses
+      console.log('Processing paid course enrollment');
+      
+      // Check Flutterwave configuration
+      if (!flutterwaveConfig) {
+        console.error('Flutterwave config not loaded');
+        throw new Error('Payment system configuration not loaded. Please refresh and try again.');
+      }
+
+      if (!flutterwaveConfig.public_key || !flutterwaveConfig.is_active) {
+        console.error('Flutterwave config invalid:', {
+          hasPublicKey: !!flutterwaveConfig.public_key,
+          isActive: flutterwaveConfig.is_active
+        });
         throw new Error('Payment system not configured. Please contact support.');
       }
 
+      // Store enrollment data for later use
       localStorage.setItem(`enrollment_${courseId}`, JSON.stringify(data));
 
+      // Check if Flutterwave is loaded
       if (!flutterwaveLoaded || !window.FlutterwaveCheckout) {
+        console.error('Flutterwave not loaded:', {
+          scriptLoaded: flutterwaveLoaded,
+          checkoutAvailable: !!window.FlutterwaveCheckout
+        });
         throw new Error('Payment system not loaded. Please refresh the page and try again.');
       }
 
+      console.log('Initiating Flutterwave payment');
       setIsProcessingPayment(true);
 
-      const config = {
+      const paymentConfig = {
         public_key: flutterwaveConfig.public_key,
         tx_ref: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         amount: displayPrice,
@@ -491,32 +526,43 @@ const EnrollmentPage = () => {
           logo: "/placeholder.svg",
         },
         callback: (response: any) => {
-          console.log('Flutterwave callback:', response);
+          console.log('Flutterwave callback received:', response);
           if (response.status === 'successful') {
+            console.log('Payment successful, redirecting...');
             window.location.href = `${window.location.origin}/enroll/${courseId}?payment=success&transaction_id=${response.transaction_id}`;
+          } else {
+            console.log('Payment not successful:', response.status);
+            setIsProcessingPayment(false);
           }
         },
         onclose: () => {
-          console.log('Payment modal closed');
+          console.log('Payment modal closed by user');
           setIsProcessingPayment(false);
         },
       };
 
-      console.log('Calling FlutterwaveCheckout with config...');
-      window.FlutterwaveCheckout(config);
+      console.log('Calling FlutterwaveCheckout with config:', {
+        public_key: paymentConfig.public_key?.substring(0, 10) + '...',
+        amount: paymentConfig.amount,
+        currency: paymentConfig.currency
+      });
+      
+      window.FlutterwaveCheckout(paymentConfig);
 
     } catch (error) {
-      console.error('Enrollment error:', error);
+      console.error('=== ENROLLMENT ERROR ===', error);
       toast({
         title: "Enrollment Error",
         description: error instanceof Error ? error.message : "An error occurred during enrollment. Please try again.",
         variant: "destructive",
       });
+      setIsProcessingPayment(false);
     } finally {
       setIsEnrolling(false);
     }
   };
 
+  // Initialize form with profile data
   useEffect(() => {
     if (profileData && user && !formInitialized) {
       console.log("Pre-filling form with profile data:", profileData);
@@ -533,11 +579,14 @@ const EnrollmentPage = () => {
     }
   }, [profileData, user, form, formInitialized]);
 
+  // Update isNewUser when auth state changes
   useEffect(() => {
     setIsNewUser(!user);
   }, [user]);
 
+  // Load Flutterwave script
   useEffect(() => {
+    console.log('Loading Flutterwave script...');
     const script = document.createElement('script');
     script.src = 'https://checkout.flutterwave.com/v3.js';
     script.async = true;
@@ -562,6 +611,7 @@ const EnrollmentPage = () => {
     };
   }, []);
 
+  // Handle payment success from URL params
   useEffect(() => {
     if (authLoading) {
       console.log('Auth still loading, skipping payment success check');
@@ -594,6 +644,7 @@ const EnrollmentPage = () => {
     }
   }, [courseId, authLoading, user]);
 
+  // Loading states
   if (paymentProcessing) {
     return (
       <Layout>
@@ -900,15 +951,17 @@ const EnrollmentPage = () => {
                           size="lg"
                           disabled={
                             isEnrolling || 
-                            isProcessingPayment || 
-                            (!isFree && !flutterwaveLoaded) ||
-                            (!isFree && (!flutterwaveConfig || !flutterwaveConfig.is_active))
+                            isProcessingPayment ||
+                            authLoading ||
+                            (!isFree && (!flutterwaveLoaded || !flutterwaveConfig?.is_active))
                           }
                         >
                           {isProcessingPayment ? (
                             "Processing Payment..."
                           ) : isEnrolling ? (
                             "Processing..."
+                          ) : authLoading ? (
+                            "Loading..."
                           ) : !flutterwaveLoaded && !isFree ? (
                             "Loading Payment System..."
                           ) : !flutterwaveConfig && !isFree ? (
