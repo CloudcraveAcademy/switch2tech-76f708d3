@@ -45,6 +45,7 @@ const Courses = () => {
   const [searchParams] = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
@@ -57,9 +58,10 @@ const Courses = () => {
     
     const fetchCourses = async () => {
       try {
-        console.log("Fetching courses from database...");
+        console.log("Starting to fetch courses...");
+        setError(null);
         
-        const { data: coursesData, error } = await supabase
+        const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select(`
             *,
@@ -72,11 +74,14 @@ const Courses = () => {
           `)
           .eq("is_published", true);
 
+        console.log("Raw courses data:", coursesData);
+        console.log("Courses error:", coursesError);
+
         if (!isMounted) return;
 
-        if (error) {
-          console.error("Error fetching courses:", error);
-          setCourses([]);
+        if (coursesError) {
+          console.error("Error fetching courses:", coursesError);
+          setError(`Failed to fetch courses: ${coursesError.message}`);
           setLoading(false);
           return;
         }
@@ -91,6 +96,9 @@ const Courses = () => {
         console.log("Processing", coursesData.length, "courses");
 
         const transformedCourses: Course[] = coursesData.map((course: any) => {
+          console.log("Processing course:", course.id, course.title);
+          console.log("Course instructor:", course.instructor);
+          
           const instructorName = course.instructor 
             ? `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || 'Unknown Instructor'
             : 'Unknown Instructor';
@@ -125,8 +133,9 @@ const Courses = () => {
         setLoading(false);
 
       } catch (error) {
-        console.error("Failed to fetch courses:", error);
+        console.error("Exception while fetching courses:", error);
         if (isMounted) {
+          setError(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
           setCourses([]);
           setLoading(false);
         }
@@ -160,6 +169,28 @@ const Courses = () => {
               <div className="flex flex-col items-center space-y-4">
                 <Loader className="animate-spin h-10 w-10 text-primary" />
                 <p className="text-muted-foreground">Loading courses...</p>
+                {error && (
+                  <p className="text-red-500 text-sm mt-2">{error}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50">
+          <div className="container mx-auto px-6 py-12">
+            <div className="flex justify-center items-center py-20">
+              <div className="flex flex-col items-center space-y-4">
+                <p className="text-red-500">Error loading courses: {error}</p>
+                <Button onClick={() => window.location.reload()}>
+                  Try Again
+                </Button>
               </div>
             </div>
           </div>
