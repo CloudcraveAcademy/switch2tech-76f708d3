@@ -50,13 +50,20 @@ const Courses = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
+  const [fetchAttempted, setFetchAttempted] = useState(false);
   
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   useEffect(() => {
+    let isMounted = true;
+    
+    // Prevent multiple fetch attempts
+    if (fetchAttempted) return;
+    
     const fetchCourses = async () => {
       try {
         console.log("Fetching courses from database...");
+        setFetchAttempted(true);
         setError(null);
         
         const { data: coursesData, error: coursesError } = await supabase
@@ -71,6 +78,8 @@ const Courses = () => {
             )
           `)
           .eq("is_published", true);
+
+        if (!isMounted) return;
 
         console.log("Courses query completed:", { coursesData, coursesError });
 
@@ -126,14 +135,20 @@ const Courses = () => {
 
       } catch (error) {
         console.error("Exception while fetching courses:", error);
-        setError(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setCourses([]);
-        setLoading(false);
+        if (isMounted) {
+          setError(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          setCourses([]);
+          setLoading(false);
+        }
       }
     };
 
     fetchCourses();
-  }, []);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array to run only once
 
   // Filter courses based on search and filters
   const filteredCourses = courses.filter((course) => {
@@ -171,7 +186,11 @@ const Courses = () => {
             <div className="flex justify-center items-center py-20">
               <div className="flex flex-col items-center space-y-4">
                 <p className="text-red-500">Error loading courses: {error}</p>
-                <Button onClick={() => window.location.reload()}>
+                <Button onClick={() => {
+                  setFetchAttempted(false);
+                  setLoading(true);
+                  window.location.reload();
+                }}>
                   Try Again
                 </Button>
               </div>

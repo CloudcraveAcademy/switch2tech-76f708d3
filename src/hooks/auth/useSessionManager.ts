@@ -1,6 +1,6 @@
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { useState, useCallback, useRef } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import type { UserWithProfile } from "@/types/auth";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -41,13 +41,17 @@ export const useSessionManager = () => {
         setSession(refreshedSession);
         
         // Prevent duplicate profile fetches
-        if (!profileFetchInProgress.current) {
+        if (!profileFetchInProgress.current && refreshedSession?.user) {
           profileFetchInProgress.current = true;
           try {
-            const enrichedUser = await enrichUserWithProfile(refreshedSession?.user ?? null);
+            const enrichedUser = await enrichUserWithProfile(refreshedSession.user);
             setUser(enrichedUser);
           } catch (error) {
             console.error("Error enriching user after refresh:", error);
+            setUser({
+              ...refreshedSession.user,
+              role: 'student'
+            } as any);
           } finally {
             profileFetchInProgress.current = false;
           }
@@ -59,7 +63,7 @@ export const useSessionManager = () => {
       console.log("Session is valid");
       setSession(currentSession);
       
-      // Make sure we have the user data even if just validating
+      // Make sure we have the user data
       if (!user && currentSession.user && !profileFetchInProgress.current) {
         profileFetchInProgress.current = true;
         try {
@@ -67,6 +71,10 @@ export const useSessionManager = () => {
           setUser(enrichedUser);
         } catch (error) {
           console.error("Error enriching user data:", error);
+          setUser({
+            ...currentSession.user,
+            role: 'student'
+          } as any);
         } finally {
           profileFetchInProgress.current = false;
         }
@@ -75,8 +83,7 @@ export const useSessionManager = () => {
       return true;
     } catch (error) {
       console.error("Session validation error:", error);
-      // Don't clear user/session on network errors to prevent unnecessary logouts
-      return !!session; // Return true if we already have a session
+      return !!session;
     }
   }, [enrichUserWithProfile, session, user]);
 
@@ -86,20 +93,22 @@ export const useSessionManager = () => {
     try {
       profileFetchInProgress.current = true;
       const { data: { session: existingSession } } = await supabase.auth.getSession();
+      
       if (existingSession) {
         console.log("Initializing session with existing session data");
         setSession(existingSession);
-        const enrichedUser = await enrichUserWithProfile(existingSession?.user ?? null);
-        setUser(enrichedUser);
+        
+        if (existingSession.user) {
+          const enrichedUser = await enrichUserWithProfile(existingSession.user);
+          setUser(enrichedUser);
+        }
       } else {
         console.log("No existing session found during initialization");
-        // Clear user and session state if no session exists
         setUser(null);
         setSession(null);
       }
     } catch (error) {
       console.error("Error initializing session:", error);
-      // Clear state on initialization errors
       setUser(null);
       setSession(null);
     } finally {
@@ -107,7 +116,6 @@ export const useSessionManager = () => {
     }
   }, [enrichUserWithProfile]);
 
-  // Clear session state
   const clearSession = useCallback(() => {
     setUser(null);
     setSession(null);

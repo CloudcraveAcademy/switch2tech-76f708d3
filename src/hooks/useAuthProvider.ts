@@ -7,8 +7,8 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 
 export const useAuthProvider = (onLogout?: (path?: string) => void) => {
   const [loading, setLoading] = useState(true);
-  const authListenerInitialized = useRef(false);
-  const initializationComplete = useRef(false);
+  const initializationStarted = useRef(false);
+  const authListenerSet = useRef(false);
   
   const {
     login,
@@ -27,34 +27,47 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     initializeSession,
   } = useSessionManager();
 
-  // Single initialization effect
+  // Single initialization effect that runs only once
   useEffect(() => {
-    if (initializationComplete.current) return;
+    let isMounted = true;
+    
+    if (initializationStarted.current) return;
+    initializationStarted.current = true;
     
     const initializeAuth = async () => {
       try {
         console.log("Initializing auth state...");
-        initializationComplete.current = true;
         
+        // Get current session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
         
         if (error) {
           console.log("Session error during initialization:", error);
           setUser(null);
           setSession(null);
-        } else if (currentSession) {
+          setLoading(false);
+          return;
+        }
+        
+        if (currentSession) {
           console.log("Valid session found during initialization");
           setSession(currentSession);
           
           try {
             const enrichedUser = await enrichUserWithProfile(currentSession.user);
-            setUser(enrichedUser);
+            if (isMounted) {
+              setUser(enrichedUser);
+            }
           } catch (profileError) {
             console.log("Profile enrichment failed, using basic user data:", profileError);
-            setUser({
-              ...currentSession.user,
-              role: 'student'
-            } as any);
+            if (isMounted) {
+              setUser({
+                ...currentSession.user,
+                role: 'student'
+              } as any);
+            }
           }
         } else {
           console.log("No session found during initialization");
@@ -62,25 +75,33 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
           setSession(null);
         }
         
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
         
       } catch (error) {
         console.error("Auth initialization error:", error);
-        setUser(null);
-        setSession(null);
-        setLoading(false);
+        if (isMounted) {
+          setUser(null);
+          setSession(null);
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [enrichUserWithProfile, setUser, setSession]);
 
-  // Single auth state listener effect
+  // Separate effect for auth state listener
   useEffect(() => {
-    if (authListenerInitialized.current || !initializationComplete.current) return;
+    if (authListenerSet.current || !initializationStarted.current) return;
     
     console.log("Setting up auth state listener");
-    authListenerInitialized.current = true;
+    authListenerSet.current = true;
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
@@ -98,16 +119,19 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
           setSession(newSession);
           
           if (newSession?.user) {
-            try {
-              const enrichedUser = await enrichUserWithProfile(newSession.user);
-              setUser(enrichedUser);
-            } catch (error) {
-              console.error("Error enriching user data:", error);
-              setUser({
-                ...newSession.user,
-                role: 'student'
-              } as any);
-            }
+            // Use setTimeout to prevent blocking the auth state change
+            setTimeout(async () => {
+              try {
+                const enrichedUser = await enrichUserWithProfile(newSession.user);
+                setUser(enrichedUser);
+              } catch (error) {
+                console.error("Error enriching user data:", error);
+                setUser({
+                  ...newSession.user,
+                  role: 'student'
+                } as any);
+              }
+            }, 0);
           }
         }
       }
@@ -116,7 +140,7 @@ export const useAuthProvider = (onLogout?: (path?: string) => void) => {
     return () => {
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
-      authListenerInitialized.current = false;
+      authListenerSet.current = false;
     };
   }, [enrichUserWithProfile, setUser, setSession]);
 

@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -36,12 +35,23 @@ const Login = () => {
     }
   }, [user, loading, navigate]);
 
-  // Don't render anything while loading
+  // Show loading state while auth is initializing
   if (loading) {
     return (
       <Layout>
         <div className="max-w-md mx-auto px-4 py-12">
           <div className="text-center">Loading...</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Don't render login form if user is already authenticated
+  if (user) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto px-4 py-12">
+          <div className="text-center">Redirecting...</div>
         </div>
       </Layout>
     );
