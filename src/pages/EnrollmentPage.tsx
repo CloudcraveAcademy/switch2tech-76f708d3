@@ -712,6 +712,68 @@ const EnrollmentPage = () => {
                      course.discounted_price > 0 &&
                      course.discounted_price < (course.price || 0);
 
+  const isButtonDisabled = () => {
+    if (isEnrolling || isProcessingPayment || authLoading) {
+      return true;
+    }
+    
+    // For paid courses, check if payment system is ready
+    if (!isFree) {
+      if (!flutterwaveLoaded || !flutterwaveConfig?.is_active) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  const getButtonText = () => {
+    if (isProcessingPayment) {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          Processing Payment...
+        </div>
+      );
+    }
+    
+    if (isEnrolling) {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          Processing...
+        </div>
+      );
+    }
+    
+    if (authLoading) {
+      return "Loading...";
+    }
+    
+    if (!flutterwaveLoaded && !isFree) {
+      return "Loading Payment System...";
+    }
+    
+    if (!flutterwaveConfig && !isFree) {
+      return "Payment System Unavailable";
+    }
+    
+    if (!isFree && !flutterwaveConfig?.is_active) {
+      return "Payment System Disabled";
+    }
+    
+    if (isFree) {
+      return isNewUser ? "Create Account & Enroll for Free" : "Enroll for Free";
+    }
+    
+    return (
+      <>
+        <CreditCard className="h-4 w-4 mr-2" />
+        {isNewUser ? "Create Account & Pay" : "Enroll & Pay"} {formatPrice(displayPrice, watchedCurrency)}
+      </>
+    );
+  };
+
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -950,43 +1012,9 @@ const EnrollmentPage = () => {
                           type="submit" 
                           className="w-full" 
                           size="lg"
-                          disabled={
-                            isEnrolling || 
-                            isProcessingPayment ||
-                            authLoading ||
-                            (!isFree && (!flutterwaveLoaded || !flutterwaveConfig?.is_active))
-                          }
+                          disabled={isButtonDisabled()}
                         >
-                          {isProcessingPayment ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              "Processing Payment..."
-                            </div>
-                          ) : isEnrolling ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              "Processing..."
-                            </div>
-                          ) : authLoading ? (
-                            "Loading..."
-                          ) : !flutterwaveLoaded && !isFree ? (
-                            "Loading Payment System..."
-                          ) : !flutterwaveConfig && !isFree ? (
-                            "Payment System Unavailable"
-                          ) : !isFree && !flutterwaveConfig?.is_active ? (
-                            "Payment System Disabled"
-                          ) : (
-                            <>
-                              {isFree ? (
-                                isNewUser ? "Create Account & Enroll for Free" : "Enroll for Free"
-                              ) : (
-                                <>
-                                  <CreditCard className="h-4 w-4 mr-2" />
-                                  {isNewUser ? "Create Account & Pay" : "Enroll & Pay"} {formatPrice(displayPrice, watchedCurrency)}
-                                </>
-                              )}
-                            </>
-                          )}
+                          {getButtonText()}
                         </Button>
 
                         <div className="text-center">
