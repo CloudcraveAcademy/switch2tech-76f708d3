@@ -1039,6 +1039,15 @@ const EnrollmentPage = () => {
                           className="w-full" 
                           size="lg"
                           disabled={isButtonDisabled()}
+                          onClick={(e) => {
+                            console.log("=== ENROLLMENT BUTTON CLICKED ===");
+                            console.log("Button disabled:", isButtonDisabled());
+                            console.log("Form errors:", form.formState.errors);
+                            console.log("Form is valid:", form.formState.isValid);
+                            console.log("Form values:", form.getValues());
+                            console.log("Processing states:", { isEnrolling, isProcessingPayment });
+                            console.log("Flutterwave state:", { flutterwaveLoaded, config: !!flutterwaveConfig });
+                          }}
                         >
                           {getButtonText()}
                         </Button>
