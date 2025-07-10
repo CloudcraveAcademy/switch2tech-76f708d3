@@ -48,14 +48,8 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Create a stable reference for the logout handler
-  const logoutHandlerRef = useRef((path?: string) => {
-    console.log("Navigation after logout");
-    window.location.href = path || "/";
-  });
-  
-  // Use the authState directly to avoid hook inconsistencies
-  const authState = useAuthProvider(logoutHandlerRef.current);
+  // Use the authState directly without passing any arguments
+  const authState = useAuthProvider();
 
   return (
     <AuthContext.Provider value={authState}>

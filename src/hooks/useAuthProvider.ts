@@ -2,29 +2,40 @@
 import { useState, useEffect, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-
-export interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-}
+import { useAuthOperations } from "@/hooks/auth/useAuthOperations";
+import type { AuthContextType, UserWithProfile, UserRole } from "@/types/auth";
 
 export const useAuthProvider = (): AuthContextType => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const { 
+    login: authLogin, 
+    register: authRegister, 
+    logout: authLogout,
+    setLoading: setAuthLoading 
+  } = useAuthOperations();
 
-  const signOut = useCallback(async () => {
-    console.log("Signing out user");
-    setLoading(true);
+  const login = useCallback(async (email: string, password: string) => {
+    return await authLogin(email, password);
+  }, [authLogin]);
+
+  const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
+    return await authRegister(name, email, password, role);
+  }, [authRegister]);
+
+  const logout = useCallback(async () => {
+    return await authLogout();
+  }, [authLogout]);
+
+  const validateSession = useCallback(async (): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out error:", error);
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      return !!session;
     } catch (error) {
-      console.error("Sign out failed:", error);
+      console.error("Session validation error:", error);
+      return false;
     }
   }, []);
 
@@ -43,11 +54,31 @@ export const useAuthProvider = (): AuthContextType => {
       console.log("Auth state changed:", event, session ? "session exists" : "no session");
       
       if (session) {
+        // Fetch user profile data to enhance the user object
+        try {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          const userWithProfile: UserWithProfile = {
+            ...session.user,
+            name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : undefined,
+            avatar: profile?.avatar_url || undefined,
+            role: profile?.role as UserRole || undefined,
+          };
+          
+          setUser(userWithProfile);
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUser(session.user as UserWithProfile);
+        }
         setSession(session);
-        setUser(session.user);
       } else {
-        setSession(null);
+        console.log("User signed out or no session, clearing state");
         setUser(null);
+        setSession(null);
       }
       
       // Only set loading to false after we've processed the auth state
@@ -62,15 +93,11 @@ export const useAuthProvider = (): AuthContextType => {
           console.error("Error getting initial session:", error);
         }
         
-        if (mounted) {
-          console.log("Initial session check:", session ? "session found" : "no session");
-          if (session) {
-            setSession(session);
-            setUser(session.user);
-          } else {
-            setSession(null);
-            setUser(null);
-          }
+        if (mounted && !session) {
+          // Only update state if there's no session and we haven't already processed one
+          console.log("Initial session check: no session");
+          setUser(null);
+          setSession(null);
           setLoading(false);
         }
       } catch (error) {
@@ -93,7 +120,11 @@ export const useAuthProvider = (): AuthContextType => {
   return {
     user,
     session,
+    login,
+    register,
+    logout,
     loading,
-    signOut,
+    setLoading,
+    validateSession,
   };
 };
