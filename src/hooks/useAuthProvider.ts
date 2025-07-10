@@ -47,13 +47,24 @@ export const useAuthProvider = (): AuthContextType => {
     const processAuthUser = async (session: Session | null) => {
       if (!mounted) return;
       
-      if (session) {
+      if (session?.user) {
+        // Validate that the session is actually valid by trying to use it
         try {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('user_profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
+          
+          // If we get an auth error, the session is invalid
+          if (profileError && profileError.message.includes('JWT')) {
+            console.log("Invalid session detected, clearing auth state");
+            await supabase.auth.signOut();
+            setUser(null);
+            setSession(null);
+            setLoading(false);
+            return;
+          }
           
           const userWithProfile: UserWithProfile = {
             ...session.user,
@@ -64,13 +75,16 @@ export const useAuthProvider = (): AuthContextType => {
           
           console.log("User authenticated with profile:", userWithProfile.email);
           setUser(userWithProfile);
+          setSession(session);
         } catch (error) {
-          console.error("Error fetching user profile:", error);
-          setUser(session.user as UserWithProfile);
+          console.error("Error validating session:", error);
+          // If there's an error fetching profile, clear the session
+          await supabase.auth.signOut();
+          setUser(null);
+          setSession(null);
         }
-        setSession(session);
       } else {
-        console.log("No session, clearing user state");
+        console.log("No valid session, clearing user state");
         setUser(null);
         setSession(null);
       }
@@ -86,6 +100,18 @@ export const useAuthProvider = (): AuthContextType => {
       if (!mounted) return;
       
       console.log("Auth state changed:", event, session ? "session exists" : "no session");
+      
+      // Handle specific auth events
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing state");
+          setUser(null);
+          setSession(null);
+          setLoading(false);
+          return;
+        }
+      }
+      
       await processAuthUser(session);
     });
 
@@ -95,6 +121,8 @@ export const useAuthProvider = (): AuthContextType => {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error("Error getting initial session:", error);
+          // Clear any invalid session data
+          await supabase.auth.signOut();
         }
         
         if (mounted) {

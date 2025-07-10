@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,13 +16,14 @@ import { Menu, X, LogOut, User, Book, Home, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { toast } = useToast();
 
+  // Only consider user data if not loading and user exists
   const userData = useMemo(() => {
-    if (!user) return null;
+    if (loading || !user) return null;
     
     return {
       name: user.name || 'User',
@@ -29,7 +31,7 @@ const Navbar = () => {
       avatar: user.avatar || '',
       role: user.role || 'student'
     };
-  }, [user?.id, user?.name, user?.email, user?.avatar, user?.role]);
+  }, [user, loading]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -42,6 +44,10 @@ const Navbar = () => {
       setLoggingOut(true);
       await logout();
       setIsMenuOpen(false); // Close mobile menu if open
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account.",
+      });
     } catch (error) {
       console.error("Logout error in Navbar:", error);
       toast({
