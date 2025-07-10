@@ -261,6 +261,10 @@ const EnrollmentPage = () => {
           description: "You are already enrolled in this course!",
         });
         
+        // Clear any stored enrollment data
+        localStorage.removeItem(`enrollment_${courseId}`);
+        
+        // Navigate directly to the course dashboard
         navigate(`/dashboard/courses/${courseId}`, { replace: true });
         return;
       }
@@ -282,6 +286,7 @@ const EnrollmentPage = () => {
 
       console.log('Enrollment created successfully!');
       
+      // Clear any stored enrollment data
       localStorage.removeItem(`enrollment_${courseId}`);
       
       toast({
@@ -291,7 +296,11 @@ const EnrollmentPage = () => {
 
       console.log('=== REDIRECTING TO COURSE DASHBOARD ===');
       console.log('Target URL:', `/dashboard/courses/${courseId}`);
-      navigate(`/dashboard/courses/${courseId}`, { replace: true });
+      
+      // Use setTimeout to ensure the toast shows before redirect
+      setTimeout(() => {
+        navigate(`/dashboard/courses/${courseId}`, { replace: true });
+      }, 1500);
       
     } catch (error) {
       console.error('=== ENROLLMENT COMPLETION FAILED ===', error);
@@ -629,8 +638,10 @@ const EnrollmentPage = () => {
       console.log('Transaction ID:', transactionId);
       console.log('Current user:', user?.id);
       
+      // Clean up URL immediately to prevent re-processing
       window.history.replaceState({}, document.title, window.location.pathname);
       
+      // Add slight delay to ensure auth state is stable
       setTimeout(() => {
         verifyPaymentAndEnroll(transactionId);
       }, 1000);

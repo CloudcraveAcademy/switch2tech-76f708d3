@@ -1,181 +1,99 @@
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthOperations } from "./auth/useAuthOperations";
-import { useSessionManager } from "./auth/useSessionManager";
-import { useUserProfile } from "@/hooks/useUserProfile";
 
-export const useAuthProvider = (onLogout?: (path?: string) => void) => {
+export interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
+
+export const useAuthProvider = (): AuthContextType => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const initializationComplete = useRef(false);
-  const authListenerActive = useRef(false);
-  
-  const {
-    login,
-    register,
-    logout: performLogout,
-  } = useAuthOperations();
-  
-  const { enrichUserWithProfile } = useUserProfile();
-  
-  const {
-    user,
-    session,
-    setUser,
-    setSession,
-    validateSession,
-    initializeSession,
-  } = useSessionManager();
 
-  // Single, stable initialization effect
-  useEffect(() => {
-    let isMounted = true;
-    
-    if (initializationComplete.current) return;
-    
-    const initializeAuth = async () => {
-      try {
-        console.log("Starting auth initialization...");
-        initializationComplete.current = true;
-        
-        // Get current session first
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (!isMounted) return;
-        
-        if (error) {
-          console.log("Session error during initialization:", error);
-          if (isMounted) {
-            setUser(null);
-            setSession(null);
-            setLoading(false);
-          }
-          return;
-        }
-        
-        if (currentSession) {
-          console.log("Valid session found, enriching user profile");
-          setSession(currentSession);
-          
-          try {
-            const enrichedUser = await enrichUserWithProfile(currentSession.user);
-            if (isMounted) {
-              setUser(enrichedUser);
-              console.log("User profile enriched successfully");
-            }
-          } catch (profileError) {
-            console.log("Profile enrichment failed, using basic user data:", profileError);
-            if (isMounted) {
-              setUser({
-                ...currentSession.user,
-                role: 'student'
-              } as any);
-            }
-          }
-        } else {
-          console.log("No session found during initialization");
-          if (isMounted) {
-            setUser(null);
-            setSession(null);
-          }
-        }
-        
-        if (isMounted) {
-          setLoading(false);
-          console.log("Auth initialization completed");
-        }
-        
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-        if (isMounted) {
-          setUser(null);
-          setSession(null);
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [enrichUserWithProfile, setUser, setSession]);
-
-  // Separate effect for auth state listener - only runs after initialization
-  useEffect(() => {
-    if (!initializationComplete.current || authListenerActive.current) return;
-    
-    console.log("Setting up auth state listener");
-    authListenerActive.current = true;
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log("Auth state changed:", event, newSession ? "session exists" : "no session");
-        
-        // Handle sign out or no session
-        if (event === 'SIGNED_OUT' || !newSession) {
-          console.log("User signed out, clearing state");
-          setUser(null);
-          setSession(null);
-          return;
-        }
-        
-        // Handle sign in or token refresh
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log("Processing sign in or token refresh");
-          setSession(newSession);
-          
-          if (newSession?.user) {
-            // Use setTimeout to prevent blocking the auth state change
-            setTimeout(async () => {
-              try {
-                const enrichedUser = await enrichUserWithProfile(newSession.user);
-                setUser(enrichedUser);
-                console.log("User profile updated from auth state change");
-              } catch (error) {
-                console.error("Error enriching user data:", error);
-                setUser({
-                  ...newSession.user,
-                  role: 'student'
-                } as any);
-              }
-            }, 0);
-          }
-        }
-      }
-    );
-    
-    return () => {
-      console.log("Cleaning up auth subscription");
-      subscription.unsubscribe();
-      authListenerActive.current = false;
-    };
-  }, [enrichUserWithProfile, setUser, setSession]);
-
-  const logout = useCallback(async () => {
+  const signOut = useCallback(async () => {
+    console.log("Signing out user");
+    setLoading(true);
     try {
-      await performLogout();
-      
-      // Reset initialization state to allow fresh start
-      initializationComplete.current = false;
-      
-      if (onLogout) {
-        onLogout();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Sign out failed:", error);
     }
-  }, [performLogout, onLogout]);
+  }, []);
+
+  useEffect(() => {
+    console.log("Initializing auth state...");
+    
+    let mounted = true;
+
+    // Set up auth state listener first
+    console.log("Setting up auth state listener");
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      console.log("Auth state changed:", event, session ? "session exists" : "no session");
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      } else {
+        setSession(null);
+        setUser(null);
+      }
+      
+      // Only set loading to false after we've processed the auth state
+      setLoading(false);
+    });
+
+    // Then get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Error getting initial session:", error);
+        }
+        
+        if (mounted) {
+          console.log("Initial session check:", session ? "session found" : "no session");
+          if (session) {
+            setSession(session);
+            setUser(session.user);
+          } else {
+            setSession(null);
+            setUser(null);
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Failed to get initial session:", error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
+
+    return () => {
+      mounted = false;
+      console.log("Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return {
     user,
     session,
-    login,
-    register,
-    logout,
     loading,
-    setLoading,
-    validateSession,
+    signOut,
   };
 };
