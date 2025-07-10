@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import CourseCard from "@/components/CourseCard";
-import { ArrowRight, Loader } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type Course = {
@@ -127,7 +127,7 @@ const FeaturedCoursesSection = () => {
           </div>
           <div className="flex justify-center py-12">
             <div className="flex flex-col items-center space-y-4">
-              <Loader className="animate-spin h-10 w-10 text-primary" />
+              <Loader2 className="animate-spin h-10 w-10 text-primary" />
               <p className="text-muted-foreground">Loading featured courses...</p>
             </div>
           </div>

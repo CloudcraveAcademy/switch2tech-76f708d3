@@ -6,7 +6,7 @@ import CourseCard from "@/components/CourseCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Loader } from "lucide-react";
+import { Search, Filter, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategories } from "@/hooks/useCategories";
 import {
@@ -50,21 +50,17 @@ const Courses = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
-  const [fetchAttempted, setFetchAttempted] = useState(false);
   
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   useEffect(() => {
     let isMounted = true;
     
-    // Prevent multiple fetch attempts
-    if (fetchAttempted) return;
-    
     const fetchCourses = async () => {
       try {
         console.log("Fetching courses from database...");
-        setFetchAttempted(true);
         setError(null);
+        setLoading(true);
         
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
@@ -86,14 +82,12 @@ const Courses = () => {
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
           setError(`Failed to fetch courses: ${coursesError.message}`);
-          setLoading(false);
           return;
         }
 
         if (!coursesData || coursesData.length === 0) {
           console.log("No courses found");
           setCourses([]);
-          setLoading(false);
           return;
         }
 
@@ -131,13 +125,15 @@ const Courses = () => {
 
         console.log("Successfully processed courses:", transformedCourses.length);
         setCourses(transformedCourses);
-        setLoading(false);
 
       } catch (error) {
         console.error("Exception while fetching courses:", error);
         if (isMounted) {
           setError(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
           setCourses([]);
+        }
+      } finally {
+        if (isMounted) {
           setLoading(false);
         }
       }
@@ -168,7 +164,7 @@ const Courses = () => {
           <div className="container mx-auto px-6 py-12">
             <div className="flex justify-center items-center py-20">
               <div className="flex flex-col items-center space-y-4">
-                <Loader className="animate-spin h-10 w-10 text-primary" />
+                <Loader2 className="animate-spin h-10 w-10 text-primary" />
                 <p className="text-muted-foreground">Loading courses...</p>
               </div>
             </div>
@@ -187,8 +183,8 @@ const Courses = () => {
               <div className="flex flex-col items-center space-y-4">
                 <p className="text-red-500">Error loading courses: {error}</p>
                 <Button onClick={() => {
-                  setFetchAttempted(false);
                   setLoading(true);
+                  setError(null);
                   window.location.reload();
                 }}>
                   Try Again
