@@ -51,9 +51,9 @@ const enrollmentSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
-  phone: z.string().min(10, "Please enter a valid phone number").optional(),
-  country: z.string().min(2, "Please select your country").optional(),
+  password: z.string().optional().or(z.string().min(6, "Password must be at least 6 characters")),
+  phone: z.string().optional(),
+  country: z.string().optional(),
   currency: z.string().min(3, "Please select your currency"),
   motivation: z.string().optional(),
 });
