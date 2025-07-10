@@ -2,11 +2,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/auth';
 
 export interface UserWithProfile extends User {
   name?: string;
   avatar?: string;
-  role?: string;
+  role?: UserRole;
   first_name?: string;
   last_name?: string;
   phone?: string;
@@ -60,11 +61,14 @@ export const useAuthProvider = () => {
           }
         }
         
+        // Ensure role is properly typed as UserRole
+        const userRole: UserRole = profile?.role as UserRole || 'student';
+        
         const userWithProfile: UserWithProfile = {
           ...session.user,
           name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.first_name || 'User' : 'User',
           avatar: profile?.avatar_url || '',
-          role: profile?.role || 'student'
+          role: userRole
         };
         
         if (mounted.current) {

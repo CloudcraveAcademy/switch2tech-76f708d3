@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useRef, useState, useMemo, useEffect } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
-import type { AuthContextType } from "@/types/auth";
+import type { AuthContextType, UserRole } from "@/types/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Create a context with a default undefined value
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     throw new Error("Login should be handled by Login component");
   };
 
-  const register = async (email: string, password: string, userData?: any) => {
+  const register = async (name: string, email: string, password: string, role: UserRole) => {
     // This should be handled by the auth provider or register components directly
     throw new Error("Register should be handled by Register component");
   };
