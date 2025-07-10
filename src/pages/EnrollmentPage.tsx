@@ -729,9 +729,10 @@ const EnrollmentPage = () => {
       return true;
     }
     
-    // For paid courses, check if payment system is ready
-    if (!isFree && (!flutterwaveLoaded || !flutterwaveConfig?.is_active)) {
-      return true;
+    // For paid courses, only check if payment system is loaded and active
+    if (!isFree) {
+      // Don't disable if Flutterwave is loaded and config is active
+      return !flutterwaveLoaded || !flutterwaveConfig?.is_active;
     }
     
     return false;
@@ -760,11 +761,11 @@ const EnrollmentPage = () => {
       return "Loading Payment System...";
     }
     
-    if (!flutterwaveConfig && !isFree) {
+    if (!flutterwaveConfig && !isFree && !isLoadingPaymentConfig) {
       return "Payment System Unavailable";
     }
     
-    if (!isFree && !flutterwaveConfig?.is_active) {
+    if (!isFree && flutterwaveConfig && !flutterwaveConfig.is_active) {
       return "Payment System Disabled";
     }
     
