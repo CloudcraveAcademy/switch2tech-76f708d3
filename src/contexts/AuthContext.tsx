@@ -51,8 +51,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Use the authState directly without passing any arguments
   const authState = useAuthProvider();
 
+  // Create dummy functions for login and register to satisfy the AuthContextType interface
+  const login = async (email: string, password: string) => {
+    // This should be handled by the auth provider or login components directly
+    throw new Error("Login should be handled by Login component");
+  };
+
+  const register = async (email: string, password: string, userData?: any) => {
+    // This should be handled by the auth provider or register components directly
+    throw new Error("Register should be handled by Register component");
+  };
+
+  const setLoading = (loading: boolean) => {
+    // This is handled internally by the auth provider
+    console.log("setLoading called:", loading);
+  };
+
+  const validateSession = async () => {
+    // This is handled internally by the auth provider
+    return authState.user !== null;
+  };
+
+  const contextValue: AuthContextType = {
+    ...authState,
+    login,
+    register,
+    setLoading,
+    validateSession,
+  };
+
   return (
-    <AuthContext.Provider value={authState}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

@@ -29,8 +29,14 @@ const CourseEnrollButton = ({
   const [enrolling, setEnrolling] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const handleEnroll = async () => {
-    console.log("Enroll button clicked, user:", user?.id, "loading:", loading);
+  const handleEnroll = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log("=== ENROLL BUTTON CLICKED ===");
+    console.log("User:", user?.id, "Loading:", loading);
+    console.log("Course ID:", courseId);
+    console.log("Button disabled?", loading || enrolling);
     
     // If auth is still loading, wait a moment
     if (loading) {
@@ -67,6 +73,7 @@ const CourseEnrollButton = ({
       } else if (result.success && result.error === "Already enrolled") {
         navigate(`/dashboard/courses/${courseId}`);
       } else if (result.requiresPayment) {
+        console.log("Payment required, navigating to enrollment page");
         navigate(`/enroll/${courseId}`);
       } else {
         toast({
@@ -105,12 +112,16 @@ const CourseEnrollButton = ({
     );
   }
 
+  const isButtonDisabled = loading || enrolling;
+
   return (
     <>
       <Button 
-        className={className} 
+        className={`${className} cursor-pointer`}
         onClick={handleEnroll} 
-        disabled={loading || enrolling}
+        disabled={isButtonDisabled}
+        type="button"
+        style={{ pointerEvents: isButtonDisabled ? 'none' : 'auto' }}
       >
         {enrolling ? "Processing..." : 
          loading ? "Loading..." : 
