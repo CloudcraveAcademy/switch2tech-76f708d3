@@ -32,7 +32,7 @@ const Login = () => {
   const searchParams = new URLSearchParams(location.search);
   const redirectPath = searchParams.get('redirect') || "/dashboard";
 
-  // Redirect authenticated users - but only after auth has finished loading
+  // Redirect authenticated users after auth has finished loading
   useEffect(() => {
     if (!loading && user) {
       console.log("Login: User authenticated, redirecting to:", redirectPath);
@@ -40,7 +40,7 @@ const Login = () => {
     }
   }, [user, loading, navigate, redirectPath]);
 
-  // Show loading state while auth is initializing - but only for a short time
+  // Don't show anything while auth is initializing
   if (loading) {
     return (
       <Layout>
@@ -51,7 +51,7 @@ const Login = () => {
     );
   }
 
-  // Don't render login form if user is already authenticated
+  // If user is authenticated but we're still on login page, show redirecting message
   if (user) {
     return (
       <Layout>
@@ -62,6 +62,7 @@ const Login = () => {
     );
   }
 
+  // Show login form for unauthenticated users
   return (
     <Layout>
       <div className="max-w-md mx-auto px-4 py-12">

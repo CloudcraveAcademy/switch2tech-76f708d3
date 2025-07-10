@@ -60,7 +60,6 @@ const Courses = () => {
       try {
         console.log("Fetching courses from database...");
         setError(null);
-        setLoading(true);
         
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
@@ -144,7 +143,7 @@ const Courses = () => {
     return () => {
       isMounted = false;
     };
-  }, []); // Empty dependency array to run only once
+  }, []);
 
   // Filter courses based on search and filters
   const filteredCourses = courses.filter((course) => {

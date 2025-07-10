@@ -44,17 +44,10 @@ export const useAuthProvider = (): AuthContextType => {
     
     let mounted = true;
 
-    // Set up auth state listener first
-    console.log("Setting up auth state listener");
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const processAuthUser = async (session: Session | null) => {
       if (!mounted) return;
       
-      console.log("Auth state changed:", event, session ? "session exists" : "no session");
-      
       if (session) {
-        // Fetch user profile data to enhance the user object
         try {
           const { data: profile } = await supabase
             .from('user_profiles')
@@ -69,6 +62,7 @@ export const useAuthProvider = (): AuthContextType => {
             role: profile?.role as UserRole || undefined,
           };
           
+          console.log("User authenticated with profile:", userWithProfile.email);
           setUser(userWithProfile);
         } catch (error) {
           console.error("Error fetching user profile:", error);
@@ -76,16 +70,26 @@ export const useAuthProvider = (): AuthContextType => {
         }
         setSession(session);
       } else {
-        console.log("User signed out or no session, clearing state");
+        console.log("No session, clearing user state");
         setUser(null);
         setSession(null);
       }
       
-      // Only set loading to false after we've processed the auth state
       setLoading(false);
+    };
+
+    // Set up auth state listener
+    console.log("Setting up auth state listener");
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      console.log("Auth state changed:", event, session ? "session exists" : "no session");
+      await processAuthUser(session);
     });
 
-    // Then get initial session
+    // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -93,12 +97,9 @@ export const useAuthProvider = (): AuthContextType => {
           console.error("Error getting initial session:", error);
         }
         
-        if (mounted && !session) {
-          // Only update state if there's no session and we haven't already processed one
-          console.log("Initial session check: no session");
-          setUser(null);
-          setSession(null);
-          setLoading(false);
+        if (mounted) {
+          console.log("Initial session check:", session ? "session found" : "no session");
+          await processAuthUser(session);
         }
       } catch (error) {
         console.error("Failed to get initial session:", error);
