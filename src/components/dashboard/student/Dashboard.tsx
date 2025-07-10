@@ -111,12 +111,12 @@ const Dashboard = () => {
           <StudentStatistics />
         </div>
 
-        <div className="md:col-span-2 space-y-6">
+        <div className="col-span-1 md:col-span-2 space-y-6">
           <EnrolledCourses />
           <UpcomingLiveClasses />
         </div>
 
-        <div className="space-y-6">
+        <div className="col-span-1 space-y-6">
           <Announcements />
         </div>
       </div>
