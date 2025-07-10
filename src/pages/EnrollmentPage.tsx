@@ -725,30 +725,46 @@ const EnrollmentPage = () => {
                      course.discounted_price < (course.price || 0);
 
   const isButtonDisabled = () => {
+    // Log all the states for debugging
+    console.log("=== BUTTON DISABLED CHECK ===");
+    console.log("isEnrolling:", isEnrolling);
+    console.log("isProcessingPayment:", isProcessingPayment);
+    console.log("isFree:", isFree);
+    console.log("flutterwaveLoaded:", flutterwaveLoaded);
+    console.log("isLoadingPaymentConfig:", isLoadingPaymentConfig);
+    console.log("flutterwaveConfig:", flutterwaveConfig);
+    console.log("flutterwaveConfig?.is_active:", flutterwaveConfig?.is_active);
+    
     // If currently processing, disable button
     if (isEnrolling || isProcessingPayment) {
+      console.log("Button disabled: Currently processing");
       return true;
     }
     
     // For free courses, no additional checks needed
     if (isFree) {
+      console.log("Button enabled: Free course");
       return false;
     }
     
     // For paid courses, check if Flutterwave is ready
     if (!flutterwaveLoaded) {
+      console.log("Button disabled: Flutterwave not loaded");
       return true;
     }
     
     // Check if config is loaded and active
     if (isLoadingPaymentConfig) {
+      console.log("Button disabled: Payment config loading");
       return true;
     }
     
     if (!flutterwaveConfig || !flutterwaveConfig.is_active) {
+      console.log("Button disabled: Flutterwave config invalid or inactive");
       return true;
     }
     
+    console.log("Button enabled: All checks passed");
     return false;
   };
 
