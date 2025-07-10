@@ -1,117 +1,113 @@
 
-import { useState, useEffect, useCallback } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuthOperations } from "@/hooks/auth/useAuthOperations";
-import type { AuthContextType, UserWithProfile, UserRole } from "@/types/auth";
+import { useState, useEffect, useRef } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
-export const useAuthProvider = (): AuthContextType => {
+export interface UserWithProfile extends User {
+  name?: string;
+  avatar?: string;
+  role?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  bio?: string;
+}
+
+export const useAuthProvider = () => {
   const [user, setUser] = useState<UserWithProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  const { 
-    login: authLogin, 
-    register: authRegister, 
-    logout: authLogout,
-    setLoading: setAuthLoading 
-  } = useAuthOperations();
-
-  const login = useCallback(async (email: string, password: string) => {
-    return await authLogin(email, password);
-  }, [authLogin]);
-
-  const register = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
-    return await authRegister(name, email, password, role);
-  }, [authRegister]);
-
-  const logout = useCallback(async (): Promise<void> => {
-    await authLogout();
-  }, [authLogout]);
-
-  const validateSession = useCallback(async (): Promise<boolean> => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      return !!session;
-    } catch (error) {
-      console.error("Session validation error:", error);
-      return false;
-    }
-  }, []);
+  const mounted = useRef(true);
+  const initializingRef = useRef(false);
 
   useEffect(() => {
-    console.log("Initializing auth state...");
-    
-    let mounted = true;
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
-    const processAuthUser = async (session: Session | null) => {
-      if (!mounted) return;
-      
-      if (session?.user) {
-        // Validate that the session is actually valid by trying to use it
-        try {
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          // If we get an auth error, the session is invalid
-          if (profileError && profileError.message.includes('JWT')) {
-            console.log("Invalid session detected, clearing auth state");
+  const clearAuthState = () => {
+    if (!mounted.current) return;
+    console.log("Clearing auth state");
+    setUser(null);
+    setSession(null);
+    setLoading(false);
+  };
+
+  const processAuthUser = async (session: Session | null) => {
+    if (!mounted.current || initializingRef.current) return;
+    
+    try {
+      if (session?.user?.id) {
+        console.log("Processing auth user:", session.user.email);
+        
+        // Try to fetch user profile
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          // If it's an auth error, clear the session
+          if (profileError.message?.includes('JWT') || profileError.message?.includes('auth')) {
+            console.log("Invalid session detected, signing out");
             await supabase.auth.signOut();
-            setUser(null);
-            setSession(null);
-            setLoading(false);
+            clearAuthState();
             return;
           }
-          
-          const userWithProfile: UserWithProfile = {
-            ...session.user,
-            name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : undefined,
-            avatar: profile?.avatar_url || undefined,
-            role: profile?.role as UserRole || undefined,
-          };
-          
-          console.log("User authenticated with profile:", userWithProfile.email);
+        }
+        
+        const userWithProfile: UserWithProfile = {
+          ...session.user,
+          name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.first_name || 'User' : 'User',
+          avatar: profile?.avatar_url || '',
+          role: profile?.role || 'student'
+        };
+        
+        if (mounted.current) {
+          console.log("User authenticated successfully:", userWithProfile.email);
           setUser(userWithProfile);
           setSession(session);
-        } catch (error) {
-          console.error("Error validating session:", error);
-          // If there's an error fetching profile, clear the session
-          await supabase.auth.signOut();
-          setUser(null);
-          setSession(null);
+          setLoading(false);
         }
       } else {
-        console.log("No valid session, clearing user state");
-        setUser(null);
-        setSession(null);
+        console.log("No valid session found");
+        clearAuthState();
       }
-      
-      setLoading(false);
-    };
+    } catch (error) {
+      console.error("Error processing auth user:", error);
+      clearAuthState();
+    }
+  };
 
+  useEffect(() => {
+    if (initializingRef.current) return;
+    
+    console.log("Initializing auth state...");
+    initializingRef.current = true;
+    
     // Set up auth state listener
     console.log("Setting up auth state listener");
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted.current) return;
       
       console.log("Auth state changed:", event, session ? "session exists" : "no session");
       
-      // Handle specific auth events
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        if (event === 'SIGNED_OUT') {
-          console.log("User signed out, clearing state");
-          setUser(null);
-          setSession(null);
-          setLoading(false);
-          return;
-        }
+      // Handle specific events
+      if (event === 'SIGNED_OUT') {
+        clearAuthState();
+        return;
       }
       
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await processAuthUser(session);
+        return;
+      }
+      
+      // For initial load or other events
       await processAuthUser(session);
     });
 
@@ -119,41 +115,52 @@ export const useAuthProvider = (): AuthContextType => {
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
           console.error("Error getting initial session:", error);
-          // Clear any invalid session data
-          await supabase.auth.signOut();
+          clearAuthState();
+          return;
         }
         
-        if (mounted) {
-          console.log("Initial session check:", session ? "session found" : "no session");
+        if (mounted.current) {
           await processAuthUser(session);
+          initializingRef.current = false;
         }
       } catch (error) {
-        console.error("Failed to get initial session:", error);
-        if (mounted) {
-          setLoading(false);
-        }
+        console.error("Error in getInitialSession:", error);
+        clearAuthState();
+        initializingRef.current = false;
       }
     };
 
     getInitialSession();
 
     return () => {
-      mounted = false;
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
+      initializingRef.current = false;
     };
   }, []);
+
+  const logout = async () => {
+    try {
+      console.log("Logging out user");
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Logout error:", error);
+        throw error;
+      }
+      clearAuthState();
+    } catch (error) {
+      console.error("Logout failed:", error);
+      throw error;
+    }
+  };
 
   return {
     user,
     session,
-    login,
-    register,
-    logout,
     loading,
-    setLoading,
-    validateSession,
+    logout
   };
 };

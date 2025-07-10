@@ -21,7 +21,7 @@ const Navbar = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const { toast } = useToast();
 
-  // Only consider user data if not loading and user exists
+  // Only show user data when not loading and user exists
   const userData = useMemo(() => {
     if (loading || !user) return null;
     
@@ -33,6 +33,11 @@ const Navbar = () => {
     };
   }, [user, loading]);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("Navbar state - loading:", loading, "user:", !!user, "userData:", !!userData);
+  }, [loading, user, userData]);
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -43,7 +48,7 @@ const Navbar = () => {
     try {
       setLoggingOut(true);
       await logout();
-      setIsMenuOpen(false); // Close mobile menu if open
+      setIsMenuOpen(false);
       toast({
         title: "Logged out successfully",
         description: "You have been signed out of your account.",
@@ -123,7 +128,8 @@ const Navbar = () => {
               Contact
             </Link>
 
-            {!userData ? (
+            {/* Show login/register when not loading and no user */}
+            {!loading && !userData ? (
               <div className="ml-4 flex items-center md:ml-6">
                 <Link to="/login">
                   <Button variant="outline" className="mr-2 border-[#0077B6] text-[#0077B6] hover:bg-[#00B4D8]/10">
@@ -134,7 +140,8 @@ const Navbar = () => {
                   <Button className="bg-[#0077B6] hover:bg-[#03045E]">Register</Button>
                 </Link>
               </div>
-            ) : (
+            ) : userData ? (
+              /* Show user menu when user data is available */
               <div className="ml-4 flex items-center md:ml-6">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -174,7 +181,7 @@ const Navbar = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="flex md:hidden">
@@ -237,7 +244,7 @@ const Navbar = () => {
               </div>
             </Link>
             
-            {!userData ? (
+            {!loading && !userData ? (
               <div className="mt-4 flex flex-col space-y-2 px-3">
                 <Link to="/login" onClick={toggleMenu}>
                   <Button variant="outline" className="w-full">
@@ -248,7 +255,7 @@ const Navbar = () => {
                   <Button className="w-full">Register</Button>
                 </Link>
               </div>
-            ) : (
+            ) : userData ? (
               <div className="pt-4 pb-3 border-t border-gray-200">
                 <div className="flex items-center px-4">
                   <div className="flex-shrink-0">
@@ -293,7 +300,7 @@ const Navbar = () => {
                   </button>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}
