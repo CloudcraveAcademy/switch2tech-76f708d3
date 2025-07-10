@@ -725,14 +725,28 @@ const EnrollmentPage = () => {
                      course.discounted_price < (course.price || 0);
 
   const isButtonDisabled = () => {
+    // If currently processing, disable button
     if (isEnrolling || isProcessingPayment) {
       return true;
     }
     
-    // For paid courses, only check if payment system is loaded and active
-    if (!isFree) {
-      // Don't disable if Flutterwave is loaded and config is active
-      return !flutterwaveLoaded || !flutterwaveConfig?.is_active;
+    // For free courses, no additional checks needed
+    if (isFree) {
+      return false;
+    }
+    
+    // For paid courses, check if Flutterwave is ready
+    if (!flutterwaveLoaded) {
+      return true;
+    }
+    
+    // Check if config is loaded and active
+    if (isLoadingPaymentConfig) {
+      return true;
+    }
+    
+    if (!flutterwaveConfig || !flutterwaveConfig.is_active) {
+      return true;
     }
     
     return false;
@@ -757,20 +771,25 @@ const EnrollmentPage = () => {
       );
     }
     
-    if (!flutterwaveLoaded && !isFree) {
+    if (isFree) {
+      return isNewUser ? "Create Account & Enroll for Free" : "Enroll for Free";
+    }
+    
+    // For paid courses
+    if (!flutterwaveLoaded) {
       return "Loading Payment System...";
     }
     
-    if (!flutterwaveConfig && !isFree && !isLoadingPaymentConfig) {
+    if (isLoadingPaymentConfig) {
+      return "Loading Payment System...";
+    }
+    
+    if (!flutterwaveConfig) {
       return "Payment System Unavailable";
     }
     
-    if (!isFree && flutterwaveConfig && !flutterwaveConfig.is_active) {
+    if (!flutterwaveConfig.is_active) {
       return "Payment System Disabled";
-    }
-    
-    if (isFree) {
-      return isNewUser ? "Create Account & Enroll for Free" : "Enroll for Free";
     }
     
     return (
@@ -829,7 +848,7 @@ const EnrollmentPage = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {course.mode === 'virtual-live' && (
+            {course?.mode === 'virtual-live' && (
               <div className="lg:col-span-3 mb-6">
                 <LiveCourseDetails course={course} />
               </div>
