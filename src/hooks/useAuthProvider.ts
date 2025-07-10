@@ -25,8 +25,8 @@ export const useAuthProvider = (): AuthContextType => {
     return await authRegister(name, email, password, role);
   }, [authRegister]);
 
-  const logout = useCallback(async () => {
-    return await authLogout();
+  const logout = useCallback(async (): Promise<void> => {
+    await authLogout();
   }, [authLogout]);
 
   const validateSession = useCallback(async (): Promise<boolean> => {
