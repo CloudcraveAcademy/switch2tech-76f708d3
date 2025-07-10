@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useRef, useState, useMemo, useEffect } from "react";
 import { useAuthProvider } from "@/hooks/useAuthProvider";
+import { useAuthOperations } from "@/hooks/auth/useAuthOperations";
 import type { AuthContextType, UserRole } from "@/types/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -50,22 +51,9 @@ export const requireAuth = (Component: React.ComponentType<any>) => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Use the authState directly without passing any arguments
   const authState = useAuthProvider();
-
-  // Create dummy functions for login and register to satisfy the AuthContextType interface
-  const login = async (email: string, password: string) => {
-    // This should be handled by the auth provider or login components directly
-    throw new Error("Login should be handled by Login component");
-  };
-
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
-    // This should be handled by the auth provider or register components directly
-    throw new Error("Register should be handled by Register component");
-  };
-
-  const setLoading = (loading: boolean) => {
-    // This is handled internally by the auth provider
-    console.log("setLoading called:", loading);
-  };
+  
+  // Use the actual auth operations
+  const { login, register, loading: authOpsLoading, setLoading } = useAuthOperations();
 
   const validateSession = async () => {
     // This is handled internally by the auth provider
@@ -74,6 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const contextValue: AuthContextType = {
     ...authState,
+    // Override loading to include auth operations loading
+    loading: authState.loading || authOpsLoading,
     login,
     register,
     setLoading,
