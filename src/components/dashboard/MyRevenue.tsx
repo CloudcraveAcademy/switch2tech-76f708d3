@@ -130,7 +130,8 @@ const MyRevenue = () => {
         .in("course_id", courseIds)
         .gte("created_at", startDate.toISOString())
         .lte("created_at", endDate.toISOString())
-        .eq("status", "successful");
+        .eq("status", "successful")
+        .order("created_at", { ascending: false });
         
       if (transactionsError) throw transactionsError;
       
@@ -174,7 +175,7 @@ const MyRevenue = () => {
       });
       
       // Get student and course information for recent transactions
-      const recentTxs = transactions?.slice(0, 5) || [];
+      const recentTxs = transactions?.slice(0, 10) || [];
       
       // Fetch user profiles for the transactions
       const userIds = [...new Set(recentTxs.map(tx => tx.user_id))];
