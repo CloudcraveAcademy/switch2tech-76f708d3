@@ -353,9 +353,12 @@ const MyStudents = () => {
   const handleGenerateReport = (student: Student) => {
     // Generate a simple CSV report for the student
     const reportData = [
-      ["Student Report"],
+      ["Switch2Tech Academy - Student Report"],
+      ["Generated on:", new Date().toLocaleDateString()],
+      [""],
+      ["Student Information"],
       ["Name", student.name],
-      ["Email", student.email],
+      ["Email", student.email || "No email available"],
       ["Enrolled Courses", student.enrolled_courses.toString()],
       ["Completed Courses", student.completed_courses.toString()],
       ["Average Progress", `${student.average_progress}%`],
