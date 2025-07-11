@@ -148,12 +148,10 @@ export const useAuthProvider = () => {
         
         if (mounted.current) {
           await processAuthUser(session);
-          initializingRef.current = false;
         }
       } catch (error) {
         console.error("Error in getInitialSession:", error);
         clearAuthState();
-        initializingRef.current = false;
       }
     };
 
@@ -162,7 +160,7 @@ export const useAuthProvider = () => {
     return () => {
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
-      initializingRef.current = false;
+      // Don't reset initializingRef here - it causes re-initialization loops
     };
   }, []);
 
