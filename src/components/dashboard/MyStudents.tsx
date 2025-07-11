@@ -97,15 +97,22 @@ const MyStudents = () => {
     queryKey: ['instructor-students', user?.id],
     queryFn: async () => {
       try {
+        console.log("🔍 Starting MyStudents query for user:", user?.id);
+        
         // Get all courses by this instructor
         const { data: courses, error: coursesError } = await supabase
           .from("courses")
           .select("id, title")
           .eq("instructor_id", user?.id);
 
-        if (coursesError) throw coursesError;
+        console.log("📚 Courses found:", courses?.length || 0, courses);
+        if (coursesError) {
+          console.error("❌ Courses error:", coursesError);
+          throw coursesError;
+        }
 
         if (!courses || courses.length === 0) {
+          console.log("📚 No courses found for instructor");
           return { students: [], courseMap: {} };
         }
 
@@ -116,19 +123,26 @@ const MyStudents = () => {
         }, {} as Record<string, string>);
 
         // Get all enrollments for these courses
+        console.log("🎓 Looking for enrollments in courses:", courseIds);
         const { data: enrollments, error: enrollmentsError } = await supabase
           .from("enrollments")
           .select("student_id, course_id, progress, completed")
           .in("course_id", courseIds);
 
-        if (enrollmentsError) throw enrollmentsError;
+        console.log("🎓 Enrollments found:", enrollments?.length || 0, enrollments);
+        if (enrollmentsError) {
+          console.error("❌ Enrollments error:", enrollmentsError);
+          throw enrollmentsError;
+        }
 
         if (!enrollments || enrollments.length === 0) {
+          console.log("🎓 No enrollments found for instructor's courses");
           return { students: [], courseMap };
         }
 
         // Get unique student IDs
         const uniqueStudentIds = [...new Set(enrollments.map((enrollment) => enrollment.student_id))];
+        console.log("👥 Unique student IDs:", uniqueStudentIds.length, uniqueStudentIds);
 
         // Get student profiles and emails
         const { data: profiles, error: profilesError } = await supabase
@@ -136,19 +150,28 @@ const MyStudents = () => {
           .select("id, first_name, last_name, avatar_url")
           .in("id", uniqueStudentIds);
 
-        if (profilesError) throw profilesError;
+        console.log("👤 Profiles found:", profiles?.length || 0, profiles);
+        if (profilesError) {
+          console.error("❌ Profiles error:", profilesError);
+          throw profilesError;
+        }
 
         // Get actual email addresses from auth.users via RPC function
         const emailMap: Record<string, string> = {};
         try {
+          console.log("📧 Attempting to fetch user emails...");
           const { data: userEmails, error: emailError } = await supabase.rpc('get_user_emails', {
             user_ids: uniqueStudentIds
           });
 
+          console.log("📧 Email RPC result:", { userEmails, emailError });
           if (!emailError && userEmails && Array.isArray(userEmails)) {
             userEmails.forEach((user: { id: string; email: string }) => {
               emailMap[user.id] = user.email;
             });
+            console.log("📧 Email map created:", emailMap);
+          } else if (emailError) {
+            console.warn("⚠️ Email RPC error:", emailError);
           }
         } catch (error) {
           console.warn("Could not fetch user emails:", error);
