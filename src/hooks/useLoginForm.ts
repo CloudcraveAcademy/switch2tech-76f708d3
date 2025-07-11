@@ -82,15 +82,14 @@ export const useLoginForm = () => {
         localStorage.removeItem('rememberedEmail');
       }
       
-      console.log("Login successful, redirecting to:", redirectPath);
+      console.log("Login successful, auth state listener will handle session");
       
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
 
-      // Navigate immediately after successful login
-      navigate(redirectPath, { replace: true });
+      // Don't navigate here - let the Login component handle it via auth state
       
     } catch (error: any) {
       console.error("Login error:", error);

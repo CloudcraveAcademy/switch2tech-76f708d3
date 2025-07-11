@@ -37,7 +37,7 @@ export const useAuthProvider = () => {
   };
 
   const processAuthUser = async (session: Session | null) => {
-    if (!mounted.current || initializingRef.current) return;
+    if (!mounted.current) return;
     
     try {
       if (session?.user?.id) {
@@ -112,13 +112,12 @@ export const useAuthProvider = () => {
         return;
       }
       
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      // Process the auth user for all events that have a session
+      if (session) {
         await processAuthUser(session);
-        return;
+      } else {
+        clearAuthState();
       }
-      
-      // For initial load or other events
-      await processAuthUser(session);
     });
 
     // Get initial session
