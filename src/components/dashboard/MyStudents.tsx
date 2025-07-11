@@ -41,8 +41,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserPlus, Search, MoreHorizontal, Mail, FileText, Award, Clock } from "lucide-react";
+import { Users, UserPlus, Search, MoreHorizontal, Mail, FileText, Award, Clock, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Student {
   id: string;
@@ -54,6 +55,11 @@ interface Student {
   average_progress: number;
   last_active: string;
   avatar_url: string | null;
+}
+
+interface MessageForm {
+  subject: string;
+  message: string;
 }
 
 interface InviteForm {
@@ -90,6 +96,11 @@ const MyStudents = () => {
     email: "",
     firstName: "",
     lastName: "",
+    message: "",
+  });
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  const [messageForm, setMessageForm] = useState<MessageForm>({
+    subject: "",
     message: "",
   });
 
@@ -192,8 +203,9 @@ const MyStudents = () => {
             (enrollment) => enrollment.student_id === studentId
           );
           
+          // Calculate completed courses based on 100% progress OR completed flag
           const completedCourses = studentEnrollments.filter(
-            (enrollment) => enrollment.completed
+            (enrollment) => enrollment.completed || (enrollment.progress && enrollment.progress >= 100)
           ).length;
 
           const matchingProfile = profiles?.find(
@@ -306,6 +318,80 @@ const MyStudents = () => {
 
   const handleViewStudentDetails = (student: Student) => {
     setSelectedStudent(student);
+  };
+
+  const handleSendMessage = (student: Student) => {
+    setSelectedStudent(student);
+    setMessageForm({
+      subject: `Message from your instructor`,
+      message: "",
+    });
+    setIsMessageDialogOpen(true);
+  };
+
+  const handleMessageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // Here you would integrate with your messaging system or email service
+      toast({
+        variant: "default",
+        title: "Message sent",
+        description: `Message sent to ${selectedStudent?.name}`,
+      });
+      setMessageForm({ subject: "", message: "" });
+      setIsMessageDialogOpen(false);
+      setSelectedStudent(null);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+      });
+    }
+  };
+
+  const handleGenerateReport = (student: Student) => {
+    // Generate a simple CSV report for the student
+    const reportData = [
+      ["Student Report"],
+      ["Name", student.name],
+      ["Email", student.email],
+      ["Enrolled Courses", student.enrolled_courses.toString()],
+      ["Completed Courses", student.completed_courses.toString()],
+      ["Average Progress", `${student.average_progress}%`],
+      ["Last Active", new Date(student.last_active).toLocaleDateString()],
+      [""],
+      ["Course Details"],
+      ["Course Name", "Progress", "Status"]
+    ];
+
+    // Add course progress data
+    const studentCourseProgress = studentProgress.filter(p => p.studentId === student.id);
+    studentCourseProgress.forEach(progress => {
+      reportData.push([
+        progress.courseName,
+        `${progress.progress}%`,
+        progress.progress >= 100 ? "Completed" : "In Progress"
+      ]);
+    });
+
+    // Convert to CSV and download
+    const csvContent = reportData.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${student.name.replace(/\s+/g, "_")}_report.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      variant: "default",
+      title: "Report generated",
+      description: `Report for ${student.name} has been downloaded`,
+    });
   };
 
   const activeStudents = useMemo(() => {
@@ -445,11 +531,14 @@ const MyStudents = () => {
                       <DropdownMenuItem onClick={() => handleViewStudentDetails(student)}>
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSendMessage(student)}>
                         <Mail className="mr-2 h-4 w-4" />
                         Send Message
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Generate Report</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleGenerateReport(student)}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Generate Report
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -872,12 +961,12 @@ const MyStudents = () => {
             
             <DialogFooter className="flex justify-between">
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleSendMessage(selectedStudent)}>
                   <Mail className="h-4 w-4 mr-1" />
                   Message
                 </Button>
-                <Button variant="outline" size="sm">
-                  <FileText className="h-4 w-4 mr-1" />
+                <Button variant="outline" size="sm" onClick={() => handleGenerateReport(selectedStudent)}>
+                  <Download className="h-4 w-4 mr-1" />
                   Report
                 </Button>
               </div>
@@ -885,6 +974,63 @@ const MyStudents = () => {
                 Close
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Send Message Dialog */}
+      {selectedStudent && (
+        <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Send Message to {selectedStudent.name}</DialogTitle>
+              <DialogDescription>
+                Send a direct message to {selectedStudent.email}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleMessageSubmit}>
+              <div className="py-4 space-y-4">
+                <div>
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input
+                    id="subject"
+                    value={messageForm.subject}
+                    onChange={(e) => setMessageForm(prev => ({ ...prev, subject: e.target.value }))}
+                    placeholder="Enter message subject"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    value={messageForm.message}
+                    onChange={(e) => setMessageForm(prev => ({ ...prev, message: e.target.value }))}
+                    placeholder="Type your message here..."
+                    rows={5}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsMessageDialogOpen(false);
+                    setSelectedStudent(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  <Mail className="h-4 w-4 mr-1" />
+                  Send Message
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       )}
