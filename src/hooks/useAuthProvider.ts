@@ -129,10 +129,15 @@ export const useAuthProvider = () => {
       
       // Process the auth user for all events that have a session
       if (session) {
-        // Use setTimeout to defer async processing and prevent deadlocks
-        setTimeout(() => {
+        // For SIGNED_IN events, process immediately to ensure quick redirect
+        if (event === 'SIGNED_IN') {
           processAuthUser(session);
-        }, 0);
+        } else {
+          // Use setTimeout for other events to prevent deadlocks
+          setTimeout(() => {
+            processAuthUser(session);
+          }, 0);
+        }
       } else {
         clearAuthState();
       }
