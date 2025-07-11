@@ -108,10 +108,7 @@ export const useAuthProvider = () => {
   };
 
   useEffect(() => {
-    if (initializingRef.current) return;
-    
     console.log("Initializing auth state...");
-    initializingRef.current = true;
     
     // Set up auth state listener
     console.log("Setting up auth state listener");
@@ -129,15 +126,7 @@ export const useAuthProvider = () => {
       
       // Process the auth user for all events that have a session
       if (session) {
-        // For SIGNED_IN events, process immediately to ensure quick redirect
-        if (event === 'SIGNED_IN') {
-          processAuthUser(session);
-        } else {
-          // Use setTimeout for other events to prevent deadlocks
-          setTimeout(() => {
-            processAuthUser(session);
-          }, 0);
-        }
+        processAuthUser(session);
       } else {
         clearAuthState();
       }
@@ -168,7 +157,6 @@ export const useAuthProvider = () => {
     return () => {
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
-      // Don't reset initializingRef here - it causes re-initialization loops
     };
   }, []);
 
