@@ -77,44 +77,9 @@ export const useAuthOperations = () => {
     }
   }, [toast]);
 
-  const logout = useCallback(async () => {
-    try {
-      console.log("Attempting logout");
-      setLoading(true);
-      
-      // Clear local storage first to prevent any potential state issues
-      localStorage.removeItem('supabase.auth.token');
-      
-      // Then perform the actual logout
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error("Logout error:", error);
-        throw error;
-      }
-      
-      console.log("Logout successful");
-      
-      // Return success
-      return true;
-    } catch (error: any) {
-      console.error("Logout error:", error);
-      toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      throw error;
-    } finally {
-      // Always reset loading state, regardless of success or failure
-      setLoading(false);
-    }
-  }, [toast]);
-
   return {
     login,
     register,
-    logout,
     loading,
     setLoading,
   };

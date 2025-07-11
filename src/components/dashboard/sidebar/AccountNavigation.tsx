@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { User, Bell, Settings, LogOut } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface AccountNavigationProps {
   isActive: (path: string) => boolean;
@@ -12,12 +13,14 @@ interface AccountNavigationProps {
 const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
     
     try {
       setIsLoggingOut(true);
+      console.log("AccountNavigation: Starting logout");
       
       // Perform the logout operation
       await onLogout();
@@ -28,8 +31,8 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
         description: "You have been logged out of your account",
       });
       
-      // Forcefully redirect to login page
-      window.location.href = "/login";
+      // Navigate to home page
+      navigate("/");
       
     } catch (error) {
       console.error("Logout failed:", error);
@@ -38,7 +41,7 @@ const AccountNavigation = ({ isActive, onLogout }: AccountNavigationProps) => {
         description: "Please try again",
         variant: "destructive",
       });
-      // Reset the logging out state on error
+    } finally {
       setIsLoggingOut(false);
     }
   };

@@ -107,6 +107,7 @@ export const useAuthProvider = () => {
       
       // Handle specific events
       if (event === 'SIGNED_OUT') {
+        console.log("User signed out, clearing state");
         clearAuthState();
         return;
       }
@@ -153,15 +154,24 @@ export const useAuthProvider = () => {
 
   const logout = async () => {
     try {
-      console.log("Logging out user");
+      console.log("Starting logout process");
+      setLoading(true);
+      
+      // Clear local state immediately
+      clearAuthState();
+      
+      // Then perform the actual logout
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Logout error:", error);
         throw error;
       }
-      clearAuthState();
+      
+      console.log("Logout successful");
     } catch (error) {
       console.error("Logout failed:", error);
+      // Even if logout fails, clear local state
+      clearAuthState();
       throw error;
     }
   };

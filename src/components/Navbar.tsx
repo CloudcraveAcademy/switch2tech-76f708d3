@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Only show user data when not loading and user exists
   const userData = useMemo(() => {
@@ -47,12 +47,19 @@ const Navbar = () => {
     
     try {
       setLoggingOut(true);
+      console.log("Navbar: Starting logout");
+      
       await logout();
       setIsMenuOpen(false);
+      
       toast({
         title: "Logged out successfully",
         description: "You have been signed out of your account.",
       });
+      
+      // Navigate to home page after logout
+      navigate("/");
+      
     } catch (error) {
       console.error("Logout error in Navbar:", error);
       toast({
@@ -64,12 +71,6 @@ const Navbar = () => {
       setLoggingOut(false);
     }
   };
-
-  useEffect(() => {
-    if (!user) {
-      setLoggingOut(false);
-    }
-  }, [user]);
 
   const getInitials = (name?: string) => {
     if (!name) return "U";
