@@ -75,20 +75,21 @@ export const useAuthProvider = () => {
           console.log("User authenticated successfully:", userWithProfile.email);
           setUser(userWithProfile);
           setSession(session);
-          setLoading(false);
         }
       } else {
         console.log("No valid session found");
         clearAuthState();
+        return;
       }
     } catch (error) {
       console.error("Error processing auth user:", error);
       clearAuthState();
-    } finally {
-      // Always ensure loading is set to false
-      if (mounted.current) {
-        setLoading(false);
-      }
+      return;
+    }
+    
+    // Always set loading to false at the end
+    if (mounted.current) {
+      setLoading(false);
     }
   };
 

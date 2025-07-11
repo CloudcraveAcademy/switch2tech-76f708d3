@@ -129,7 +129,7 @@ const Navbar = () => {
               Contact
             </Link>
 
-            {/* Show login/register when not loading and no user */}
+            {/* Show login/register when not loading and no userData */}
             {!loading && !userData ? (
               <div className="ml-4 flex items-center md:ml-6">
                 <Link to="/login">
