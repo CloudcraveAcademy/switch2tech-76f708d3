@@ -203,9 +203,10 @@ const MyStudents = () => {
             (enrollment) => enrollment.student_id === studentId
           );
           
-          // Calculate completed courses based on 100% progress OR completed flag
+          // Calculate completed courses - only count as completed if both conditions are met:
+          // 1. Progress is 100% AND completed flag is true, OR just completed flag is true
           const completedCourses = studentEnrollments.filter(
-            (enrollment) => enrollment.completed || (enrollment.progress && enrollment.progress >= 100)
+            (enrollment) => enrollment.completed === true
           ).length;
 
           const matchingProfile = profiles?.find(
