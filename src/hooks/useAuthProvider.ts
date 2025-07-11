@@ -84,6 +84,11 @@ export const useAuthProvider = () => {
     } catch (error) {
       console.error("Error processing auth user:", error);
       clearAuthState();
+    } finally {
+      // Always ensure loading is set to false
+      if (mounted.current) {
+        setLoading(false);
+      }
     }
   };
 
