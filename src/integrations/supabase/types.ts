@@ -1373,6 +1373,13 @@ export type Database = {
           configuration: Json
         }[]
       }
+      get_user_emails: {
+        Args: { user_ids: string[] }
+        Returns: {
+          id: string
+          email: string
+        }[]
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string

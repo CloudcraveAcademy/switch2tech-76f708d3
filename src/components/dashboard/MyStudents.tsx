@@ -139,15 +139,19 @@ const MyStudents = () => {
         if (profilesError) throw profilesError;
 
         // Get actual email addresses from auth.users via RPC function
-        const { data: userEmails, error: emailError } = await supabase.rpc('get_user_emails', {
-          user_ids: uniqueStudentIds
-        });
-
         const emailMap: Record<string, string> = {};
-        if (!emailError && userEmails) {
-          userEmails.forEach((user: any) => {
-            emailMap[user.id] = user.email;
+        try {
+          const { data: userEmails, error: emailError } = await supabase.rpc('get_user_emails', {
+            user_ids: uniqueStudentIds
           });
+
+          if (!emailError && userEmails && Array.isArray(userEmails)) {
+            userEmails.forEach((user: { id: string; email: string }) => {
+              emailMap[user.id] = user.email;
+            });
+          }
+        } catch (error) {
+          console.warn("Could not fetch user emails:", error);
         }
 
         // Get last activity for each student
