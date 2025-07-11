@@ -62,8 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const contextValue: AuthContextType = {
     ...authState,
-    // Override loading to include auth operations loading
-    loading: authState.loading || authOpsLoading,
+    // Only use auth operations loading during actual operations, not general loading
+    loading: authOpsLoading ? true : authState.loading,
     login,
     register,
     setLoading,

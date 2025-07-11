@@ -25,7 +25,8 @@ export const useAuthOperations = () => {
       }
       
       console.log("Login successful, auth state listener will handle session");
-      setLoading(false);
+      // Set a small delay to allow auth state change to complete
+      setTimeout(() => setLoading(false), 100);
       return data;
       
     } catch (error: any) {
