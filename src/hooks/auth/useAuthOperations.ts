@@ -25,6 +25,7 @@ export const useAuthOperations = () => {
       }
       
       console.log("Login successful, auth state listener will handle session");
+      setLoading(false);
       return data;
       
     } catch (error: any) {
