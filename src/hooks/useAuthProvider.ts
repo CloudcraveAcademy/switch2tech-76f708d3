@@ -115,7 +115,7 @@ export const useAuthProvider = () => {
     
     // Set up auth state listener
     console.log("Setting up auth state listener");
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted.current) return;
       
       console.log("Auth state changed:", event, session ? "session exists" : "no session");
@@ -129,7 +129,10 @@ export const useAuthProvider = () => {
       
       // Process the auth user for all events that have a session
       if (session) {
-        await processAuthUser(session);
+        // Use setTimeout to defer async processing and prevent deadlocks
+        setTimeout(() => {
+          processAuthUser(session);
+        }, 0);
       } else {
         clearAuthState();
       }
