@@ -130,13 +130,25 @@ const MyStudents = () => {
         // Get unique student IDs
         const uniqueStudentIds = [...new Set(enrollments.map((enrollment) => enrollment.student_id))];
 
-        // Get student profiles
+        // Get student profiles and emails
         const { data: profiles, error: profilesError } = await supabase
           .from("user_profiles")
           .select("id, first_name, last_name, avatar_url")
           .in("id", uniqueStudentIds);
 
         if (profilesError) throw profilesError;
+
+        // Get actual email addresses from auth.users via RPC function
+        const { data: userEmails, error: emailError } = await supabase.rpc('get_user_emails', {
+          user_ids: uniqueStudentIds
+        });
+
+        const emailMap: Record<string, string> = {};
+        if (!emailError && userEmails) {
+          userEmails.forEach((user: any) => {
+            emailMap[user.id] = user.email;
+          });
+        }
 
         // Get last activity for each student
         const { data: lessonProgress, error: progressError } = await supabase
@@ -178,7 +190,7 @@ const MyStudents = () => {
             id: studentId,
             user_id: studentId,
             name: `${matchingProfile.first_name || ""} ${matchingProfile.last_name || ""}`.trim() || "Unknown User",
-            email: `student${studentId.substring(0, 4)}@example.com`, // Mock email
+            email: emailMap[studentId] || "No email available",
             enrolled_courses: studentEnrollments.length,
             completed_courses: completedCourses,
             average_progress: averageProgress,
@@ -687,13 +699,14 @@ const MyStudents = () => {
                             <p className="text-2xl font-bold">{students.reduce((acc, s) => acc + s.completed_courses, 0)}</p>
                           </div>
                           
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Clock className="h-5 w-5 text-blue-500" />
-                              <h4 className="font-medium">Avg. Time Active</h4>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Clock className="h-5 w-5 text-blue-500" />
+                                <h4 className="font-medium">Active Students</h4>
+                              </div>
+                              <p className="text-2xl font-bold">{activeStudents.length}</p>
+                              <p className="text-xs text-gray-500">last 7 days</p>
                             </div>
-                            <p className="text-2xl font-bold">23 min</p>
-                          </div>
                         </div>
                         
                         <div className="pt-4">
