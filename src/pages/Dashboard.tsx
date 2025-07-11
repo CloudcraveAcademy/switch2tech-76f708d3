@@ -24,7 +24,10 @@ const Dashboard = () => {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    redirectAttempted.current = false;
+    // Only reset redirect attempt if we're leaving the dashboard
+    if (!location.pathname.startsWith('/dashboard')) {
+      redirectAttempted.current = false;
+    }
   }, [location.pathname]);
 
   if (loading) {
