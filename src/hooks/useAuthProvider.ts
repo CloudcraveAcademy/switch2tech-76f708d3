@@ -48,7 +48,7 @@ export const useAuthProvider = () => {
           .from('user_profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (profileError) {
           console.error("Profile fetch error:", profileError);
@@ -61,20 +61,25 @@ export const useAuthProvider = () => {
           }
         }
         
-        // Ensure role is properly typed as UserRole
+        // Ensure role is properly typed as UserRole, even if no profile exists
         const userRole: UserRole = profile?.role as UserRole || 'student';
         
         const userWithProfile: UserWithProfile = {
           ...session.user,
-          name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.first_name || 'User' : 'User',
+          name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.first_name || 'User' : session.user.email?.split('@')[0] || 'User',
           avatar: profile?.avatar_url || '',
-          role: userRole
+          role: userRole,
+          first_name: profile?.first_name || '',
+          last_name: profile?.last_name || '',
+          phone: profile?.phone || '',
+          bio: profile?.bio || ''
         };
         
         if (mounted.current) {
-          console.log("User authenticated successfully:", userWithProfile.email);
+          console.log("User authenticated successfully:", userWithProfile.email, "Role:", userWithProfile.role);
           setUser(userWithProfile);
           setSession(session);
+          setLoading(false);
         }
       } else {
         console.log("No valid session found");
@@ -83,13 +88,22 @@ export const useAuthProvider = () => {
       }
     } catch (error) {
       console.error("Error processing auth user:", error);
-      clearAuthState();
+      // Don't clear auth state for profile errors, just continue with basic user data
+      if (session?.user && mounted.current) {
+        const basicUser: UserWithProfile = {
+          ...session.user,
+          name: session.user.email?.split('@')[0] || 'User',
+          avatar: '',
+          role: 'student' as UserRole
+        };
+        console.log("Using basic user data due to profile error");
+        setUser(basicUser);
+        setSession(session);
+        setLoading(false);
+      } else {
+        clearAuthState();
+      }
       return;
-    }
-    
-    // Always set loading to false at the end
-    if (mounted.current) {
-      setLoading(false);
     }
   };
 
