@@ -237,6 +237,23 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
             max-width: 800px;
             position: relative;
         }
+        .logo-container {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            display: flex;
+            align-items: center;
+        }
+        .logo-image {
+            height: 40px;
+            width: auto;
+        }
+        .logo-text {
+            margin-left: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d3748;
+        }
         .seal {
             position: absolute;
             top: 20px;
@@ -318,6 +335,10 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
 </head>
 <body>
     <div class="certificate">
+        <div class="logo-container">
+            <img src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" alt="Switch2Tech Academy" class="logo-image" />
+            <span class="logo-text">Switch2Tech</span>
+        </div>
         <div class="seal">CERTIFIED</div>
         <div class="header">
             <h1 class="title">Certificate of Completion</h1>

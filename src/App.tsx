@@ -19,6 +19,7 @@ import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import { AuthProvider } from "./contexts/AuthContext";
 import ResetPassword from "./pages/ResetPassword";
+import VerifyCertificate from "./pages/VerifyCertificate";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/refund" element={<RefundPolicy />} />
+            <Route path="/verify-certificate" element={<VerifyCertificate />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
