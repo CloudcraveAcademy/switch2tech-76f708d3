@@ -252,7 +252,15 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
           )}
           
           <Button 
-            onClick={() => window.location.reload()} 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['quiz-submission', quizId, user?.id] });
+              setIsSubmitted(false);
+              setCurrentQuestionIndex(0);
+              setAnswers({});
+              if (quizData?.quiz.time_limit_minutes) {
+                setTimeLeft(quizData.quiz.time_limit_minutes * 60);
+              }
+            }} 
             className="w-full"
           >
             Retake Quiz

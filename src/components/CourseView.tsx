@@ -459,7 +459,8 @@ const CourseView = () => {
                 </ul>
               ) : (
                 <div className="text-center py-4">
-                  <p className="text-gray-500">No materials available for this course</p>
+                  <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">No materials available for this course</p>
                 </div>
               )}
             </CardContent>

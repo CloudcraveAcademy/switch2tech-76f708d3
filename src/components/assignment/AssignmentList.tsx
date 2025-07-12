@@ -216,7 +216,11 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
                     )}
                     
                     {assignment.submission && (
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setSelectedAssignment(assignment)}
+                      >
                         View Submission
                       </Button>
                     )}
