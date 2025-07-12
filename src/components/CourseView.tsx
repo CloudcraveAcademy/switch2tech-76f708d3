@@ -134,6 +134,7 @@ const CourseView = () => {
           console.error("Error fetching materials: ", materialsError);
         } else {
           materialsData = fetchedMaterialsData || [];
+          console.log("Fetched materials data:", materialsData);
         }
         
         // Fetch enrollment data if user is logged in
@@ -182,12 +183,15 @@ const CourseView = () => {
             due_date: assignment.due_date,
             completed: false // Placeholder, will be updated if needed
           })),
-          materials: materialsData.map((material: any) => ({
-            id: material.id,
-            title: material.title || 'Course Material',
-            file_url: material.file_url || '#',
-            file_type: material.file_type || 'pdf'
-          }))
+          materials: materialsData.map((material: any) => {
+            console.log("Processing material:", material);
+            return {
+              id: material.id,
+              title: material.title || 'Course Material',
+              file_url: material.file_url || '#',
+              file_type: material.file_type || 'pdf'
+            };
+          })
         };
 
         return fullCourse;
