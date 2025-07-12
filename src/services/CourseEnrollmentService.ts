@@ -228,9 +228,19 @@ export const CourseEnrollmentService = {
 
       const newProgress = Math.round((completedLessons / totalLessons) * 100);
 
+      // Update progress and mark as completed if 100%
+      const updateData: { progress: number; completed?: boolean; completion_date?: string } = {
+        progress: newProgress
+      };
+
+      if (newProgress >= 100) {
+        updateData.completed = true;
+        updateData.completion_date = new Date().toISOString();
+      }
+
       await supabase
         .from("enrollments")
-        .update({ progress: newProgress })
+        .update(updateData)
         .eq("id", enrollment.id);
 
       return true;
