@@ -1576,6 +1576,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      issue_missing_certificates: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_course_announcement: {
         Args: {
           announcement_id_param: string
