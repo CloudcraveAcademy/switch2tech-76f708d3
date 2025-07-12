@@ -38,6 +38,7 @@ interface RevenueData {
   revenueByMonth: { name: string; revenue: number }[];
   recentTransactions: Transaction[];
   revenueBySource: { name: string; value: number }[];
+  totalTransactions: number;
 }
 
 interface Transaction {
@@ -92,6 +93,7 @@ const MyRevenue = () => {
           revenueByMonth: [],
           recentTransactions: [],
           revenueBySource: [],
+          totalTransactions: 0,
         };
       }
 
@@ -111,6 +113,7 @@ const MyRevenue = () => {
           revenueByMonth: [],
           recentTransactions: [],
           revenueBySource: [],
+          totalTransactions: 0,
         };
       }
       
@@ -130,13 +133,14 @@ const MyRevenue = () => {
         .in("course_id", courseIds)
         .gte("created_at", startDate.toISOString())
         .lte("created_at", endDate.toISOString())
-        .eq("status", "successful")
+        .eq("status", "completed")
         .order("created_at", { ascending: false });
         
       if (transactionsError) throw transactionsError;
       
       // Calculate total revenue
       const totalRevenue = transactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
+      const totalTransactions = transactions?.length || 0;
       
       // Calculate revenue by month
       const monthlyData = Array(12).fill(0);
@@ -208,6 +212,7 @@ const MyRevenue = () => {
         revenueByMonth,
         recentTransactions,
         revenueBySource,
+        totalTransactions,
       };
     },
     enabled: !!user?.id,
@@ -315,8 +320,8 @@ const MyRevenue = () => {
                   Average Transaction
                 </p>
                 <p className="text-3xl font-bold">
-                  ₦{revenueData?.recentTransactions.length 
-                    ? Math.round(revenueData.totalRevenue / revenueData.recentTransactions.length).toLocaleString() 
+                  ₦{revenueData?.totalTransactions 
+                    ? Math.round(revenueData.totalRevenue / revenueData.totalTransactions).toLocaleString() 
                     : "0"}
                 </p>
               </div>
@@ -335,7 +340,7 @@ const MyRevenue = () => {
                   Total Transactions
                 </p>
                 <p className="text-3xl font-bold">
-                  {revenueData?.recentTransactions.length || 0}
+                  {revenueData?.totalTransactions || 0}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
