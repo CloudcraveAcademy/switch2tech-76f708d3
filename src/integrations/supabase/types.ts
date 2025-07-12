@@ -70,6 +70,7 @@ export type Database = {
       }
       assignments: {
         Row: {
+          attachment_url: string | null
           course_id: string
           created_at: string | null
           description: string | null
@@ -82,6 +83,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          attachment_url?: string | null
           course_id: string
           created_at?: string | null
           description?: string | null
@@ -94,6 +96,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          attachment_url?: string | null
           course_id?: string
           created_at?: string | null
           description?: string | null
