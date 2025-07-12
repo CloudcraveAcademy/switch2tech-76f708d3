@@ -236,11 +236,17 @@ const EnrollmentPage = () => {
     return watchedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, watchedCurrency);
   }, [basePriceUSD, watchedCurrency, isFree]);
 
-  const completeEnrollment = async (userId: string) => {
+  const completeEnrollment = async (userId: string, paymentData?: { 
+    transactionId?: string, 
+    amount?: number, 
+    currency?: string,
+    paymentMethod?: string 
+  }) => {
     try {
       console.log('=== STARTING ENROLLMENT COMPLETION ===');
       console.log('User ID:', userId);
       console.log('Course ID:', courseId);
+      console.log('Payment Data:', paymentData);
       
       const { data: existingEnrollment, error: checkError } = await supabase
         .from("enrollments")
@@ -267,6 +273,31 @@ const EnrollmentPage = () => {
         // Navigate directly to the course dashboard
         navigate(`/dashboard/courses/${courseId}`, { replace: true });
         return;
+      }
+
+      // Create payment transaction record if payment data is provided
+      if (paymentData && paymentData.amount && paymentData.amount > 0) {
+        console.log('Creating payment transaction record...');
+        const { error: paymentError } = await supabase
+          .from("payment_transactions")
+          .insert({
+            user_id: userId,
+            course_id: courseId,
+            amount: paymentData.amount,
+            currency: paymentData.currency || 'NGN',
+            status: "completed",
+            payment_method: paymentData.paymentMethod || 'card',
+            payment_reference: paymentData.transactionId,
+            paystack_reference: paymentData.transactionId,
+            created_at: new Date().toISOString()
+          });
+
+        if (paymentError) {
+          console.error('Error creating payment transaction:', paymentError);
+          // Don't throw error here, continue with enrollment
+        } else {
+          console.log('Payment transaction record created successfully');
+        }
       }
 
       console.log('Creating new enrollment...');
@@ -329,7 +360,16 @@ const EnrollmentPage = () => {
       if (session?.user) {
         console.log('✅ Found valid session, proceeding with enrollment');
         console.log('Session user:', session.user.id);
-        await completeEnrollment(session.user.id);
+        
+        // Pass payment data for transaction recording
+        const paymentData = {
+          transactionId: transactionId,
+          amount: displayPrice,
+          currency: watchedCurrency,
+          paymentMethod: 'card'
+        };
+        
+        await completeEnrollment(session.user.id, paymentData);
         return;
       }
       

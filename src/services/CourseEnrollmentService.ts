@@ -56,7 +56,7 @@ export const CourseEnrollmentService = {
       console.log("CourseEnrollmentService: Checking course pricing");
       const { data: courseData, error: courseError } = await supabase
         .from("courses")
-        .select("price")
+        .select("price, discounted_price")
         .eq("id", courseId)
         .maybeSingle();
 
@@ -68,8 +68,9 @@ export const CourseEnrollmentService = {
         };
       }
 
-      const isFree = !courseData?.price || courseData.price === 0;
-      console.log("CourseEnrollmentService: Course is free:", isFree);
+      const effectivePrice = courseData?.discounted_price || courseData?.price || 0;
+      const isFree = effectivePrice === 0;
+      console.log("CourseEnrollmentService: Course is free:", isFree, "Price:", effectivePrice);
 
       // If course is not free, check for payment
       if (!isFree) {
@@ -78,7 +79,7 @@ export const CourseEnrollmentService = {
           .select("id, status")
           .eq("course_id", courseId)
           .eq("user_id", userId)
-          .eq("status", "successful")
+          .in("status", ["successful", "completed"])
           .maybeSingle();
 
         if (paymentError) {
@@ -134,6 +135,46 @@ export const CourseEnrollmentService = {
         success: false,
         error: error.message
       };
+    }
+  },
+
+  async createPaymentTransaction(
+    userId: string, 
+    courseId: string, 
+    amount: number, 
+    currency: string = 'NGN',
+    paymentReference?: string,
+    paymentMethod: string = 'card'
+  ): Promise<boolean> {
+    try {
+      console.log("CourseEnrollmentService: Creating payment transaction", {
+        userId, courseId, amount, currency, paymentReference, paymentMethod
+      });
+
+      const { error } = await supabase
+        .from("payment_transactions")
+        .insert({
+          user_id: userId,
+          course_id: courseId,
+          amount: amount,
+          currency: currency,
+          status: "completed",
+          payment_method: paymentMethod,
+          payment_reference: paymentReference,
+          paystack_reference: paymentReference,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error("CourseEnrollmentService: Error creating payment transaction:", error);
+        return false;
+      }
+
+      console.log("CourseEnrollmentService: Payment transaction created successfully");
+      return true;
+    } catch (error) {
+      console.error("CourseEnrollmentService: Exception creating payment transaction:", error);
+      return false;
     }
   },
 
