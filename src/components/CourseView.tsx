@@ -93,6 +93,7 @@ const CourseView = () => {
             level,
             duration_hours,
             instructor_id,
+            course_materials,
             instructor:user_profiles!instructor_id (
               id,
               first_name,
@@ -123,19 +124,9 @@ const CourseView = () => {
           
         if (assignmentsError) throw assignmentsError;
         
-        // Fetch materials - Fix: Use a new variable instead of reassigning
-        let materialsData = [];
-        const { data: fetchedMaterialsData, error: materialsError } = await supabase
-          .from('course_materials')
-          .select('*')
-          .eq('course_id', courseId);
-          
-        if (materialsError) {
-          console.error("Error fetching materials: ", materialsError);
-        } else {
-          materialsData = fetchedMaterialsData || [];
-          console.log("Fetched materials data:", materialsData);
-        }
+        // Get course materials from the course record itself (stored as URLs array)
+        const courseMaterialUrls = courseData.course_materials || [];
+        console.log("Course materials URLs from course record:", courseMaterialUrls);
         
         // Fetch enrollment data if user is logged in
         let progress = 0;
@@ -183,13 +174,15 @@ const CourseView = () => {
             due_date: assignment.due_date,
             completed: false // Placeholder, will be updated if needed
           })),
-          materials: materialsData.map((material: any) => {
-            console.log("Processing material:", material);
+          materials: courseMaterialUrls.map((url: string, index: number) => {
+            console.log("Processing material URL:", url);
+            const fileName = url.split('/').pop() || `Material ${index + 1}`;
+            const fileExtension = fileName.split('.').pop()?.toLowerCase() || 'pdf';
             return {
-              id: material.id,
-              title: material.title || 'Course Material',
-              file_url: material.file_url || '#',
-              file_type: material.file_type || 'pdf'
+              id: `material-${index}`,
+              title: fileName,
+              file_url: url,
+              file_type: fileExtension
             };
           })
         };
