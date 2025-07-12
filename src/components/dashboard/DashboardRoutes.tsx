@@ -24,6 +24,8 @@ import AdminCertificates from "./admin/Certificates";
 
 // Import assignment and quiz components
 import AssignmentOverview from "./admin/AssignmentOverview";
+import QuizOverview from "./admin/QuizOverview";
+import DiscussionOverview from "./admin/DiscussionOverview";
 import InstructorAssignments from "./instructor/InstructorAssignments";
 import InstructorQuizzes from "./instructor/InstructorQuizzes";
 import InstructorDiscussions from "./instructor/InstructorDiscussions";
@@ -98,7 +100,9 @@ const DashboardRoutes = () => {
       <Route path="/announcements" element={<AnnouncementsPage />} />
       <Route path="/system" element={<SystemPage />} />
       <Route path="/ratings" element={<RatingsPage />} />
-      <Route path="/assignments-overview" element={<AssignmentOverview />} />
+        <Route path="/assignments-overview" element={<AssignmentOverview />} />
+        <Route path="/quizzes-overview" element={<QuizOverview />} />
+        <Route path="/discussions-overview" element={<DiscussionOverview />} />
     </>
   ), []);
 

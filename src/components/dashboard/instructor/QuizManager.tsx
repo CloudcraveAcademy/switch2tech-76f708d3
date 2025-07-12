@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Upload, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Upload, Edit, Trash2, Eye, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Course {
@@ -49,6 +49,8 @@ const QuizManager = () => {
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  const [submissions, setSubmissions] = useState([]);
+  const [isSubmissionsDialogOpen, setIsSubmissionsDialogOpen] = useState(false);
 
   const [quizForm, setQuizForm] = useState({
     title: "",
@@ -118,6 +120,38 @@ const QuizManager = () => {
       setQuestions(data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
+    }
+  };
+
+  const fetchSubmissions = async (quizId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('quiz_submissions')
+        .select(`
+          *,
+          user_profiles!student_id (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('quiz_id', quizId)
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const formattedSubmissions = data?.map(sub => ({
+        ...sub,
+        student_name: `${sub.user_profiles?.first_name || ''} ${sub.user_profiles?.last_name || ''}`.trim() || 'Unknown Student'
+      })) || [];
+      
+      setSubmissions(formattedSubmissions);
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch submissions",
+        variant: "destructive",
+      });
     }
   };
 
@@ -470,6 +504,18 @@ const QuizManager = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => {
+                        setSelectedQuiz(quiz);
+                        fetchSubmissions(quiz.id);
+                        setIsSubmissionsDialogOpen(true);
+                      }}
+                    >
+                      <Users className="h-4 w-4 mr-1" />
+                      Submissions
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => toggleQuizPublish(quiz)}
                     >
                       {quiz.is_published ? "Unpublish" : "Publish"}
@@ -557,6 +603,61 @@ const QuizManager = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Submissions Dialog */}
+      <Dialog open={isSubmissionsDialogOpen} onOpenChange={setIsSubmissionsDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedQuiz?.title} - Submissions
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {submissions.map((submission: any) => (
+              <Card key={submission.id}>
+                <CardContent className="pt-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-medium">{submission.student_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Submitted: {new Date(submission.submitted_at).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Time taken: {submission.time_taken_minutes || 0} minutes
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant={submission.is_passed ? "default" : "destructive"}>
+                        Score: {submission.score}/{submission.max_score} ({submission.percentage}%)
+                      </Badge>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {submission.is_passed ? "Passed" : "Failed"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {submission.answers && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium mb-2">Answers:</p>
+                      <div className="bg-gray-50 p-3 rounded text-sm">
+                        <pre className="whitespace-pre-wrap">
+                          {JSON.stringify(submission.answers, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+            
+            {submissions.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No submissions yet for this quiz.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
