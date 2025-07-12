@@ -196,32 +196,18 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
   // Generate PDF certificate
   const generatePdfMutation = useMutation({
     mutationFn: async (certificateId: string) => {
-      // Generate a mock PDF URL for demonstration
-      // In production, this would call an edge function or PDF generation service
-      const timestamp = Date.now();
-      const pdfUrl = `${window.location.origin}/api/certificates/${certificateId}.pdf?t=${timestamp}`;
-      
-      const { error } = await supabase
-        .from('certificates')
-        .update({ pdf_url: pdfUrl })
-        .eq('id', certificateId);
-
-      if (error) throw error;
-      return pdfUrl;
-    },
-    onSuccess: () => {
       toast({
-        title: "PDF Generated",
-        description: "Certificate PDF has been generated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['certificates'] });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF certificate.",
+        title: "PDF Generation Not Available",
+        description: "PDF generation feature is not yet implemented. Please contact support for a PDF copy of your certificate.",
         variant: "destructive",
       });
+      throw new Error("PDF generation not implemented");
+    },
+    onSuccess: () => {
+      // This won't be called since we always throw an error
+    },
+    onError: () => {
+      // Error is handled in the mutationFn
     },
   });
 
