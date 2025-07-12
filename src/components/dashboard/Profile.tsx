@@ -234,7 +234,7 @@ const Profile = () => {
         country: formData.country,
         phone: formData.phone,
         website: formData.website,
-        career_level: formData.professional_title, // Use professional_title to update career_level
+        career_level: formData.career_level,
         skills: formData.skills,
         linkedin_url: formData.linkedin_url,
         github_url: formData.github_url,
