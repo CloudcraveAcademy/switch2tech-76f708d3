@@ -22,6 +22,12 @@ import LessonForm from "./course/LessonForm";
 import InstructorCertificates from "./instructor/Certificates";
 import AdminCertificates from "./admin/Certificates";
 
+// Import assignment and quiz components
+import AssignmentOverview from "./admin/AssignmentOverview";
+import InstructorAssignments from "./instructor/InstructorAssignments";
+import InstructorQuizzes from "./instructor/InstructorQuizzes";
+import InstructorDiscussions from "./instructor/InstructorDiscussions";
+
 // Import admin pages
 import UsersPage from "@/pages/admin/UsersPage";
 import CoursesPage from "@/pages/admin/CoursesPage";
@@ -75,6 +81,9 @@ const DashboardRoutes = () => {
       <Route path="/create-course" element={<CreateCourse />} />
       <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
       <Route path="/courses/:courseId/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Course Students</h1></div>} />
+      <Route path="/assignments" element={<InstructorAssignments />} />
+      <Route path="/quizzes" element={<InstructorQuizzes />} />
+      <Route path="/discussions" element={<InstructorDiscussions />} />
     </>
   ), []);
 
@@ -89,6 +98,7 @@ const DashboardRoutes = () => {
       <Route path="/announcements" element={<AnnouncementsPage />} />
       <Route path="/system" element={<SystemPage />} />
       <Route path="/ratings" element={<RatingsPage />} />
+      <Route path="/assignments-overview" element={<AssignmentOverview />} />
     </>
   ), []);
 

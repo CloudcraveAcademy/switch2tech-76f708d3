@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Users, BookOpen, DollarSign, FileText, HeadphonesIcon, MessageSquare, Settings, Award, Star } from "lucide-react";
+import { Users, BookOpen, DollarSign, FileText, HeadphonesIcon, MessageSquare, Settings, Award, Star, ClipboardList } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface AdminNavigationProps {
@@ -71,6 +71,13 @@ const AdminNavigation: React.FC<AdminNavigationProps> = ({ isActive }) => {
         icon={Star}
         label="Ratings"
         isActive={isActive("/dashboard/ratings")}
+      />
+      
+      <SidebarMenuItem
+        to="/dashboard/assignments-overview"
+        icon={ClipboardList}
+        label="Assignments"
+        isActive={isActive("/dashboard/assignments-overview")}
       />
     </>
   );
