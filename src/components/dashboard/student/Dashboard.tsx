@@ -31,11 +31,24 @@ const Dashboard = () => {
           .eq('student_id', user.id)
           .eq('completed', true),
           
-        // Get upcoming sessions
-        supabase
-          .from('class_sessions')
-          .select('id', { count: 'exact' })
-          .gte('start_time', new Date().toISOString()),
+        // Get upcoming sessions for enrolled courses
+        (async () => {
+          const { data: enrolledCourses } = await supabase
+            .from('enrollments')
+            .select('course_id')
+            .eq('student_id', user.id);
+          
+          if (!enrolledCourses || enrolledCourses.length === 0) {
+            return { count: 0 };
+          }
+          
+          const courseIds = enrolledCourses.map(e => e.course_id);
+          return await supabase
+            .from('class_sessions')
+            .select('id', { count: 'exact' })
+            .gte('start_time', new Date().toISOString())
+            .in('course_id', courseIds);
+        })(),
 
         // Get user profile data
         supabase

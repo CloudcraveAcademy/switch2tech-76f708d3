@@ -46,14 +46,18 @@ const StudentStatistics = () => {
           ? Math.round((completedCourses / enrollments.length) * 100) 
           : 0;
           
-        // Calculate time spent (mock data - would normally calculate from actual timestamps)
-        const totalTime = lessonProgress ? lessonProgress.length * 15 : 0; // Approximation: 15 minutes per completed lesson
+        // Calculate time spent based on completed lessons (15 minutes per lesson)
+        const completedLessons = lessonProgress ? lessonProgress.filter(l => l.completed).length : 0;
+        const totalTime = completedLessons * 15;
         
-        // Calculate streak (mock data - would need detailed daily activity logs)
-        const streakDays = Math.floor(Math.random() * 10) + 1; // Mock data
-        
-        // Calculate average quiz score (mock data - would pull from quiz_submissions)
-        const averageScore = Math.floor(Math.random() * 30) + 70; // Random between 70-100
+        // Calculate streak based on recent activity
+        const recentActivity = lessonProgress?.filter(l => {
+          if (!l.last_accessed) return false;
+          const accessDate = new Date(l.last_accessed);
+          const daysDiff = Math.floor((Date.now() - accessDate.getTime()) / (1000 * 60 * 60 * 24));
+          return daysDiff <= 7;
+        }) || [];
+        const streakDays = Math.min(recentActivity.length, 7);
         
         // Calculate progress change
         // Recent progress (last 7 days)
@@ -65,6 +69,9 @@ const StudentStatistics = () => {
         const recentProgress = enrollments.length > 0
           ? enrollments.reduce((sum, e) => sum + (e.progress || 0), 0) / enrollments.length
           : 0;
+          
+        // Calculate average score based on completion percentage
+        const averageScore = Math.round(recentProgress);
           
         // Mock a previous progress value for comparison
         const previousProgress = Math.max(0, recentProgress - (Math.random() * 10 + 5)); // 5-15% growth
