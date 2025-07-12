@@ -422,12 +422,13 @@ const CourseView = () => {
                 <ul className="space-y-3">
                   {course.materials.map((material) => (
                     <li key={material.id}>
-                      <Button variant="outline" className="w-full justify-start" asChild>
+                      <Button variant="outline" className="w-full justify-start h-auto p-3" asChild>
                         <a 
                           href={material.file_url} 
                           download 
                           target="_blank" 
                           rel="noreferrer"
+                          className="flex items-center min-w-0"
                           onClick={(e) => {
                             if (!material.file_url || material.file_url === '#') {
                               e.preventDefault();
@@ -444,9 +445,11 @@ const CourseView = () => {
                             }
                           }}
                         >
-                          <FileText className="h-4 w-4 mr-2" />
-                          {material.title}
-                          <Badge variant="outline" className="ml-2">
+                          <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <span className="truncate flex-1 mr-2" title={material.title}>
+                            {material.title}
+                          </span>
+                          <Badge variant="outline" className="flex-shrink-0">
                             {material.file_type}
                           </Badge>
                         </a>
