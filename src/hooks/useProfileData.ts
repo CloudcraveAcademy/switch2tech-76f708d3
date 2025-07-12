@@ -100,10 +100,7 @@ export const useProfileData = () => {
           : {})
       };
 
-      // If career_level is being updated separately from professional_title
-      if (updates.professional_title) {
-        updatesWithJsonPrefs.career_level = updates.professional_title;
-      }
+      // Remove the mapping logic as career_level should be handled directly
 
       const { data, error } = await supabase
         .from('user_profiles')

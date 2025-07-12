@@ -33,29 +33,7 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
     setUploading(true);
     
     try {
-      // Check if storage buckets are available
-      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
-      
-      if (bucketListError) {
-        console.error("Error listing buckets:", bucketListError);
-        throw bucketListError;
-      }
-      
       const bucketName = "avatars";
-      
-      // Check if avatars bucket exists, create it if not
-      if (!buckets?.some(b => b.name === bucketName)) {
-        console.log("Creating avatars bucket");
-        const { error: bucketError } = await supabase.storage.createBucket(bucketName, {
-          public: true
-        });
-        
-        if (bucketError) {
-          console.error("Error creating bucket:", bucketError);
-          throw bucketError;
-        }
-      }
-
       const fileExt = file.name.split(".").pop();
       const filePath = `${user.id}/${user.id}.${fileExt}`;
 
