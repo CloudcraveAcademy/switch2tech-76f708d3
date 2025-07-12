@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,12 @@ import {
   MessageSquare,
   Star,
   Users,
+  CreditCard,
+  Award,
+  UserPlus,
+  Loader2,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,146 +29,115 @@ import { Link } from "react-router-dom";
 
 interface Notification {
   id: string;
-  type: "course" | "assignment" | "message" | "system" | "announcement";
+  user_id: string;
+  type: "course" | "assignment" | "message" | "system" | "announcement" | "certificate" | "payment" | "enrollment";
   title: string;
   description: string;
-  timestamp: string;
   read: boolean;
   action_url?: string;
   course_id?: string;
-  course_title?: string;
-  instructor_name?: string;
-  instructor_avatar?: string;
+  instructor_id?: string;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+  course?: {
+    title: string;
+    image_url?: string;
+  };
+  instructor?: {
+    first_name: string;
+    last_name: string;
+    avatar_url?: string;
+  };
 }
-
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "course",
-    title: "New lesson available",
-    description: "Lesson 3: Advanced React Patterns is now available for viewing",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-    read: false,
-    action_url: "/courses/123/lessons/3",
-    course_id: "123",
-    course_title: "React Masterclass",
-    instructor_name: "Jane Smith",
-    instructor_avatar: "/placeholder.svg"
-  },
-  {
-    id: "2",
-    type: "assignment",
-    title: "Assignment due soon",
-    description: "Your assignment 'Build a Calculator' is due in 2 days",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), // 3 hours ago
-    read: false,
-    action_url: "/courses/123/assignments/2",
-    course_id: "123",
-    course_title: "React Masterclass",
-  },
-  {
-    id: "3",
-    type: "message",
-    title: "New message from instructor",
-    description: "Jane Smith left a comment on your assignment submission",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    read: true,
-    action_url: "/courses/123/assignments/2/feedback",
-    instructor_name: "Jane Smith",
-    instructor_avatar: "/placeholder.svg"
-  },
-  {
-    id: "4",
-    type: "system",
-    title: "Account verified",
-    description: "Your account email has been successfully verified",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days ago
-    read: true
-  },
-  {
-    id: "5",
-    type: "announcement",
-    title: "New course launching soon",
-    description: "We're excited to announce our new 'Advanced DevOps' course launching next week",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days ago
-    read: true
-  },
-  {
-    id: "6",
-    type: "course",
-    title: "Live class reminder",
-    description: "Your scheduled live class for 'Cybersecurity Fundamentals' starts in 3 hours",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    read: false,
-    action_url: "/courses/456/live-classes/3",
-    course_id: "456",
-    course_title: "Cybersecurity Fundamentals",
-  }
-];
 
 const Notifications = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("all");
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
 
-  // In a real app, we'd fetch notifications from Supabase
-  // const { data: notifications, isLoading } = useQuery({
-  //   queryKey: ["notifications", user?.id],
-  //   queryFn: async () => {
-  //     const { data, error } = await supabase
-  //       .from("notifications")
-  //       .select("*")
-  //       .eq("user_id", user?.id)
-  //       .order("timestamp", { ascending: false });
+  // Fetch notifications from Supabase
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ["notifications", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select(`
+          *,
+          course:courses(title, image_url),
+          instructor:user_profiles!instructor_id(first_name, last_name, avatar_url)
+        `)
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false });
 
-  //     if (error) throw error;
-  //     return data as Notification[];
-  //   },
-  //   enabled: !!user?.id,
-  // });
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        throw error;
+      }
+      return data as Notification[];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Mark notification as read
+  const markAsReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", id)
+        .eq("user_id", user?.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+      toast({
+        description: "Notification marked as read",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to mark notification as read",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mark all notifications as read
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user?.id)
+        .eq("read", false);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+      toast({
+        description: "All notifications marked as read",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read",
+        variant: "destructive",
+      });
+    },
+  });
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
-    
-    // In a real app, we'd update Supabase
-    // const updateNotification = async () => {
-    //   await supabase
-    //     .from("notifications")
-    //     .update({ read: true })
-    //     .eq("id", id);
-    // };
-    // updateNotification();
-    
-    toast({
-      description: "Notification marked as read",
-    });
+    markAsReadMutation.mutate(id);
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-    
-    // In a real app, we'd update Supabase
-    // const updateAllNotifications = async () => {
-    //   await supabase
-    //     .from("notifications")
-    //     .update({ read: true })
-    //     .eq("user_id", user?.id)
-    //     .eq("read", false);
-    // };
-    // updateAllNotifications();
-    
-    toast({
-      description: "All notifications marked as read",
-    });
+    markAllAsReadMutation.mutate();
   };
 
   const filteredNotifications = notifications.filter(notification => {
@@ -188,10 +161,51 @@ const Notifications = () => {
         return <CheckCircle className="h-5 w-5" />;
       case "announcement":
         return <Bell className="h-5 w-5" />;
+      case "certificate":
+        return <Award className="h-5 w-5" />;
+      case "payment":
+        return <CreditCard className="h-5 w-5" />;
+      case "enrollment":
+        return <UserPlus className="h-5 w-5" />;
       default:
         return <Bell className="h-5 w-5" />;
     }
   };
+
+  // Helper function to get notification type color
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case "course":
+        return "text-blue-600 bg-blue-100";
+      case "assignment":
+        return "text-orange-600 bg-orange-100";
+      case "message":
+        return "text-green-600 bg-green-100";
+      case "system":
+        return "text-gray-600 bg-gray-100";
+      case "announcement":
+        return "text-purple-600 bg-purple-100";
+      case "certificate":
+        return "text-yellow-600 bg-yellow-100";
+      case "payment":
+        return "text-emerald-600 bg-emerald-100";
+      case "enrollment":
+        return "text-indigo-600 bg-indigo-100";
+      default:
+        return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading notifications...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -207,8 +221,19 @@ const Notifications = () => {
         </div>
         
         {unreadCount > 0 && (
-          <Button variant="outline" onClick={markAllAsRead}>
-            Mark all as read
+          <Button 
+            variant="outline" 
+            onClick={markAllAsRead}
+            disabled={markAllAsReadMutation.isPending}
+          >
+            {markAllAsReadMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Marking...
+              </>
+            ) : (
+              "Mark all as read"
+            )}
           </Button>
         )}
       </div>
@@ -223,6 +248,8 @@ const Notifications = () => {
           <TabsTrigger value="course">Courses</TabsTrigger>
           <TabsTrigger value="assignment">Assignments</TabsTrigger>
           <TabsTrigger value="announcement">Announcements</TabsTrigger>
+          <TabsTrigger value="certificate">Certificates</TabsTrigger>
+          <TabsTrigger value="payment">Payments</TabsTrigger>
         </TabsList>
 
         <Card>
@@ -242,7 +269,9 @@ const Notifications = () => {
                   >
                     <div className="flex">
                       <div className={`flex-shrink-0 mr-4 p-2 rounded-full ${
-                        !notification.read ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                        !notification.read 
+                          ? getNotificationColor(notification.type)
+                          : 'bg-gray-100 text-gray-600'
                       }`}>
                         {getNotificationIcon(notification.type)}
                       </div>
@@ -253,26 +282,39 @@ const Notifications = () => {
                             {notification.title}
                           </h4>
                           <span className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                           </span>
                         </div>
                         
                         <p className="text-sm text-gray-600 mt-1">{notification.description}</p>
                         
-                        {notification.course_title && (
+                        {notification.course?.title && (
                           <div className="mt-2 flex items-center">
                             <BookOpen className="h-3 w-3 text-gray-500 mr-1" />
-                            <span className="text-xs text-gray-500">{notification.course_title}</span>
+                            <span className="text-xs text-gray-500">{notification.course.title}</span>
                           </div>
                         )}
                         
-                        {notification.instructor_name && (
+                        {notification.instructor && (
                           <div className="mt-2 flex items-center">
                             <Avatar className="h-5 w-5 mr-1">
-                              <AvatarImage src={notification.instructor_avatar} />
-                              <AvatarFallback>{notification.instructor_name[0]}</AvatarFallback>
+                              <AvatarImage src={notification.instructor.avatar_url} />
+                              <AvatarFallback>
+                                {notification.instructor.first_name?.[0]}{notification.instructor.last_name?.[0]}
+                              </AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-gray-500">{notification.instructor_name}</span>
+                            <span className="text-xs text-gray-500">
+                              {notification.instructor.first_name} {notification.instructor.last_name}
+                            </span>
+                          </div>
+                        )}
+
+                        {notification.metadata && notification.metadata.amount && (
+                          <div className="mt-2 flex items-center">
+                            <CreditCard className="h-3 w-3 text-gray-500 mr-1" />
+                            <span className="text-xs text-gray-500">
+                              {notification.metadata.currency} {notification.metadata.amount.toLocaleString()}
+                            </span>
                           </div>
                         )}
                         
@@ -288,8 +330,13 @@ const Notifications = () => {
                               variant="ghost" 
                               size="sm"
                               onClick={() => markAsRead(notification.id)}
+                              disabled={markAsReadMutation.isPending}
                             >
-                              Mark as Read
+                              {markAsReadMutation.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                "Mark as Read"
+                              )}
                             </Button>
                           )}
                         </div>
