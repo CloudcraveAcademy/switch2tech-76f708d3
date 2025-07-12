@@ -158,8 +158,11 @@ const InstructorDashboard = () => {
           const completionRate = totalEnrollments > 0 ? 
             Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
           
-          // For ratings, placeholder data for now
-          const averageRating = 4.5;
+          // Get rating data for this course
+          const { data: ratingData } = await supabase.rpc('get_course_rating_stats', {
+            course_id_param: course.id
+          });
+          const averageRating = ratingData?.[0]?.average_rating || 0;
           const engagementScore = Math.floor(Math.random() * 100);
           
           return {
@@ -179,7 +182,7 @@ const InstructorDashboard = () => {
             title: course.title,
             total_students: 0,
             revenue: 0,
-            average_rating: 0,
+            average_rating: averageRating,
             is_published: course.is_published,
             completion_rate: 0,
             engagement_score: 0

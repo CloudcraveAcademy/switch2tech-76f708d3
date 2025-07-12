@@ -30,6 +30,7 @@ import ReportsPage from "@/pages/admin/ReportsPage";
 import SupportTicketsPage from "@/pages/admin/SupportTicketsPage";
 import AnnouncementsPage from "@/pages/admin/AnnouncementsPage";
 import SystemPage from "@/pages/admin/SystemPage";
+import RatingsPage from "@/pages/admin/RatingsPage";
 
 const DashboardRoutes = () => {
   const { user } = useAuth();
@@ -87,6 +88,7 @@ const DashboardRoutes = () => {
       <Route path="/support-tickets" element={<SupportTicketsPage />} />
       <Route path="/announcements" element={<AnnouncementsPage />} />
       <Route path="/system" element={<SystemPage />} />
+      <Route path="/ratings" element={<RatingsPage />} />
     </>
   ), []);
 

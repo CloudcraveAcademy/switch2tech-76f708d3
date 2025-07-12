@@ -414,6 +414,51 @@ export type Database = {
           },
         ]
       }
+      course_ratings: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          rating: number
+          review: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          review?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          review?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_ratings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_ratings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           access_duration: string | null
@@ -1423,6 +1468,14 @@ export type Database = {
           id: string
           title: string
           updated_at: string | null
+        }[]
+      }
+      get_course_rating_stats: {
+        Args: { course_id_param: string }
+        Returns: {
+          average_rating: number
+          total_ratings: number
+          rating_distribution: Json
         }[]
       }
       get_payment_gateway_config: {

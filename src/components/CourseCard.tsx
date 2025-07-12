@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 import { Course } from "@/utils/mockData";
 import { Book, Star, Users } from "lucide-react";
+import { useCourseRating } from "@/hooks/useCourseRating";
 
 interface CourseCardProps {
   course: Course;
@@ -18,8 +19,6 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     price,
     discounted_price,
     level,
-    rating,
-    reviews,
     image,
     mode,
     enrolledStudents,
@@ -27,6 +26,9 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     category,
     featured,
   } = course;
+
+  // Get dynamic rating data
+  const { data: ratingData } = useCourseRating(id);
 
   const levelColor = {
     beginner: "bg-green-100 text-green-800",
@@ -100,11 +102,18 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
           <Badge variant="outline" className="bg-gray-100 text-gray-700 font-normal">
             {category}
           </Badge>
-          <div className="flex items-center">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-medium ml-1">{rating}</span>
-            <span className="text-xs text-gray-500 ml-1">({reviews})</span>
-          </div>
+          {ratingData && ratingData.total_ratings > 0 ? (
+            <div className="flex items-center">
+              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+              <span className="text-sm font-medium ml-1">{ratingData.average_rating.toFixed(1)}</span>
+              <span className="text-xs text-gray-500 ml-1">({ratingData.total_ratings})</span>
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <Star className="w-4 h-4 text-gray-300" />
+              <span className="text-xs text-gray-500 ml-1">No ratings yet</span>
+            </div>
+          )}
         </div>
 
         <Link to={`/courses/${id}`} className="hover:text-brand-600">

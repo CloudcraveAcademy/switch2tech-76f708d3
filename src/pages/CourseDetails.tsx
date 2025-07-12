@@ -29,6 +29,8 @@ import CourseEnrollButton from "@/components/dashboard/course/CourseEnrollButton
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import LiveCourseDetails from "@/components/course/LiveCourseDetails";
+import CourseRating from "@/components/course/CourseRating";
+import CourseRatingDisplay from "@/components/course/CourseRatingDisplay";
 
 interface Course {
   id: string;
@@ -134,6 +136,25 @@ const CourseDetails = () => {
       return data;
     },
     enabled: !!user && !!id,
+  });
+
+  // Check if user has rated this course
+  const { data: userRating } = useQuery({
+    queryKey: ['user-course-rating', id, user?.id],
+    queryFn: async () => {
+      if (!user || !isEnrolled) return null;
+      
+      const { data, error } = await supabase
+        .from('course_ratings')
+        .select('*')
+        .eq('course_id', id)
+        .eq('student_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!id && isEnrolled,
   });
 
   useEffect(() => {
@@ -409,6 +430,9 @@ const CourseDetails = () => {
               </CardContent>
             </Card>
 
+            {/* Course Rating Display */}
+            <CourseRatingDisplay courseId={course.id} />
+
             {/* Instructor */}
             <Card>
               <CardHeader>
@@ -524,6 +548,18 @@ const CourseDetails = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Rating Component for Enrolled Students */}
+            {user && (
+              <CourseRating
+                courseId={course.id}
+                isEnrolled={isEnrolled}
+                currentRating={userRating ? {
+                  rating: userRating.rating,
+                  review: userRating.review || undefined
+                } : undefined}
+              />
+            )}
           </div>
         </div>
       </div>
