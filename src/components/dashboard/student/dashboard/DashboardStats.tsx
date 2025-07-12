@@ -16,7 +16,8 @@ export interface DashboardStatsProps {
     totalCourses: number;
     completedCourses: number;
     upcomingSessions: number;
-    averageProgress: number;
+    courseCompletionProgress: number;
+    progressChange: number;
   };
 }
 
@@ -24,7 +25,8 @@ export function DashboardStats({ stats = {
   totalCourses: 0, 
   completedCourses: 0, 
   upcomingSessions: 0, 
-  averageProgress: 0 
+  courseCompletionProgress: 0,
+  progressChange: 0
 } }: DashboardStatsProps) {
   const statsItems = [
     {
@@ -46,11 +48,12 @@ export function DashboardStats({ stats = {
       description: "Scheduled live classes"
     },
     {
-      title: "Overall Progress",
-      value: `${stats.averageProgress}%`,
+      title: "Course Completion",
+      value: `${stats.courseCompletionProgress}%`,
       icon: <BarChart3 className="h-5 w-5 text-amber-600" />,
-      description: "Average completion rate",
-      progress: stats.averageProgress
+      description: `${stats.progressChange >= 0 ? '+' : ''}${stats.progressChange}% progress`,
+      progress: stats.courseCompletionProgress,
+      progressChange: stats.progressChange
     }
   ];
 
@@ -77,6 +80,16 @@ export function DashboardStats({ stats = {
                 {item.progress !== undefined && (
                   <div className="mt-3 w-full">
                     <Progress value={item.progress} className="h-1" />
+                    {item.progressChange !== undefined && (
+                      <div className="flex items-center text-xs mt-1">
+                        {item.progressChange >= 0 ? (
+                          <span className="text-green-600 font-medium">+{item.progressChange}%</span>
+                        ) : (
+                          <span className="text-red-600 font-medium">{item.progressChange}%</span>
+                        )}
+                        <span className="text-gray-500 ml-1">this week</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

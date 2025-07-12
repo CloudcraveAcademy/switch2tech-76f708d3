@@ -17,11 +17,11 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!user) return null;
       
-      const [enrollmentsResponse, sessionsResponse, profileResponse] = await Promise.all([
+      const [enrollmentsResponse, sessionsResponse, profileResponse, previousStatsResponse] = await Promise.all([
         // Get all enrollments with progress data
         supabase
           .from('enrollments')
-          .select('id, progress, completed, course_id')
+          .select('id, progress, completed, course_id, enrollment_date')
           .eq('student_id', user.id),
           
         // Get upcoming sessions for enrolled courses
@@ -48,24 +48,61 @@ const Dashboard = () => {
           .from('user_profiles')
           .select('*')
           .eq('id', user.id)
-          .single()
+          .single(),
+
+        // Get lesson progress to calculate actual completion percentage
+        supabase
+          .from('student_lesson_progress')
+          .select('lesson_id, completed, course_id, last_accessed')
+          .eq('student_id', user.id)
       ]);
       
       const enrollments = enrollmentsResponse.data || [];
+      const lessonProgress = previousStatsResponse.data || [];
       const totalCourses = enrollments.length;
       const completedCourses = enrollments.filter(e => e.completed).length;
       
-      // Calculate average progress across all enrolled courses
-      const averageProgress = enrollments.length > 0
-        ? Math.round(enrollments.reduce((sum, e) => sum + (e.progress || 0), 0) / enrollments.length)
-        : 0;
+      // Calculate actual course completion progress based on lessons completed
+      let courseCompletionProgress = 0;
+      let previousWeekProgress = 0;
+      
+      if (enrollments.length > 0) {
+        // Get total lessons for enrolled courses
+        const courseIds = enrollments.map(e => e.course_id);
+        const { data: allLessons } = await supabase
+          .from('lessons')
+          .select('id, course_id')
+          .in('course_id', courseIds);
+        
+        const totalLessons = allLessons?.length || 0;
+        const completedLessons = lessonProgress.filter(p => p.completed).length;
+        
+        courseCompletionProgress = totalLessons > 0 
+          ? Math.round((completedLessons / totalLessons) * 100) 
+          : 0;
+        
+        // Calculate progress from a week ago for comparison
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        const completedLessonsWeekAgo = lessonProgress.filter(p => 
+          p.completed && p.last_accessed && new Date(p.last_accessed) <= oneWeekAgo
+        ).length;
+        
+        previousWeekProgress = totalLessons > 0 
+          ? Math.round((completedLessonsWeekAgo / totalLessons) * 100) 
+          : 0;
+      }
+      
+      const progressChange = courseCompletionProgress - previousWeekProgress;
       
       return {
         totalCourses,
         completedCourses,
         upcomingSessions: sessionsResponse.count || 0,
         userProfile: profileResponse.data,
-        averageProgress
+        courseCompletionProgress,
+        progressChange
       };
     },
     enabled: !!user,
@@ -92,7 +129,8 @@ const Dashboard = () => {
             totalCourses: 0,
             completedCourses: 0,
             upcomingSessions: 0,
-            averageProgress: 0
+            courseCompletionProgress: 0,
+            progressChange: 0
           }} />
         </div>
 
