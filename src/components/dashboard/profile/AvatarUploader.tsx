@@ -57,7 +57,7 @@ export default function AvatarUploader({ profileData, onUpload }: AvatarUploader
       }
 
       const fileExt = file.name.split(".").pop();
-      const filePath = `${user.id}.${fileExt}`;
+      const filePath = `${user.id}/${user.id}.${fileExt}`;
 
       // Upload to bucket
       const { error: uploadError } = await supabase.storage

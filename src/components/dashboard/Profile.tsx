@@ -32,6 +32,57 @@ import BankDetails from './profile/BankDetails';
 import { useQuery } from "@tanstack/react-query";
 import AvatarUploader from "./profile/AvatarUploader";
 
+// Admin Stats Component
+const AdminStatsDisplay = () => {
+  const { data: adminStats, isLoading } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      const [usersResponse, coursesResponse] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('courses')
+          .select('id', { count: 'exact', head: true })
+      ]);
+      
+      return {
+        totalUsers: usersResponse.count || 0,
+        totalCourses: coursesResponse.count || 0
+      };
+    }
+  });
+
+  if (isLoading) {
+    return (
+      <>
+        <div className="border-t pt-4 pb-4">
+          <p className="text-sm font-medium text-gray-500">Total Users</p>
+          <p>Loading...</p>
+        </div>
+        <div className="border-t pt-4 pb-4">
+          <p className="text-sm font-medium text-gray-500">Total Courses</p>
+          <p>Loading...</p>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="border-t pt-4 pb-4">
+        <p className="text-sm font-medium text-gray-500">Total Users</p>
+        <p>{adminStats?.totalUsers || 0}</p>
+      </div>
+      
+      <div className="border-t pt-4 pb-4">
+        <p className="text-sm font-medium text-gray-500">Total Courses</p>
+        <p>{adminStats?.totalCourses || 0}</p>
+      </div>
+    </>
+  );
+};
+
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -271,18 +322,122 @@ const Profile = () => {
     }
   };
 
-  const handleMentorshipApply = () => {
-    toast({
-      title: "Application submitted",
-      description: "Your mentorship application has been received. We'll review it soon.",
-    });
+  const handleMentorshipApply = async () => {
+    try {
+      // Check if user already has a pending application
+      const { data: existingApplication } = await supabase
+        .from('mentorship_applications')
+        .select('id, status')
+        .eq('student_id', user?.id)
+        .single();
+
+      if (existingApplication) {
+        toast({
+          title: "Application already exists",
+          description: `You already have a ${existingApplication.status} mentorship application.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get available mentorship programs
+      const { data: programs } = await supabase
+        .from('mentorship_programs')
+        .select('id')
+        .eq('status', 'active')
+        .limit(1);
+
+      if (!programs || programs.length === 0) {
+        toast({
+          title: "No programs available",
+          description: "There are currently no active mentorship programs.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create application
+      const { error } = await supabase
+        .from('mentorship_applications')
+        .insert({
+          program_id: programs[0].id,
+          student_id: user?.id,
+          application_text: "I am interested in joining the mentorship program to advance my learning and career.",
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Application submitted",
+        description: "Your mentorship application has been received. We'll review it soon.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Application failed",
+        description: error.message || "Failed to submit mentorship application.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleInternshipApply = () => {
-    toast({
-      title: "Application submitted",
-      description: "Your internship application has been received. We'll review it soon.",
-    });
+  const handleInternshipApply = async () => {
+    try {
+      // Check if user already has a pending application
+      const { data: existingApplication } = await supabase
+        .from('internship_applications')
+        .select('id, status')
+        .eq('student_id', user?.id)
+        .single();
+
+      if (existingApplication) {
+        toast({
+          title: "Application already exists",
+          description: `You already have a ${existingApplication.status} internship application.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get available internship programs
+      const { data: programs } = await supabase
+        .from('internship_programs')
+        .select('id')
+        .eq('status', 'active')
+        .limit(1);
+
+      if (!programs || programs.length === 0) {
+        toast({
+          title: "No programs available",
+          description: "There are currently no active internship programs.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create application
+      const { error } = await supabase
+        .from('internship_applications')
+        .insert({
+          program_id: programs[0].id,
+          student_id: user?.id,
+          application_text: "I am interested in joining the internship program to gain practical experience.",
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Application submitted",
+        description: "Your internship application has been received. We'll review it soon.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Application failed",
+        description: error.message || "Failed to submit internship application.",
+        variant: "destructive"
+      });
+    }
   };
 
   const isInstructor = user?.role === "instructor";
@@ -454,19 +609,11 @@ const Profile = () => {
                     </>
                   )}
 
-                  {(user?.role === 'admin' || user?.role === 'super_admin') && (
-                    <>
-                      <div className="border-t pt-4 pb-4">
-                        <p className="text-sm font-medium text-gray-500">Total Users</p>
-                        <p>342</p>
-                      </div>
-                      
-                      <div className="border-t pt-4 pb-4">
-                        <p className="text-sm font-medium text-gray-500">Total Courses</p>
-                        <p>28</p>
-                      </div>
-                    </>
-                  )}
+                   {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                     <>
+                       <AdminStatsDisplay />
+                     </>
+                   )}
                   
                   <div className="border-t pt-4">
                     <p className="text-sm font-medium text-gray-500">Last Login</p>
