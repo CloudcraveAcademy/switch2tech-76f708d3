@@ -39,6 +39,24 @@ const InstructorCertificates = () => {
   const { data: certificates, isLoading } = useQuery({
     queryKey: ['instructor-certificates', user?.id],
     queryFn: async () => {
+      // First get instructor's courses
+      const { data: instructorCourses, error: coursesError } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('instructor_id', user?.id);
+
+      if (coursesError) {
+        console.error('Error fetching instructor courses:', coursesError);
+        return [];
+      }
+
+      const courseIds = instructorCourses.map(course => course.id);
+
+      if (courseIds.length === 0) {
+        return [];
+      }
+
+      // Then get certificates for those courses
       const { data, error } = await supabase
         .from('certificates')
         .select(`
@@ -52,7 +70,8 @@ const InstructorCertificates = () => {
             level
           )
         `)
-        .eq('courses.instructor_id', user?.id);
+        .in('course_id', courseIds)
+        .order('issue_date', { ascending: false });
 
       if (error) {
         console.error('Error fetching certificates:', error);
@@ -68,11 +87,19 @@ const InstructorCertificates = () => {
   const { data: stats } = useQuery({
     queryKey: ['instructor-certificate-stats', user?.id],
     queryFn: async () => {
+      // Get instructor's courses first
+      const { data: instructorCourses } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('instructor_id', user?.id);
+
+      const courseIds = instructorCourses?.map(course => course.id) || [];
+
       const [certificatesResponse, coursesResponse] = await Promise.all([
-        supabase
+        courseIds.length > 0 ? supabase
           .from('certificates')
           .select('id', { count: 'exact' })
-          .eq('courses.instructor_id', user?.id),
+          .in('course_id', courseIds) : { count: 0 },
         supabase
           .from('courses')
           .select('id', { count: 'exact' })
