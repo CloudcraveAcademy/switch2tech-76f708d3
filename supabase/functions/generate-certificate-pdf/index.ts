@@ -217,66 +217,38 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    // Use Puppeteer via browserless.io to generate PDF
-    const browserlessResponse = await fetch('https://chrome.browserless.io/pdf', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        html: certificateHtml,
-        options: {
-          format: 'A4',
-          landscape: true,
-          printBackground: true,
-          margin: {
-            top: '0.5in',
-            right: '0.5in',
-            bottom: '0.5in',
-            left: '0.5in'
-          }
-        }
-      })
-    });
-
-    if (!browserlessResponse.ok) {
-      console.error('Browserless error:', await browserlessResponse.text());
-      return new Response(JSON.stringify({ error: 'Failed to generate PDF' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const pdfBuffer = await browserlessResponse.arrayBuffer();
+    // Create HTML file and return its URL for now
+    // Note: In production, you'd want to use a PDF generation service
+    const htmlFileName = `certificate_${certificateId}_${Date.now()}.html`;
+    const htmlBuffer = new TextEncoder().encode(certificateHtml);
     
-    // Upload PDF to Supabase Storage
-    const fileName = `certificate_${certificateId}_${Date.now()}.pdf`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Upload HTML to Supabase Storage
+    const { data: htmlUploadData, error: htmlUploadError } = await supabase.storage
       .from('Course Materials')
-      .upload(`certificates/${fileName}`, pdfBuffer, {
-        contentType: 'application/pdf',
+      .upload(`certificates/${htmlFileName}`, htmlBuffer, {
+        contentType: 'text/html',
         upsert: true
       });
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return new Response(JSON.stringify({ error: 'Failed to save PDF' }), {
+    if (htmlUploadError) {
+      console.error('HTML Upload error:', htmlUploadError);
+      return new Response(JSON.stringify({ error: 'Failed to save certificate' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Get public URL for the HTML file
+    const { data: htmlUrlData } = supabase.storage
       .from('Course Materials')
-      .getPublicUrl(`certificates/${fileName}`);
+      .getPublicUrl(`certificates/${htmlFileName}`);
 
-    const pdfUrl = urlData.publicUrl;
+    const certificateUrl = htmlUrlData.publicUrl;
 
-    // Update certificate with PDF URL
+    // Update certificate with certificate URL
     const { error: updateError } = await supabase
       .from('certificates')
-      .update({ pdf_url: pdfUrl })
+      .update({ pdf_url: certificateUrl })
       .eq('id', certificateId);
 
     if (updateError) {
@@ -285,8 +257,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      pdfUrl: pdfUrl,
-      message: 'Certificate PDF generated successfully'
+      pdfUrl: certificateUrl,
+      message: 'Certificate generated successfully'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
