@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -57,8 +57,8 @@ const Notifications = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("all");
 
-  // Fetch notifications from Supabase
-  const { data: notifications = [], isLoading } = useQuery({
+  // Fetch notifications from Supabase with real-time updates
+  const { data: notifications = [], isLoading, error } = useQuery({
     queryKey: ["notifications", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -78,7 +78,34 @@ const Notifications = () => {
       return data as Notification[];
     },
     enabled: !!user?.id,
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 seconds
   });
+
+  // Real-time subscription for notifications
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('notifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   // Mark notification as read
   const markAsReadMutation = useMutation({
@@ -147,6 +174,13 @@ const Notifications = () => {
   });
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  // Get counts for each tab
+  const getTabCount = (type: string) => {
+    if (type === "all") return notifications.length;
+    if (type === "unread") return unreadCount;
+    return notifications.filter(n => n.type === type).length;
+  };
 
   // Helper function to get the icon for the notification type
   const getNotificationIcon = (type: string) => {
@@ -207,6 +241,18 @@ const Notifications = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="flex flex-col items-center justify-center py-12">
+          <CheckCircle className="h-12 w-12 text-red-300 mb-4" />
+          <h3 className="text-lg font-medium text-red-700">Error loading notifications</h3>
+          <p className="text-red-500">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -239,117 +285,265 @@ const Notifications = () => {
       </div>
 
       <Tabs defaultValue="all" onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="all">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="all" className="relative">
             All
-            {unreadCount > 0 && <Badge className="ml-1 bg-red-100 text-red-800">{unreadCount}</Badge>}
+            {getTabCount("all") > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                {getTabCount("all")}
+              </Badge>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="unread">Unread</TabsTrigger>
-          <TabsTrigger value="course">Courses</TabsTrigger>
-          <TabsTrigger value="assignment">Assignments</TabsTrigger>
-          <TabsTrigger value="announcement">Announcements</TabsTrigger>
-          <TabsTrigger value="certificate">Certificates</TabsTrigger>
-          <TabsTrigger value="payment">Payments</TabsTrigger>
+          <TabsTrigger value="unread" className="relative">
+            Unread
+            {getTabCount("unread") > 0 && (
+              <Badge className="ml-1 h-5 min-w-5 text-xs bg-red-500 text-white">
+                {getTabCount("unread")}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="course">
+            Courses
+            {getTabCount("course") > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                {getTabCount("course")}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="assignment">
+            Tasks
+            {getTabCount("assignment") > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                {getTabCount("assignment")}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="announcement">
+            News
+            {getTabCount("announcement") > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                {getTabCount("announcement")}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="certificate">
+            Certs
+            {getTabCount("certificate") > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                {getTabCount("certificate")}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="payment">
+            Money
+            {getTabCount("payment") > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 text-xs">
+                {getTabCount("payment")}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
-        <Card>
-          <CardContent className="p-0">
-            {filteredNotifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Bell className="h-12 w-12 text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700">No notifications</h3>
-                <p className="text-gray-500">You're all caught up!</p>
-              </div>
-            ) : (
-              <ul className="divide-y">
-                {filteredNotifications.map((notification) => (
-                  <li 
-                    key={notification.id} 
-                    className={`p-4 ${!notification.read ? 'bg-blue-50' : ''} hover:bg-gray-50 transition-colors`}
-                  >
-                    <div className="flex">
-                      <div className={`flex-shrink-0 mr-4 p-2 rounded-full ${
-                        !notification.read 
-                          ? getNotificationColor(notification.type)
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      
-                      <div className="flex-grow min-w-0">
-                        <div className="flex justify-between">
-                          <h4 className={`font-medium ${!notification.read ? 'text-blue-600' : 'text-gray-900'}`}>
-                            {notification.title}
-                          </h4>
-                          <span className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                        
-                        <p className="text-sm text-gray-600 mt-1">{notification.description}</p>
-                        
-                        {notification.course?.title && (
-                          <div className="mt-2 flex items-center">
-                            <BookOpen className="h-3 w-3 text-gray-500 mr-1" />
-                            <span className="text-xs text-gray-500">{notification.course.title}</span>
-                          </div>
-                        )}
-                        
-                        {notification.instructor && (
-                          <div className="mt-2 flex items-center">
-                            <Avatar className="h-5 w-5 mr-1">
-                              <AvatarImage src={notification.instructor.avatar_url} />
-                              <AvatarFallback>
-                                {notification.instructor.first_name?.[0]}{notification.instructor.last_name?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-xs text-gray-500">
-                              {notification.instructor.first_name} {notification.instructor.last_name}
-                            </span>
-                          </div>
-                        )}
+        {/* Tab Content for All */}
+        <TabsContent value="all">
+          <NotificationsList 
+            notifications={filteredNotifications}
+            markAsRead={markAsRead}
+            markAsReadMutation={markAsReadMutation}
+            getNotificationIcon={getNotificationIcon}
+            getNotificationColor={getNotificationColor}
+          />
+        </TabsContent>
 
-                        {notification.metadata && notification.metadata.amount && (
-                          <div className="mt-2 flex items-center">
-                            <CreditCard className="h-3 w-3 text-gray-500 mr-1" />
-                            <span className="text-xs text-gray-500">
-                              {notification.metadata.currency} {notification.metadata.amount.toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                        
-                        <div className="mt-3 flex items-center gap-2">
-                          {notification.action_url && (
-                            <Button variant="outline" size="sm" asChild>
-                              <Link to={notification.action_url}>View Details</Link>
-                            </Button>
-                          )}
-                          
-                          {!notification.read && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => markAsRead(notification.id)}
-                              disabled={markAsReadMutation.isPending}
-                            >
-                              {markAsReadMutation.isPending ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                "Mark as Read"
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        {/* Tab Content for Unread */}
+        <TabsContent value="unread">
+          <NotificationsList 
+            notifications={filteredNotifications}
+            markAsRead={markAsRead}
+            markAsReadMutation={markAsReadMutation}
+            getNotificationIcon={getNotificationIcon}
+            getNotificationColor={getNotificationColor}
+          />
+        </TabsContent>
+
+        {/* Tab Content for Courses */}
+        <TabsContent value="course">
+          <NotificationsList 
+            notifications={filteredNotifications}
+            markAsRead={markAsRead}
+            markAsReadMutation={markAsReadMutation}
+            getNotificationIcon={getNotificationIcon}
+            getNotificationColor={getNotificationColor}
+          />
+        </TabsContent>
+
+        {/* Tab Content for Assignments */}
+        <TabsContent value="assignment">
+          <NotificationsList 
+            notifications={filteredNotifications}
+            markAsRead={markAsRead}
+            markAsReadMutation={markAsReadMutation}
+            getNotificationIcon={getNotificationIcon}
+            getNotificationColor={getNotificationColor}
+          />
+        </TabsContent>
+
+        {/* Tab Content for Announcements */}
+        <TabsContent value="announcement">
+          <NotificationsList 
+            notifications={filteredNotifications}
+            markAsRead={markAsRead}
+            markAsReadMutation={markAsReadMutation}
+            getNotificationIcon={getNotificationIcon}
+            getNotificationColor={getNotificationColor}
+          />
+        </TabsContent>
+
+        {/* Tab Content for Certificates */}
+        <TabsContent value="certificate">
+          <NotificationsList 
+            notifications={filteredNotifications}
+            markAsRead={markAsRead}
+            markAsReadMutation={markAsReadMutation}
+            getNotificationIcon={getNotificationIcon}
+            getNotificationColor={getNotificationColor}
+          />
+        </TabsContent>
+
+        {/* Tab Content for Payments */}
+        <TabsContent value="payment">
+          <NotificationsList 
+            notifications={filteredNotifications}
+            markAsRead={markAsRead}
+            markAsReadMutation={markAsReadMutation}
+            getNotificationIcon={getNotificationIcon}
+            getNotificationColor={getNotificationColor}
+          />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+// Separate component for the notifications list to avoid duplication
+interface NotificationsListProps {
+  notifications: Notification[];
+  markAsRead: (id: string) => void;
+  markAsReadMutation: any;
+  getNotificationIcon: (type: string) => JSX.Element;
+  getNotificationColor: (type: string) => string;
+}
+
+const NotificationsList: React.FC<NotificationsListProps> = ({
+  notifications,
+  markAsRead,
+  markAsReadMutation,
+  getNotificationIcon,
+  getNotificationColor,
+}) => {
+  if (notifications.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <div className="flex flex-col items-center justify-center py-12">
+            <Bell className="h-12 w-12 text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-700">No notifications</h3>
+            <p className="text-gray-500">You're all caught up!</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <ul className="divide-y">
+          {notifications.map((notification) => (
+            <li 
+              key={notification.id} 
+              className={`p-4 ${!notification.read ? 'bg-blue-50' : ''} hover:bg-gray-50 transition-colors`}
+            >
+              <div className="flex">
+                <div className={`flex-shrink-0 mr-4 p-2 rounded-full ${
+                  !notification.read 
+                    ? getNotificationColor(notification.type)
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {getNotificationIcon(notification.type)}
+                </div>
+                
+                <div className="flex-grow min-w-0">
+                  <div className="flex justify-between">
+                    <h4 className={`font-medium ${!notification.read ? 'text-blue-600' : 'text-gray-900'}`}>
+                      {notification.title}
+                    </h4>
+                    <span className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mt-1">{notification.description}</p>
+                  
+                  {notification.course?.title && (
+                    <div className="mt-2 flex items-center">
+                      <BookOpen className="h-3 w-3 text-gray-500 mr-1" />
+                      <span className="text-xs text-gray-500">{notification.course.title}</span>
+                    </div>
+                  )}
+                  
+                  {notification.instructor && (
+                    <div className="mt-2 flex items-center">
+                      <Avatar className="h-5 w-5 mr-1">
+                        <AvatarImage src={notification.instructor.avatar_url} />
+                        <AvatarFallback>
+                          {notification.instructor.first_name?.[0]}{notification.instructor.last_name?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-gray-500">
+                        {notification.instructor.first_name} {notification.instructor.last_name}
+                      </span>
+                    </div>
+                  )}
+
+                  {notification.metadata && notification.metadata.amount && (
+                    <div className="mt-2 flex items-center">
+                      <CreditCard className="h-3 w-3 text-gray-500 mr-1" />
+                      <span className="text-xs text-gray-500">
+                        {notification.metadata.currency} {notification.metadata.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="mt-3 flex items-center gap-2">
+                    {notification.action_url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={notification.action_url}>View Details</Link>
+                      </Button>
+                    )}
+                    
+                    {!notification.read && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => markAsRead(notification.id)}
+                        disabled={markAsReadMutation.isPending}
+                      >
+                        {markAsReadMutation.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "Mark as Read"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 };
 
