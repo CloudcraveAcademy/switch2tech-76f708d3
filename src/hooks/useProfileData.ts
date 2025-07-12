@@ -52,7 +52,7 @@ export const useProfileData = () => {
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
 
       if (fetchError) {
         console.error("Error fetching profile data:", fetchError);
@@ -110,16 +110,11 @@ export const useProfileData = () => {
         .update(updatesWithJsonPrefs)
         .eq('id', user.id)
         .select()
-        .maybeSingle();
+        .single();
 
       if (error) {
         console.error("Error updating profile data:", error);
         throw error;
-      }
-
-      if (!data) {
-        console.warn("No data returned after update");
-        return null;
       }
 
       console.log("Profile updated successfully:", data);

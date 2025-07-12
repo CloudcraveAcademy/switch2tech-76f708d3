@@ -175,6 +175,7 @@ const Profile = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log("Submitting profile update with form data:", formData);
       const dataToUpdate = {
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -192,12 +193,16 @@ const Profile = () => {
         account_number: formData.account_number,
         payout_frequency: formData.payout_frequency,
       };
+      console.log("Data being sent to update profile:", dataToUpdate);
       await updateProfileData(dataToUpdate);
       toast({
         title: "Profile updated",
         description: "Your profile information has been updated successfully.",
       });
+      // Refresh profile data to ensure UI reflects changes
+      await fetchProfileData();
     } catch (error: any) {
+      console.error("Profile update error:", error);
       toast({
         title: "Update failed",
         description: error.message || "There was a problem updating your profile. Please try again.",
@@ -325,10 +330,16 @@ const Profile = () => {
 
   const handleAvatarUpload = async (avatarUrl: string) => {
     try {
+      console.log("Uploading avatar with URL:", avatarUrl);
       await updateProfileData({ avatar_url: avatarUrl });
-      toast({ title: "Avatar updated!" });
-      fetchProfileData();
+      toast({ 
+        title: "Avatar updated!",
+        description: "Your profile picture has been updated successfully."
+      });
+      // Refresh profile data to ensure UI reflects the change
+      await fetchProfileData();
     } catch (error: any) {
+      console.error("Avatar upload error:", error);
       toast({
         title: "Image update failed",
         description: error.message,
