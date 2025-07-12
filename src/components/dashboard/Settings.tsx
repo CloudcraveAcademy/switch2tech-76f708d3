@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfileData } from "@/hooks/useProfileData";
+import { supabase } from "@/integrations/supabase/client";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Bell,
   Mail,
@@ -23,6 +27,8 @@ import {
 
 const Settings = () => {
   const { toast } = useToast();
+  const { user, logout } = useAuth();
+  const { profileData, updateProfileData, loading } = useProfileData();
   
   const [emailSettings, setEmailSettings] = useState({
     courseUpdates: true,
@@ -52,6 +58,33 @@ const Settings = () => {
     autoplay: true,
   });
 
+  // Load settings from user preferences when component mounts
+  useEffect(() => {
+    if (profileData?.preferences) {
+      const prefs = profileData.preferences;
+      
+      // Load email settings
+      if (prefs.emailSettings) {
+        setEmailSettings({ ...emailSettings, ...prefs.emailSettings });
+      }
+      
+      // Load push settings
+      if (prefs.pushSettings) {
+        setPushSettings({ ...pushSettings, ...prefs.pushSettings });
+      }
+      
+      // Load privacy settings
+      if (prefs.privacySettings) {
+        setPrivacySettings({ ...privacySettings, ...prefs.privacySettings });
+      }
+      
+      // Load accessibility settings
+      if (prefs.accessibilitySettings) {
+        setAccessibilitySettings({ ...accessibilitySettings, ...prefs.accessibilitySettings });
+      }
+    }
+  }, [profileData]);
+
   const handleEmailSettingsChange = (setting: keyof typeof emailSettings) => {
     setEmailSettings({
       ...emailSettings,
@@ -80,20 +113,111 @@ const Settings = () => {
     });
   };
 
-  const saveSettings = () => {
-    toast({
-      title: "Settings updated",
-      description: "Your settings have been updated successfully.",
-    });
+  const saveNotificationSettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          emailSettings,
+          pushSettings,
+        }
+      });
+      toast({
+        title: "Notification settings updated",
+        description: "Your notification preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteAccount = () => {
-    // In a real app, we'd show a confirmation dialog first
-    toast({
-      title: "Account deletion requested",
-      description: "Please check your email to confirm account deletion.",
-      variant: "destructive",
-    });
+  const savePrivacySettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          privacySettings,
+        }
+      });
+      toast({
+        title: "Privacy settings updated",
+        description: "Your privacy preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveAccessibilitySettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          accessibilitySettings,
+        }
+      });
+      toast({
+        title: "Accessibility settings updated",
+        description: "Your accessibility preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogoutAllDevices = async () => {
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out from all devices.",
+      });
+    } catch (error) {
+      toast({
+        title: "Logout failed",
+        description: "There was a problem logging you out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      // Send deletion request email or mark for deletion
+      const { error } = await supabase.functions.invoke('send-account-deletion-email', {
+        body: { userId: user?.id }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Account deletion requested",
+        description: "Please check your email to confirm account deletion. This process may take up to 30 days to complete.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error('Account deletion request failed:', error);
+      toast({
+        title: "Request failed",
+        description: "We couldn't process your deletion request. Please contact support for assistance.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -235,7 +359,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="mt-6">
-                  <Button onClick={saveSettings}>Save Notification Settings</Button>
+                  <Button onClick={saveNotificationSettings}>Save Notification Settings</Button>
                 </div>
               </CardContent>
             </Card>
@@ -309,7 +433,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="mt-6">
-                  <Button onClick={saveSettings}>Save Privacy Settings</Button>
+                  <Button onClick={savePrivacySettings}>Save Privacy Settings</Button>
                 </div>
               </div>
             </CardContent>
@@ -372,7 +496,7 @@ const Settings = () => {
                 </div>
                 
                 <div className="mt-6">
-                  <Button onClick={saveSettings}>Save Accessibility Settings</Button>
+                  <Button onClick={saveAccessibilitySettings}>Save Accessibility Settings</Button>
                 </div>
               </div>
             </CardContent>
@@ -395,7 +519,15 @@ const Settings = () => {
                   <p className="text-sm text-gray-500 mb-3">
                     Add an extra layer of security to your account
                   </p>
-                  <Button variant="outline">Enable 2FA</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => toast({
+                      title: "Coming Soon",
+                      description: "Two-factor authentication will be available in a future update.",
+                    })}
+                  >
+                    Enable 2FA
+                  </Button>
                 </div>
                 
                 <Separator />
@@ -406,8 +538,50 @@ const Settings = () => {
                     Connect your accounts for easier login
                   </p>
                   <div className="flex flex-col gap-3">
-                    <Button variant="outline">Link Google Account</Button>
-                    <Button variant="outline">Link GitHub Account</Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.auth.signInWithOAuth({
+                            provider: 'google',
+                            options: {
+                              queryParams: {
+                                access_type: 'offline',
+                                prompt: 'consent',
+                              },
+                            }
+                          });
+                          if (error) throw error;
+                        } catch (error: any) {
+                          toast({
+                            title: "Link Failed",
+                            description: error.message || "Could not link Google account",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      Link Google Account
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.auth.signInWithOAuth({
+                            provider: 'github'
+                          });
+                          if (error) throw error;
+                        } catch (error: any) {
+                          toast({
+                            title: "Link Failed", 
+                            description: error.message || "Could not link GitHub account",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      Link GitHub Account
+                    </Button>
                   </div>
                 </div>
                 
@@ -418,16 +592,52 @@ const Settings = () => {
                   <p className="text-sm text-gray-500 mb-3">
                     These actions are irreversible. Please proceed with caution.
                   </p>
-                  <div className="flex flex-col gap-3">
-                    <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={deleteAccount}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Account
-                    </Button>
-                    <Button variant="outline">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Log Out of All Devices
-                    </Button>
-                  </div>
+                   <div className="flex flex-col gap-3">
+                     <AlertDialog>
+                       <AlertDialogTrigger asChild>
+                         <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700">
+                           <Trash2 className="h-4 w-4 mr-2" />
+                           Delete Account
+                         </Button>
+                       </AlertDialogTrigger>
+                       <AlertDialogContent>
+                         <AlertDialogHeader>
+                           <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                           <AlertDialogDescription>
+                             This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+                           </AlertDialogDescription>
+                         </AlertDialogHeader>
+                         <AlertDialogFooter>
+                           <AlertDialogCancel>Cancel</AlertDialogCancel>
+                           <AlertDialogAction onClick={handleDeleteAccount} className="bg-red-600 hover:bg-red-700">
+                             Delete Account
+                           </AlertDialogAction>
+                         </AlertDialogFooter>
+                       </AlertDialogContent>
+                     </AlertDialog>
+                     <AlertDialog>
+                       <AlertDialogTrigger asChild>
+                         <Button variant="outline">
+                           <LogOut className="h-4 w-4 mr-2" />
+                           Log Out of All Devices
+                         </Button>
+                       </AlertDialogTrigger>
+                       <AlertDialogContent>
+                         <AlertDialogHeader>
+                           <AlertDialogTitle>Log Out of All Devices</AlertDialogTitle>
+                           <AlertDialogDescription>
+                             This will sign you out of all devices. You'll need to log in again on each device.
+                           </AlertDialogDescription>
+                         </AlertDialogHeader>
+                         <AlertDialogFooter>
+                           <AlertDialogCancel>Cancel</AlertDialogCancel>
+                           <AlertDialogAction onClick={handleLogoutAllDevices}>
+                             Log Out All Devices
+                           </AlertDialogAction>
+                         </AlertDialogFooter>
+                       </AlertDialogContent>
+                     </AlertDialog>
+                   </div>
                 </div>
               </div>
             </CardContent>
