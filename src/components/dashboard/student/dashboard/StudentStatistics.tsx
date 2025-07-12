@@ -70,8 +70,15 @@ const StudentStatistics = () => {
           ? enrollments.reduce((sum, e) => sum + (e.progress || 0), 0) / enrollments.length
           : 0;
           
-        // Calculate average score based on completion percentage
-        const averageScore = Math.round(recentProgress);
+        // Calculate average quiz score from actual quiz submissions
+        const { data: quizSubmissions } = await supabase
+          .from('quiz_submissions')
+          .select('percentage')
+          .eq('student_id', user.id);
+          
+        const averageScore = quizSubmissions && quizSubmissions.length > 0
+          ? Math.round(quizSubmissions.reduce((sum, submission) => sum + submission.percentage, 0) / quizSubmissions.length)
+          : 0;
           
         // Mock a previous progress value for comparison
         const previousProgress = Math.max(0, recentProgress - (Math.random() * 10 + 5)); // 5-15% growth

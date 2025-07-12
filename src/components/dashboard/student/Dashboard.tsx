@@ -17,19 +17,12 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!user) return null;
       
-      const [coursesResponse, completedCoursesResponse, sessionsResponse, profileResponse] = await Promise.all([
-        // Get total enrolled courses
+      const [enrollmentsResponse, sessionsResponse, profileResponse] = await Promise.all([
+        // Get all enrollments with progress data
         supabase
           .from('enrollments')
-          .select('id', { count: 'exact' })
+          .select('id, progress, completed, course_id')
           .eq('student_id', user.id),
-          
-        // Get completed courses
-        supabase
-          .from('enrollments')
-          .select('id', { count: 'exact' })
-          .eq('student_id', user.id)
-          .eq('completed', true),
           
         // Get upcoming sessions for enrolled courses
         (async () => {
@@ -58,13 +51,21 @@ const Dashboard = () => {
           .single()
       ]);
       
+      const enrollments = enrollmentsResponse.data || [];
+      const totalCourses = enrollments.length;
+      const completedCourses = enrollments.filter(e => e.completed).length;
+      
+      // Calculate average progress across all enrolled courses
+      const averageProgress = enrollments.length > 0
+        ? Math.round(enrollments.reduce((sum, e) => sum + (e.progress || 0), 0) / enrollments.length)
+        : 0;
+      
       return {
-        totalCourses: coursesResponse.count || 0,
-        completedCourses: completedCoursesResponse.count || 0,
+        totalCourses,
+        completedCourses,
         upcomingSessions: sessionsResponse.count || 0,
         userProfile: profileResponse.data,
-        // Added average progress calculation
-        averageProgress: 0 // Will be calculated below if there are enrolled courses
+        averageProgress
       };
     },
     enabled: !!user,
@@ -72,32 +73,7 @@ const Dashboard = () => {
     gcTime: 300000, // Keep in cache for 5 minutes
   });
 
-  // Calculate average progress across all enrolled courses
-  const { data: averageProgress } = useQuery({
-    queryKey: ['average-progress', user?.id],
-    queryFn: async () => {
-      if (!user) return 0;
-      
-      const { data, error } = await supabase
-        .from('enrollments')
-        .select('progress')
-        .eq('student_id', user.id);
-        
-      if (error || !data || data.length === 0) return 0;
-      
-      const total = data.reduce((sum, course) => sum + (course.progress || 0), 0);
-      return Math.round(total / data.length);
-    },
-    enabled: !!user,
-    staleTime: 30000,
-    gcTime: 300000,
-  });
-
-  // Combine stats with average progress
-  const combinedStats = {
-    ...stats,
-    averageProgress: averageProgress || 0
-  };
+  // Stats already include averageProgress, no need for separate query
 
   return (
     <div className="p-6 space-y-6">
@@ -112,7 +88,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-3">
-          <DashboardStats stats={combinedStats || {
+          <DashboardStats stats={stats || {
             totalCourses: 0,
             completedCourses: 0,
             upcomingSessions: 0,

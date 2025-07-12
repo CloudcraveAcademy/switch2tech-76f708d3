@@ -1114,6 +1114,66 @@ export type Database = {
           },
         ]
       }
+      quiz_submissions: {
+        Row: {
+          answers: Json | null
+          created_at: string
+          id: string
+          is_passed: boolean | null
+          max_score: number
+          percentage: number
+          quiz_id: string
+          score: number
+          student_id: string
+          submitted_at: string
+          time_taken_minutes: number | null
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json | null
+          created_at?: string
+          id?: string
+          is_passed?: boolean | null
+          max_score?: number
+          percentage?: number
+          quiz_id: string
+          score?: number
+          student_id: string
+          submitted_at?: string
+          time_taken_minutes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json | null
+          created_at?: string
+          id?: string
+          is_passed?: boolean | null
+          max_score?: number
+          percentage?: number
+          quiz_id?: string
+          score?: number
+          student_id?: string
+          submitted_at?: string
+          time_taken_minutes?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_submissions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quizzes: {
         Row: {
           course_id: string

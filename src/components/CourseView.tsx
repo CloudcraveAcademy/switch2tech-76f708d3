@@ -22,7 +22,9 @@ import {
   Users,
   Calendar,
   List,
+  HelpCircle,
 } from "lucide-react";
+import { QuizList, QuizTaker } from "@/components/quiz";
 
 interface CourseData {
   id: string;
@@ -70,6 +72,7 @@ const CourseView = () => {
   const [lessonProgress, setLessonProgress] = useState<Record<string, boolean>>({});
   const [discussionInput, setDiscussionInput] = useState("");
   const [discussions, setDiscussions] = useState<any[]>([]);
+  const [activeQuiz, setActiveQuiz] = useState<string | null>(null);
 
   // Fetch course data from Supabase
   const { data: course, isLoading, refetch } = useQuery({
@@ -493,6 +496,10 @@ const CourseView = () => {
                 <FileText className="h-4 w-4 mr-2" />
                 Assignments
               </TabsTrigger>
+              <TabsTrigger value="quizzes">
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Quizzes
+              </TabsTrigger>
               <TabsTrigger value="discussion">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Discussion
@@ -653,6 +660,33 @@ const CourseView = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+            
+            {/* Quizzes Tab */}
+            <TabsContent value="quizzes">
+              {activeQuiz ? (
+                <div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setActiveQuiz(null)}
+                    className="mb-4"
+                  >
+                    ← Back to Quiz List
+                  </Button>
+                  <QuizTaker 
+                    quizId={activeQuiz} 
+                    onComplete={() => {
+                      setActiveQuiz(null);
+                      refetch(); // Refresh course data to update progress
+                    }} 
+                  />
+                </div>
+              ) : (
+                <QuizList 
+                  courseId={courseId!} 
+                  onTakeQuiz={setActiveQuiz} 
+                />
+              )}
             </TabsContent>
             
             {/* Discussion Tab */}
