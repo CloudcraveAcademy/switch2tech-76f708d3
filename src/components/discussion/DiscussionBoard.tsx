@@ -179,33 +179,35 @@ const DiscussionBoard = ({ courseId }: DiscussionBoardProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Create New Post */}
-        <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium">Start a new discussion</h3>
-          <input
-            type="text"
-            placeholder="Discussion title..."
-            value={newPostTitle}
-            onChange={(e) => setNewPostTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <Textarea
-            placeholder="Share your thoughts, ask questions, or start a discussion..."
-            value={newPostContent}
-            onChange={(e) => setNewPostContent(e.target.value)}
-            rows={3}
-          />
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleSubmitPost} 
-              disabled={isPosting || !newPostTitle.trim() || !newPostContent.trim()}
-              className="flex items-center"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              {isPosting ? "Posting..." : "Post"}
-            </Button>
+        {/* Create New Post - Only show if user is authenticated */}
+        {user && (
+          <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-medium">Start a new discussion</h3>
+            <input
+              type="text"
+              placeholder="Discussion title..."
+              value={newPostTitle}
+              onChange={(e) => setNewPostTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <Textarea
+              placeholder="Share your thoughts, ask questions, or start a discussion..."
+              value={newPostContent}
+              onChange={(e) => setNewPostContent(e.target.value)}
+              rows={3}
+            />
+            <div className="flex justify-end">
+              <Button 
+                onClick={handleSubmitPost} 
+                disabled={isPosting || !newPostTitle.trim() || !newPostContent.trim()}
+                className="flex items-center"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {isPosting ? "Posting..." : "Post"}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Discussion Posts */}
         <div className="space-y-6">

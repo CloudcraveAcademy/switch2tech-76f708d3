@@ -79,7 +79,8 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
         .select('*')
         .eq('quiz_id', quizId)
         .eq('student_id', user!.id)
-        .single();
+        .order('created_at', { ascending: false })
+        .maybeSingle();
       return data;
     },
     enabled: !!quizId && !!user
@@ -103,6 +104,15 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
 
       const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
       const isPassed = percentage >= (quiz.passing_score || 60);
+
+      // Delete previous submission if exists to allow retakes
+      if (existingSubmission) {
+        await supabase
+          .from('quiz_submissions')
+          .delete()
+          .eq('quiz_id', quizId)
+          .eq('student_id', user.id);
+      }
 
       const { error } = await supabase
         .from('quiz_submissions')
@@ -193,15 +203,60 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
-            Quiz Already Completed
+            Quiz Results
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p>You have already completed this quiz.</p>
-          <p className="mt-2">Your score: {existingSubmission.percentage}% ({existingSubmission.score}/{existingSubmission.max_score} points)</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {existingSubmission.is_passed ? "Passed" : "Failed"}
-          </p>
+        <CardContent className="space-y-4">
+          <div>
+            <p>Your score: {existingSubmission.percentage}% ({existingSubmission.score}/{existingSubmission.max_score} points)</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Status: {existingSubmission.is_passed ? "Passed" : "Failed"}
+            </p>
+          </div>
+          
+          {/* Show quiz corrections */}
+          {existingSubmission.answers && quizData && (
+            <div className="space-y-3">
+              <h3 className="font-medium">Review Your Answers:</h3>
+              {quizData.questions.map((question, index) => {
+                const userAnswer = existingSubmission.answers[question.id];
+                const isCorrect = userAnswer === question.correct_answer;
+                
+                return (
+                  <div key={question.id} className="border rounded p-3 space-y-2">
+                    <p className="font-medium text-sm">
+                      Question {index + 1}: {question.question}
+                    </p>
+                    <div className="grid grid-cols-1 gap-1">
+                      {question.options.map((option, optionIndex) => (
+                        <div 
+                          key={optionIndex}
+                          className={`p-2 rounded text-sm ${
+                            option === question.correct_answer 
+                              ? 'bg-green-100 text-green-800 font-medium' 
+                              : option === userAnswer && !isCorrect
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-50'
+                          }`}
+                        >
+                          {option === question.correct_answer && '✓ '}
+                          {option === userAnswer && option !== question.correct_answer && '✗ '}
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="w-full"
+          >
+            Retake Quiz
+          </Button>
         </CardContent>
       </Card>
     );

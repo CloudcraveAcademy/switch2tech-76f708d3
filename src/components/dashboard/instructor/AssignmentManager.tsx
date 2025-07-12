@@ -57,7 +57,8 @@ const AssignmentManager = () => {
     course_id: "",
     due_date: "",
     max_score: 100,
-    is_published: false
+    is_published: false,
+    attachment_file: null as File | null
   });
 
   const fetchCourses = async () => {
@@ -148,9 +149,39 @@ const AssignmentManager = () => {
     }
 
     try {
+      let attachmentUrl = null;
+
+      // Upload attachment if exists
+      if (assignmentForm.attachment_file) {
+        const fileExt = assignmentForm.attachment_file.name.split('.').pop();
+        const fileName = `assignment-${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('Course Materials')
+          .upload(fileName, assignmentForm.attachment_file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('Course Materials')
+          .getPublicUrl(fileName);
+        
+        attachmentUrl = urlData.publicUrl;
+      }
+
+      const assignmentData = {
+        title: assignmentForm.title,
+        description: assignmentForm.description,
+        course_id: assignmentForm.course_id,
+        due_date: assignmentForm.due_date || null,
+        max_score: assignmentForm.max_score,
+        is_published: assignmentForm.is_published,
+        attachment_url: attachmentUrl
+      };
+
       const { data, error } = await supabase
         .from('assignments')
-        .insert([assignmentForm])
+        .insert([assignmentData])
         .select()
         .single();
 
@@ -168,7 +199,8 @@ const AssignmentManager = () => {
         course_id: "",
         due_date: "",
         max_score: 100,
-        is_published: false
+        is_published: false,
+        attachment_file: null
       });
       fetchAssignments();
     } catch (error) {
@@ -328,6 +360,24 @@ const AssignmentManager = () => {
                   placeholder="Enter assignment description"
                   rows={4}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="attachment">Attachment (Optional)</Label>
+                <Input
+                  id="attachment"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setAssignmentForm({ ...assignmentForm, attachment_file: file });
+                    }
+                  }}
+                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supported formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
