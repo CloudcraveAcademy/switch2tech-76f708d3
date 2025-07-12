@@ -25,9 +25,10 @@ interface DiscussionPost {
 
 interface DiscussionBoardProps {
   courseId: string;
+  discussionBoardId?: string | null;
 }
 
-const DiscussionBoard = ({ courseId }: DiscussionBoardProps) => {
+const DiscussionBoard = ({ courseId, discussionBoardId: externalDiscussionBoardId }: DiscussionBoardProps) => {
   const { user } = useAuth();
   const [posts, setPosts] = useState<DiscussionPost[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
@@ -54,21 +55,10 @@ const DiscussionBoard = ({ courseId }: DiscussionBoardProps) => {
         return existingBoard.id;
       }
 
-      // Create a discussion board if it doesn't exist
-      const { data: newBoard, error: createError } = await supabase
-        .from('discussion_boards')
-        .insert({
-          course_id: courseId,
-          title: 'Course Discussion',
-          description: 'General discussion for this course'
-        })
-        .select('id')
-        .single();
-
-      if (createError) throw createError;
-
-      setDiscussionBoardId(newBoard.id);
-      return newBoard.id;
+      // Only instructors can create discussion boards
+      // Students should use existing boards or request instructor to create one
+      console.log("No discussion board found for this course");
+      return null;
     } catch (error) {
       console.error("Error with discussion board:", error);
       return null;
@@ -79,8 +69,17 @@ const DiscussionBoard = ({ courseId }: DiscussionBoardProps) => {
     try {
       setIsLoading(true);
       
-      const boardId = await fetchOrCreateDiscussionBoard();
-      if (!boardId) return;
+      let boardId = externalDiscussionBoardId;
+      if (!boardId) {
+        boardId = await fetchOrCreateDiscussionBoard();
+      } else {
+        setDiscussionBoardId(boardId);
+      }
+      
+      if (!boardId) {
+        setIsLoading(false);
+        return;
+      }
 
       const { data: postsData, error: postsError } = await supabase
         .from('discussion_posts')

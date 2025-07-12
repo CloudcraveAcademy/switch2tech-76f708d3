@@ -73,7 +73,7 @@ const DiscussionList = ({ courseId }: DiscussionListProps) => {
         >
           ← Back to Discussions
         </Button>
-        <DiscussionBoard courseId={courseId} />
+        <DiscussionBoard courseId={courseId} discussionBoardId={selectedDiscussion} />
       </div>
     );
   }

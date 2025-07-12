@@ -506,6 +506,7 @@ const QuizManager = () => {
                       size="sm"
                       onClick={() => {
                         setSelectedQuiz(quiz);
+                        fetchQuestions(quiz.id);
                         fetchSubmissions(quiz.id);
                         setIsSubmissionsDialogOpen(true);
                       }}
@@ -636,13 +637,41 @@ const QuizManager = () => {
                     </div>
                   </div>
                   
-                  {submission.answers && (
+                  {submission.answers && questions.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-sm font-medium mb-2">Answers:</p>
-                      <div className="bg-gray-50 p-3 rounded text-sm">
-                        <pre className="whitespace-pre-wrap">
-                          {JSON.stringify(submission.answers, null, 2)}
-                        </pre>
+                      <p className="text-sm font-medium mb-2">Student Answers:</p>
+                      <div className="space-y-2">
+                        {questions.map((question, qIndex) => {
+                          const userAnswer = submission.answers[question.id];
+                          const isCorrect = userAnswer === question.correct_answer;
+                          
+                          return (
+                            <div key={question.id} className="border rounded p-3 space-y-1">
+                              <p className="font-medium text-sm">
+                                Q{qIndex + 1}: {question.question}
+                              </p>
+                              <div className="grid grid-cols-1 gap-1">
+                                {(Array.isArray(question.options) ? question.options : []).map((option, optIndex) => (
+                                  <div 
+                                    key={optIndex}
+                                    className={`p-1 rounded text-xs ${
+                                      option === question.correct_answer 
+                                        ? 'bg-green-100 text-green-800 font-medium' 
+                                        : option === userAnswer && !isCorrect
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-gray-50'
+                                    }`}
+                                  >
+                                    {option === question.correct_answer && '✓ '}
+                                    {option === userAnswer && option !== question.correct_answer && '✗ '}
+                                    {option}
+                                    {option === userAnswer && ' (Student Answer)'}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
