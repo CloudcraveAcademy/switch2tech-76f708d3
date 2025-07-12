@@ -118,8 +118,10 @@ const InstructorCertificates = () => {
   // Generate PDF certificate
   const generatePdfMutation = useMutation({
     mutationFn: async (certificateId: string) => {
-      // In a real implementation, this would call an edge function to generate PDF
-      const pdfUrl = `https://example.com/certificates/${certificateId}.pdf`;
+      // Generate a mock PDF URL for demonstration
+      // In production, this would call an edge function or PDF generation service
+      const timestamp = Date.now();
+      const pdfUrl = `${window.location.origin}/api/certificates/${certificateId}.pdf?t=${timestamp}`;
       
       const { error } = await supabase
         .from('certificates')

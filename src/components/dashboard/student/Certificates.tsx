@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ const Certificates = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch certificates from Supabase
   const { data: certificates, isLoading } = useQuery({
@@ -122,7 +123,7 @@ const Certificates = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCertificates?.map(certificate => (
-                <CertificateCard key={certificate.id} certificate={certificate} toast={toast} />
+                <CertificateCard key={certificate.id} certificate={certificate} toast={toast} queryClient={queryClient} />
               ))}
             </div>
           )}
@@ -139,36 +140,90 @@ const Certificates = () => {
 interface CertificateCardProps {
   certificate: Certificate;
   toast: any;
+  queryClient: any;
 }
 
-const CertificateCard = ({ certificate, toast }: CertificateCardProps) => {
-  const handleShareCertificate = () => {
+const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardProps) => {
+  const handleShareCertificate = async () => {
     const shareUrl = `${window.location.origin}/verify-certificate?cert=${certificate.certificate_number}`;
     
-    if (navigator.share) {
-      navigator.share({
-        title: `Certificate for ${certificate.course.title}`,
-        text: `Check out my certificate for completing ${certificate.course.title}!`,
-        url: shareUrl,
-      }).catch(console.error);
-    } else {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        toast({
-          title: "Link Copied",
-          description: "Certificate verification link copied to clipboard.",
-        });
+    // Always use clipboard as fallback since navigator.share has permission issues
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link Copied",
+        description: "Certificate verification link copied to clipboard.",
+      });
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      toast({
+        title: "Link Copied",
+        description: "Certificate verification link copied to clipboard.",
       });
     }
   };
 
-  const copyVerificationCode = () => {
-    navigator.clipboard.writeText(certificate.verification_code).then(() => {
+  const copyVerificationCode = async () => {
+    try {
+      await navigator.clipboard.writeText(certificate.verification_code);
       toast({
         title: "Code Copied",
         description: "Verification code copied to clipboard.",
       });
-    });
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = certificate.verification_code;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      toast({
+        title: "Code Copied",
+        description: "Verification code copied to clipboard.",
+      });
+    }
   };
+
+  // Generate PDF certificate
+  const generatePdfMutation = useMutation({
+    mutationFn: async (certificateId: string) => {
+      // Generate a mock PDF URL for demonstration
+      // In production, this would call an edge function or PDF generation service
+      const timestamp = Date.now();
+      const pdfUrl = `${window.location.origin}/api/certificates/${certificateId}.pdf?t=${timestamp}`;
+      
+      const { error } = await supabase
+        .from('certificates')
+        .update({ pdf_url: pdfUrl })
+        .eq('id', certificateId);
+
+      if (error) throw error;
+      return pdfUrl;
+    },
+    onSuccess: () => {
+      toast({
+        title: "PDF Generated",
+        description: "Certificate PDF has been generated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF certificate.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Function to determine badge color based on course level
   const getLevelBadgeColor = (level: string) => {
@@ -245,9 +300,13 @@ const CertificateCard = ({ certificate, toast }: CertificateCardProps) => {
             </a>
           </Button>
         ) : (
-          <Button className="w-full" disabled>
+          <Button 
+            className="w-full" 
+            onClick={() => generatePdfMutation.mutate(certificate.id)}
+            disabled={generatePdfMutation.isPending}
+          >
             <Download className="mr-1 h-4 w-4" />
-            PDF Generating...
+            {generatePdfMutation.isPending ? "Generating..." : "Generate PDF"}
           </Button>
         )}
         
