@@ -196,18 +196,26 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
   // Generate PDF certificate
   const generatePdfMutation = useMutation({
     mutationFn: async (certificateId: string) => {
+      const { data, error } = await supabase.functions.invoke('generate-certificate-pdf', {
+        body: { certificateId }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
       toast({
-        title: "PDF Generation Not Available",
-        description: "PDF generation feature is not yet implemented. Please contact support for a PDF copy of your certificate.",
+        title: "PDF Generated",
+        description: "Certificate PDF has been generated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF certificate. Please try again.",
         variant: "destructive",
       });
-      throw new Error("PDF generation not implemented");
-    },
-    onSuccess: () => {
-      // This won't be called since we always throw an error
-    },
-    onError: () => {
-      // Error is handled in the mutationFn
     },
   });
 
