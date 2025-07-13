@@ -80,7 +80,7 @@ export const CourseEnrollmentService = {
           .select("id, status")
           .eq("course_id", courseId)
           .eq("user_id", userId)
-          .in("status", ["successful", "completed"])
+          .in("status", ["successful", "completed", "success"])
           .maybeSingle();
 
         if (paymentError) {
@@ -190,7 +190,7 @@ export const CourseEnrollmentService = {
           course_id: courseId,
           amount: amount,
           currency: currency,
-          status: "completed",
+          status: "successful",
           payment_method: paymentMethod,
           payment_reference: paymentReference,
           paystack_reference: paymentReference,
