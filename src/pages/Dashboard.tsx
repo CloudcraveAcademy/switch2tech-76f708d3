@@ -70,7 +70,7 @@ const Dashboard = () => {
         onClose={() => setIsMobileMenuOpen(false)}
       />
       
-      <main className="flex-1 overflow-y-auto bg-gray-100 pt-16 md:pt-0">
+      <main className="flex-1 overflow-y-auto bg-gray-100 pt-16 md:pt-0 pl-4">
         <DashboardRoutes />
       </main>
     </div>
