@@ -54,7 +54,7 @@ export class NotificationService {
       type: 'enrollment',
       title: 'Course Enrollment Confirmed',
       description: `You have successfully enrolled in "${courseTitle}"`,
-      action_url: `/course/${courseId}`,
+      action_url: `/dashboard/my-courses`,
       course_id: courseId,
     });
   }
@@ -132,7 +132,7 @@ export class NotificationService {
       type: 'new_enrollment',
       title: 'New Student Enrollment',
       description: `${studentName} has enrolled in "${courseTitle}"`,
-      action_url: `/dashboard/instructor/students`,
+      action_url: `/dashboard/students`,
       course_id: courseId,
     });
   }

@@ -294,13 +294,12 @@ const EnrollmentPage = () => {
           .insert({
             user_id: userId,
             course_id: courseId,
-            amount: paymentData.amount,
+            amount: Number(paymentData.amount),
             currency: paymentData.currency || 'USD',
-            status: "successful",
-            payment_method: paymentData.paymentMethod || 'card',
-            payment_reference: paymentData.transactionId,
-            paystack_reference: paymentData.transactionId,
-            created_at: new Date().toISOString()
+            status: "success",
+            payment_method: 'flutterwave',
+            payment_reference: paymentData.transactionId || null,
+            paystack_reference: paymentData.transactionId || null,
           })
           .select()
           .single();
