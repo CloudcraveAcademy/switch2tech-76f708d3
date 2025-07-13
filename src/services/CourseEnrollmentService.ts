@@ -121,6 +121,23 @@ export const CourseEnrollmentService = {
 
       console.log("CourseEnrollmentService: Enrollment successful", enrollment);
 
+      // Create payment transaction record for paid courses
+      if (!isFree) {
+        console.log("CourseEnrollmentService: Creating payment transaction for paid course");
+        const paymentSuccess = await this.createPaymentTransaction(
+          userId,
+          courseId,
+          effectivePrice,
+          'USD', // or whatever currency the course uses
+          `enrollment-${enrollment.id}`, // payment reference
+          'manual' // payment method for direct enrollments
+        );
+        
+        if (!paymentSuccess) {
+          console.warn("CourseEnrollmentService: Failed to create payment transaction record");
+        }
+      }
+
       // Get course details for notification
       const { data: course } = await supabase
         .from("courses")
