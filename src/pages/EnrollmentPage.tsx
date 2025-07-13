@@ -364,9 +364,9 @@ const EnrollmentPage = () => {
         // Pass payment data for transaction recording
         const paymentData = {
           transactionId: transactionId,
-          amount: displayPrice,
+          amount: Math.round(displayPrice * 100), // Convert to cents/kobo for accurate storage
           currency: watchedCurrency,
-          paymentMethod: 'card'
+          paymentMethod: 'flutterwave'
         };
         
         await completeEnrollment(session.user.id, paymentData);
