@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Menu, X, LogOut, User, Book, Home, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import NotificationBell from "@/components/common/NotificationBell";
 
 const Navbar = () => {
   const { user, loading, logout } = useAuth();
@@ -145,46 +146,49 @@ const Navbar = () => {
                       <Button className="bg-[#0077B6] hover:bg-[#03045E]">Register</Button>
                     </Link>
                   </>
-                ) : (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative rounded-full">
-                        <Avatar>
-                          <AvatarImage src={userData.avatar} alt={userData.name} />
-                          <AvatarFallback>
-                            {userInitials}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>
-                        <div className="font-normal">
-                          <div className="font-medium">{userData.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {userData.email}
-                          </div>
-                          <div className="text-xs text-muted-foreground capitalize mt-1">
-                            Role: {userData.role}
-                          </div>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/dashboard" className="cursor-pointer w-full">
-                          <User className="mr-2 h-4 w-4" />
-                          Dashboard
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="cursor-pointer">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        {loggingOut ? "Logging out..." : "Logout"}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
+                 ) : (
+                   <div className="flex items-center gap-2">
+                     <NotificationBell />
+                     <DropdownMenu>
+                       <DropdownMenuTrigger asChild>
+                         <Button variant="ghost" className="relative rounded-full">
+                           <Avatar>
+                             <AvatarImage src={userData.avatar} alt={userData.name} />
+                             <AvatarFallback>
+                               {userInitials}
+                             </AvatarFallback>
+                           </Avatar>
+                         </Button>
+                       </DropdownMenuTrigger>
+                       <DropdownMenuContent align="end" className="w-56">
+                         <DropdownMenuLabel>
+                           <div className="font-normal">
+                             <div className="font-medium">{userData.name}</div>
+                             <div className="text-xs text-muted-foreground">
+                               {userData.email}
+                             </div>
+                             <div className="text-xs text-muted-foreground capitalize mt-1">
+                               Role: {userData.role}
+                             </div>
+                           </div>
+                         </DropdownMenuLabel>
+                         <DropdownMenuSeparator />
+                         <DropdownMenuItem asChild>
+                           <Link to="/dashboard" className="cursor-pointer w-full">
+                             <User className="mr-2 h-4 w-4" />
+                             Dashboard
+                           </Link>
+                         </DropdownMenuItem>
+                         <DropdownMenuSeparator />
+                         <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="cursor-pointer">
+                           <LogOut className="mr-2 h-4 w-4" />
+                           {loggingOut ? "Logging out..." : "Logout"}
+                         </DropdownMenuItem>
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+                   </div>
+                 )}
+               </div>
             )}
           </div>
 

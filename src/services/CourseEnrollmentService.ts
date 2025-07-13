@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { NotificationService } from "./NotificationService";
 
 export interface EnrollmentResult {
   success: boolean;
@@ -119,6 +120,37 @@ export const CourseEnrollmentService = {
       }
 
       console.log("CourseEnrollmentService: Enrollment successful", enrollment);
+
+      // Get course details for notification
+      const { data: course } = await supabase
+        .from("courses")
+        .select("title, instructor_id, instructor:user_profiles!instructor_id(first_name, last_name)")
+        .eq("id", courseId)
+        .single();
+
+      if (course) {
+        // Notify student of successful enrollment
+        try {
+          await NotificationService.notifyStudentEnrollment(userId, course.title, courseId);
+        } catch (notificationError) {
+          console.error("Failed to send student enrollment notification:", notificationError);
+        }
+
+        // Notify instructor of new enrollment
+        if (course.instructor_id) {
+          try {
+            const studentName = `Student`; // We could fetch the actual student name here
+            await NotificationService.notifyInstructorEnrollment(
+              course.instructor_id, 
+              studentName, 
+              course.title, 
+              courseId
+            );
+          } catch (notificationError) {
+            console.error("Failed to send instructor enrollment notification:", notificationError);
+          }
+        }
+      }
       
       toast({
         title: "Successfully Enrolled",

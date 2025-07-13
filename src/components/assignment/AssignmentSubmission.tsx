@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Upload, FileText, Calendar, Clock } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { NotificationService } from "@/services/NotificationService";
 
 interface Assignment {
   id: string;
@@ -88,6 +89,27 @@ const AssignmentSubmission = ({ assignment, onSubmissionComplete }: AssignmentSu
         });
 
       if (error) throw error;
+
+      // Notify instructor of new submission
+      try {
+        const { data: course } = await supabase
+          .from('courses')
+          .select('instructor_id')
+          .eq('id', assignment.course_id)
+          .single();
+          
+        if (course?.instructor_id) {
+          const studentName = user.name || 'Student';
+          await NotificationService.notifyInstructorSubmission(
+            course.instructor_id,
+            studentName,
+            assignment.title,
+            assignment.course_id
+          );
+        }
+      } catch (notificationError) {
+        console.error('Failed to send submission notification:', notificationError);
+      }
 
       toast({
         title: "Assignment Submitted",

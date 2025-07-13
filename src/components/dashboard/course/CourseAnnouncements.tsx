@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { NotificationService } from "@/services/NotificationService";
 
 interface AnnouncementFormState {
   title: string;
@@ -109,6 +110,31 @@ export function CourseAnnouncements({ courseId }: CourseAnnouncementProps) {
         });
         
         if (error) throw error;
+        
+        // Send notifications to all enrolled students
+        if (data) {
+          try {
+            // Get course title for notification
+            const { data: course } = await supabase
+              .from('courses')
+              .select('title')
+              .eq('id', courseId)
+              .single();
+              
+            if (course) {
+              await NotificationService.notifyAllCourseStudents(
+                courseId,
+                'announcement',
+                'Course Announcement',
+                `New announcement in ${course.title}: ${announcement.title}`,
+                `/course/${courseId}`
+              );
+            }
+          } catch (notificationError) {
+            console.error('Failed to send announcement notifications:', notificationError);
+          }
+        }
+        
         return data;
       }
     } catch (e) {
