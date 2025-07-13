@@ -11,7 +11,18 @@ import {
   LogOut,
   Users,
   BookPlus,
-  CircleDollarSign
+  CircleDollarSign,
+  Calendar,
+  DollarSign,
+  FileText,
+  MessageSquare,
+  ClipboardList,
+  Monitor,
+  Award,
+  PlusCircle,
+  HeadphonesIcon,
+  Star,
+  Brain
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -76,6 +87,14 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                       My Courses
                     </Link>
                     <Link
+                      to="/dashboard/class-schedule"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Calendar className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Class Schedule
+                    </Link>
+                    <Link
                       to="/dashboard/certificates"
                       className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
                       onClick={onClose}
@@ -90,14 +109,6 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                 {user?.role === "instructor" && (
                   <>
                     <Link
-                      to="/dashboard/create-course"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
-                      onClick={onClose}
-                    >
-                      <BookPlus className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
-                      Create Course
-                    </Link>
-                    <Link
                       to="/dashboard/my-courses"
                       className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
                       onClick={onClose}
@@ -111,15 +122,63 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                       onClick={onClose}
                     >
                       <Users className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
-                      Students
+                      My Students
+                    </Link>
+                    <Link
+                      to="/dashboard/live-classes"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Monitor className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Live Classes
+                    </Link>
+                    <Link
+                      to="/dashboard/certificates"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Award className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Certificates
                     </Link>
                     <Link
                       to="/dashboard/revenue"
                       className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
                       onClick={onClose}
                     >
-                      <CircleDollarSign className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <DollarSign className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
                       Revenue
+                    </Link>
+                    <Link
+                      to="/dashboard/create-course"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <PlusCircle className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Create Course
+                    </Link>
+                    <Link
+                      to="/dashboard/assignments"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Assignments
+                    </Link>
+                    <Link
+                      to="/dashboard/quizzes"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <ClipboardList className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Quizzes
+                    </Link>
+                    <Link
+                      to="/dashboard/discussions"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Discussions
                     </Link>
                   </>
                 )}
@@ -132,7 +191,7 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                       className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
                       onClick={onClose}
                     >
-                      <User className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Users className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
                       Users
                     </Link>
                     <Link
@@ -142,6 +201,94 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                     >
                       <BookOpen className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
                       Courses
+                    </Link>
+                    <Link
+                      to="/dashboard/live-classes-overview"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Monitor className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Live Classes
+                    </Link>
+                    <Link
+                      to="/dashboard/certificates"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Award className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Certificates
+                    </Link>
+                    <Link
+                      to="/dashboard/finance"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <DollarSign className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Finance
+                    </Link>
+                    <Link
+                      to="/dashboard/reports"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Reports
+                    </Link>
+                    <Link
+                      to="/dashboard/support-tickets"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <HeadphonesIcon className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Support
+                    </Link>
+                    <Link
+                      to="/dashboard/announcements"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Announcements
+                    </Link>
+                    <Link
+                      to="/dashboard/system"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Settings className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      System
+                    </Link>
+                    <Link
+                      to="/dashboard/ratings"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Star className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Ratings
+                    </Link>
+                    <Link
+                      to="/dashboard/assignments-overview"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <ClipboardList className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Assignments
+                    </Link>
+                    <Link
+                      to="/dashboard/quizzes-overview"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <Brain className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Quizzes
+                    </Link>
+                    <Link
+                      to="/dashboard/discussions-overview"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={onClose}
+                    >
+                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      Discussions
                     </Link>
                   </>
                 )}
