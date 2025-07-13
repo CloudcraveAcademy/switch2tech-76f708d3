@@ -30,6 +30,11 @@ import InstructorAssignments from "./instructor/InstructorAssignments";
 import InstructorQuizzes from "./instructor/InstructorQuizzes";
 import InstructorDiscussions from "./instructor/InstructorDiscussions";
 
+// Import live class components
+import LiveClassManager from "./instructor/LiveClassManager";
+import LiveClassOverview from "./admin/LiveClassOverview";
+import LiveClassCalendar from "./student/LiveClassCalendar";
+
 // Import admin pages
 import UsersPage from "@/pages/admin/UsersPage";
 import CoursesPage from "@/pages/admin/CoursesPage";
@@ -71,6 +76,7 @@ const DashboardRoutes = () => {
   const studentRoutesFragment = useMemo(() => (
     <>
       <Route path="/certificates" element={<Certificates />} />
+      <Route path="/class-schedule" element={<LiveClassCalendar />} />
       <Route path="/courses/:courseId" element={<CourseView />} />
     </>
   ), []);
@@ -79,6 +85,7 @@ const DashboardRoutes = () => {
     <>
       <Route path="/students" element={<MyStudents />} />
       <Route path="/revenue" element={<MyRevenue />} />
+      <Route path="/live-classes" element={<LiveClassManager />} />
       <Route path="/certificates" element={<InstructorCertificates />} />
       <Route path="/create-course" element={<CreateCourse />} />
       <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
@@ -93,6 +100,7 @@ const DashboardRoutes = () => {
     <>
       <Route path="/users" element={<UsersPage />} />
       <Route path="/courses" element={<CoursesPage />} />
+      <Route path="/live-classes-overview" element={<LiveClassOverview />} />
       <Route path="/certificates" element={<AdminCertificates />} />
       <Route path="/finance" element={<FinancePage />} />
       <Route path="/reports" element={<ReportsPage />} />

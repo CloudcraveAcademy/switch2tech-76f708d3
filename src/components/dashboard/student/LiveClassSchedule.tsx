@@ -1,13 +1,14 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, Monitor } from "lucide-react";
+import { Calendar, Clock, Monitor, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface ClassSession {
   id: string;
@@ -22,6 +23,7 @@ interface ClassSession {
 
 function LiveClassSchedule() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
   
   useEffect(() => {
@@ -72,6 +74,49 @@ function LiveClassSchedule() {
     enabled: enrolledCourseIds.length > 0 && !!user,
   });
 
+  // Record attendance mutation
+  const recordAttendanceMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      if (!user) throw new Error("User not authenticated");
+      
+      // Check if attendance already recorded
+      const { data: existingAttendance } = await supabase
+        .from('class_attendance')
+        .select('id')
+        .eq('class_session_id', sessionId)
+        .eq('student_id', user.id)
+        .single();
+        
+      if (existingAttendance) {
+        return existingAttendance;
+      }
+      
+      // Record new attendance
+      const { data, error } = await supabase
+        .from('class_attendance')
+        .insert({
+          class_session_id: sessionId,
+          student_id: user.id,
+          course_id: upcomingClasses?.find(c => c.id === sessionId)?.course_id,
+          attendance_status: 'present',
+          attended_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Attendance recorded successfully");
+      queryClient.invalidateQueries({ queryKey: ['upcoming-classes'] });
+    },
+    onError: (error) => {
+      console.error("Failed to record attendance:", error);
+      toast.error("Failed to record attendance");
+    },
+  });
+
   const isSessionActive = (startTime: string) => {
     const now = new Date();
     const sessionStart = new Date(startTime);
@@ -79,6 +124,15 @@ function LiveClassSchedule() {
     const diffMs = sessionStart.getTime() - now.getTime();
     const diffMinutes = Math.floor(diffMs / 1000 / 60);
     return diffMinutes <= 15 && diffMinutes >= -120; // Active 15 minutes before until 2 hours after
+  };
+
+  const handleJoinClass = async (session: ClassSession) => {
+    if (session.meeting_link) {
+      // Record attendance when joining
+      recordAttendanceMutation.mutate(session.id);
+      // Open meeting link
+      window.open(session.meeting_link, '_blank');
+    }
   };
 
   if (isLoading) {
@@ -139,13 +193,16 @@ function LiveClassSchedule() {
                 
                 <Button
                   className="w-full"
-                  disabled={!isSessionActive(session.start_time)}
-                  onClick={() => {
-                    if (session.meeting_link) window.open(session.meeting_link, '_blank');
-                  }}
+                  disabled={!isSessionActive(session.start_time) || recordAttendanceMutation.isPending}
+                  onClick={() => handleJoinClass(session)}
                 >
                   <Monitor className="mr-2 h-4 w-4" />
-                  {isSessionActive(session.start_time) ? "Join Class" : "Class Not Active Yet"}
+                  {recordAttendanceMutation.isPending 
+                    ? "Joining..." 
+                    : isSessionActive(session.start_time) 
+                      ? "Join Class" 
+                      : "Class Not Active Yet"
+                  }
                 </Button>
               </div>
             ))}

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Book, Users, DollarSign, PlusCircle, Award, FileText, MessageSquare, ClipboardList } from "lucide-react";
+import { Book, Users, DollarSign, PlusCircle, Award, FileText, MessageSquare, ClipboardList, Monitor } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface InstructorNavigationProps {
@@ -22,6 +22,13 @@ const InstructorNavigation: React.FC<InstructorNavigationProps> = ({ isActive })
         icon={Users}
         label="My Students"
         isActive={isActive("/dashboard/students")}
+      />
+      
+      <SidebarMenuItem
+        to="/dashboard/live-classes"
+        icon={Monitor}
+        label="Live Classes"
+        isActive={isActive("/dashboard/live-classes")}
       />
       
       <SidebarMenuItem
