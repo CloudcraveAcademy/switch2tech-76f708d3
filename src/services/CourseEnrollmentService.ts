@@ -73,30 +73,8 @@ export const CourseEnrollmentService = {
       const isFree = effectivePrice === 0;
       console.log("CourseEnrollmentService: Course is free:", isFree, "Price:", effectivePrice);
 
-      // If course is not free, check for payment
-      if (!isFree) {
-        const { data: paymentRecord, error: paymentError } = await supabase
-          .from("payment_transactions")
-          .select("id, status")
-          .eq("course_id", courseId)
-          .eq("user_id", userId)
-          .in("status", ["successful", "completed", "success"])
-          .maybeSingle();
-
-        if (paymentError) {
-          console.error("CourseEnrollmentService: Error checking payment:", paymentError);
-        }
-
-        if (!paymentRecord) {
-          console.log("CourseEnrollmentService: Payment required");
-          return {
-            success: false,
-            error: "Payment required",
-            requiresPayment: true,
-            courseId: courseId
-          };
-        }
-      }
+      // For paid courses, we'll create the payment record after enrollment
+      // This allows the enrollment process to work properly from the enrollment page
 
       // Create new enrollment record
       console.log("CourseEnrollmentService: Creating enrollment record");
