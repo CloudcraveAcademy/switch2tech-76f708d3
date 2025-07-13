@@ -133,7 +133,7 @@ const MyRevenue = () => {
         .in("course_id", courseIds)
         .gte("created_at", startDate.toISOString())
         .lte("created_at", endDate.toISOString())
-        .eq("status", "completed")
+        .in("status", ["completed", "success"])
         .order("created_at", { ascending: false });
         
       if (transactionsError) throw transactionsError;

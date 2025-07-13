@@ -26,30 +26,119 @@ const FinancePage = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [dateRange, setDateRange] = useState("month");
 
-  // Mock data for revenue overview
-  const revenueData = [
-    { name: 'Jan', revenue: 5000 },
-    { name: 'Feb', revenue: 7000 },
-    { name: 'Mar', revenue: 8500 },
-    { name: 'Apr', revenue: 9800 },
-    { name: 'May', revenue: 11000 },
-    { name: 'Jun', revenue: 10500 },
-    { name: 'Jul', revenue: 12500 },
-    { name: 'Aug', revenue: 14000 },
-    { name: 'Sep', revenue: 15500 },
-    { name: 'Oct', revenue: 16800 },
-    { name: 'Nov', revenue: 18000 },
-    { name: 'Dec', revenue: 19500 },
-  ];
+  // Fetch revenue analytics data
+  const { data: revenueStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['adminRevenueStats', dateRange],
+    queryFn: async () => {
+      const now = new Date();
+      const startDate = new Date();
+      
+      switch (dateRange) {
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+        default:
+          startDate.setMonth(now.getMonth() - 1);
+      }
 
-  // Mock data for courses by revenue
-  const courseRevenueData = [
-    { name: 'Web Development', revenue: 25000 },
-    { name: 'UI/UX Design', revenue: 18000 },
-    { name: 'Data Science', revenue: 15000 },
-    { name: 'Mobile App Dev', revenue: 12000 },
-    { name: 'Cloud Computing', revenue: 10000 },
-  ];
+      // Get all payment transactions
+      const { data: transactions, error } = await supabase
+        .from('payment_transactions')
+        .select(`
+          id,
+          amount,
+          created_at,
+          status,
+          course_id,
+          courses:course_id (title)
+        `)
+        .eq('status', 'completed')
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Calculate total revenue
+      const totalRevenue = transactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+      
+      // Calculate monthly revenue for current month
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthlyRevenue = transactions?.filter(tx => 
+        new Date(tx.created_at) >= currentMonthStart
+      ).reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+
+      // Calculate previous month revenue for comparison
+      const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      const { data: prevMonthTx } = await supabase
+        .from('payment_transactions')
+        .select('amount')
+        .eq('status', 'completed')
+        .gte('created_at', prevMonthStart.toISOString())
+        .lte('created_at', prevMonthEnd.toISOString());
+      
+      const prevMonthRevenue = prevMonthTx?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+      const monthlyGrowth = prevMonthRevenue > 0 ? ((monthlyRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : 0;
+
+      // Calculate revenue by month for chart
+      const monthlyData = [];
+      for (let i = 11; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+        
+        const monthRevenue = transactions?.filter(tx => {
+          const txDate = new Date(tx.created_at);
+          return txDate >= monthDate && txDate < nextMonth;
+        }).reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+
+        monthlyData.push({
+          name: monthDate.toLocaleDateString('en', { month: 'short' }),
+          revenue: monthRevenue
+        });
+      }
+
+      // Calculate course revenue
+      const courseRevenue = new Map();
+      transactions?.forEach(tx => {
+        if (tx.courses?.title) {
+          const current = courseRevenue.get(tx.courses.title) || 0;
+          courseRevenue.set(tx.courses.title, current + Number(tx.amount));
+        }
+      });
+
+      const courseRevenueData = Array.from(courseRevenue.entries())
+        .map(([name, revenue]) => ({ name, revenue }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+
+      // Get enrollments count for active subscriptions
+      const { data: enrollments } = await supabase
+        .from('enrollments')
+        .select('id')
+        .eq('completed', false);
+
+      const activeSubscriptions = enrollments?.length || 0;
+
+      return {
+        totalRevenue,
+        monthlyRevenue,
+        monthlyGrowth,
+        activeSubscriptions,
+        revenueData: monthlyData,
+        courseRevenueData,
+        totalTransactions: transactions?.length || 0
+      };
+    },
+  });
 
   // Fetch payment transactions
   const { data: payments, isLoading: isLoadingPayments } = useQuery({
@@ -112,10 +201,20 @@ const FinancePage = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Total Revenue
                     </p>
-                    <p className="text-3xl font-bold">₦1,245,890</p>
-                    <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center mt-1">
-                      <ArrowUpRight className="h-3 w-3 mr-1" />
-                      12% from last month
+                    <p className="text-3xl font-bold">
+                      ₦{revenueStats?.totalRevenue?.toLocaleString() || '0'}
+                    </p>
+                    <p className={`text-sm flex items-center mt-1 ${
+                      (revenueStats?.monthlyGrowth || 0) >= 0 
+                        ? 'text-emerald-600 dark:text-emerald-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {(revenueStats?.monthlyGrowth || 0) >= 0 ? (
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                      ) : (
+                        <ArrowDownRight className="h-3 w-3 mr-1" />
+                      )}
+                      {Math.abs(revenueStats?.monthlyGrowth || 0).toFixed(1)}% from last month
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
@@ -132,10 +231,20 @@ const FinancePage = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Monthly Revenue
                     </p>
-                    <p className="text-3xl font-bold">₦245,890</p>
-                    <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center mt-1">
-                      <ArrowUpRight className="h-3 w-3 mr-1" />
-                      8% from last month
+                    <p className="text-3xl font-bold">
+                      ₦{revenueStats?.monthlyRevenue?.toLocaleString() || '0'}
+                    </p>
+                    <p className={`text-sm flex items-center mt-1 ${
+                      (revenueStats?.monthlyGrowth || 0) >= 0 
+                        ? 'text-emerald-600 dark:text-emerald-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {(revenueStats?.monthlyGrowth || 0) >= 0 ? (
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                      ) : (
+                        <ArrowDownRight className="h-3 w-3 mr-1" />
+                      )}
+                      {Math.abs(revenueStats?.monthlyGrowth || 0).toFixed(1)}% from last month
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
@@ -152,10 +261,12 @@ const FinancePage = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Active Subscriptions
                     </p>
-                    <p className="text-3xl font-bold">324</p>
+                    <p className="text-3xl font-bold">
+                      {revenueStats?.activeSubscriptions?.toLocaleString() || '0'}
+                    </p>
                     <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center mt-1">
                       <ArrowUpRight className="h-3 w-3 mr-1" />
-                      4% from last month
+                      Active enrollments
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
@@ -194,25 +305,31 @@ const FinancePage = () => {
                 <CardDescription>Monthly revenue for the current year</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={revenueData}
-                      margin={{
-                        top: 10,
-                        right: 30,
-                        left: 0,
-                        bottom: 0,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                  <div className="h-80">
+                    {isLoadingStats ? (
+                      <div className="flex justify-center items-center h-full">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={revenueStats?.revenueData || []}
+                          margin={{
+                            top: 10,
+                            right: 30,
+                            left: 0,
+                            bottom: 0,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis tickFormatter={(value) => `₦${value.toLocaleString()}`} />
+                          <Tooltip formatter={(value: number) => [`₦${value.toLocaleString()}`, 'Revenue']} />
+                          <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
               </CardContent>
             </Card>
 
@@ -222,27 +339,33 @@ const FinancePage = () => {
                 <CardDescription>Courses generating the most revenue</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={courseRevenueData}
-                      layout="vertical"
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={100} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="revenue" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                  <div className="h-80">
+                    {isLoadingStats ? (
+                      <div className="flex justify-center items-center h-full">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={revenueStats?.courseRevenueData || []}
+                          layout="vertical"
+                          margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" tickFormatter={(value) => `₦${value.toLocaleString()}`} />
+                          <YAxis dataKey="name" type="category" width={120} />
+                          <Tooltip formatter={(value: number) => [`₦${value.toLocaleString()}`, 'Revenue']} />
+                          <Legend />
+                          <Bar dataKey="revenue" fill="#82ca9d" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
               </CardContent>
             </Card>
           </div>
