@@ -48,7 +48,7 @@ function LiveClassSchedule() {
     queryFn: async () => {
       if (!enrolledCourseIds.length || !user) return [];
       
-      // Fetch upcoming classes directly from the class_sessions table
+      // Fetch classes that haven't ended yet (including ongoing classes)
       const { data, error } = await supabase
         .from('class_sessions')
         .select(`
@@ -56,7 +56,7 @@ function LiveClassSchedule() {
           courses:course_id (title)
         `)
         .in('course_id', enrolledCourseIds)
-        .gte('start_time', new Date().toISOString())
+        .gte('end_time', new Date().toISOString())
         .order('start_time', { ascending: true })
         .limit(5);
         
@@ -117,13 +117,16 @@ function LiveClassSchedule() {
     },
   });
 
-  const isSessionActive = (startTime: string) => {
+  const isSessionActive = (startTime: string, endTime: string) => {
     const now = new Date();
     const sessionStart = new Date(startTime);
-    // Session is active 15 minutes before start time
-    const diffMs = sessionStart.getTime() - now.getTime();
-    const diffMinutes = Math.floor(diffMs / 1000 / 60);
-    return diffMinutes <= 15 && diffMinutes >= -120; // Active 15 minutes before until 2 hours after
+    const sessionEnd = new Date(endTime);
+    
+    // Session is active 15 minutes before start time until it ends
+    const diffMsFromStart = sessionStart.getTime() - now.getTime();
+    const diffMinutesFromStart = Math.floor(diffMsFromStart / 1000 / 60);
+    
+    return diffMinutesFromStart <= 15 && now <= sessionEnd;
   };
 
   const handleJoinClass = async (session: ClassSession) => {
@@ -162,11 +165,11 @@ function LiveClassSchedule() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">{session.topic || "Class Session"}</h3>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    isSessionActive(session.start_time)
+                    isSessionActive(session.start_time, session.end_time)
                       ? "bg-green-100 text-green-800"
                       : "bg-blue-100 text-blue-800"
                   }`}>
-                    {isSessionActive(session.start_time) ? "Active" : "Upcoming"}
+                    {isSessionActive(session.start_time, session.end_time) ? "Active" : "Upcoming"}
                   </span>
                 </div>
                 
@@ -193,13 +196,13 @@ function LiveClassSchedule() {
                 
                 <Button
                   className="w-full"
-                  disabled={!isSessionActive(session.start_time) || recordAttendanceMutation.isPending}
+                  disabled={!isSessionActive(session.start_time, session.end_time) || recordAttendanceMutation.isPending}
                   onClick={() => handleJoinClass(session)}
                 >
                   <Monitor className="mr-2 h-4 w-4" />
                   {recordAttendanceMutation.isPending 
                     ? "Joining..." 
-                    : isSessionActive(session.start_time) 
+                    : isSessionActive(session.start_time, session.end_time) 
                       ? "Join Class" 
                       : "Class Not Active Yet"
                   }
