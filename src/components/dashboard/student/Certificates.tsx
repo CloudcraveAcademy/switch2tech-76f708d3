@@ -99,7 +99,7 @@ export default function Certificates() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h2 className="text-3xl font-bold">My Certificates</h2>
         <p className="text-muted-foreground">
@@ -317,35 +317,37 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
         </div>
       </CardContent>
       
-      <CardFooter className="flex flex-col gap-2">
+      <CardFooter className="flex flex-col gap-2 pt-4">
         <div className="flex w-full gap-2">
           <Button 
             variant="outline" 
+            size="sm"
             className="flex-1" 
             onClick={() => generatePdfMutation.mutate(certificate)}
             disabled={generatePdfMutation.isPending}
           >
-            <Eye className="mr-1 h-4 w-4" />
+            <Eye className="mr-1 h-3 w-3" />
             View
           </Button>
           <Button 
+            size="sm"
             className="flex-1" 
             onClick={() => generatePdfMutation.mutate(certificate)}
             disabled={generatePdfMutation.isPending}
           >
-            <Download className="mr-1 h-4 w-4" />
-            {generatePdfMutation.isPending ? "Opening..." : "Print Certificate"}
+            <Download className="mr-1 h-3 w-3" />
+            {generatePdfMutation.isPending ? "Opening..." : "Print"}
           </Button>
         </div>
         
         <div className="flex w-full gap-2">
-          <Button variant="outline" className="flex-1" onClick={handleShareCertificate}>
-            <Share2 className="mr-1 h-4 w-4" />
+          <Button variant="outline" size="sm" className="flex-1" onClick={handleShareCertificate}>
+            <Share2 className="mr-1 h-3 w-3" />
             Share
           </Button>
-          <Button variant="outline" className="flex-1" asChild>
+          <Button variant="outline" size="sm" className="flex-1" asChild>
             <Link to={`/verify-certificate?cert=${certificate.certificate_number}`}>
-              <Shield className="mr-1 h-4 w-4" />
+              <Shield className="mr-1 h-3 w-3" />
               Verify
             </Link>
           </Button>
