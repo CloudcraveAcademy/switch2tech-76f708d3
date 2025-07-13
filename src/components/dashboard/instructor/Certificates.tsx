@@ -10,7 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Award, Search, Download, Eye, Users, FileText } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { generateCertificateHTML } from "@/components/common/CertificateTemplate";
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long', 
+    day: 'numeric'
+  });
+};
 
 interface Certificate {
   id: string;
@@ -26,6 +33,10 @@ interface Certificate {
   course: {
     title: string;
     level: string;
+    instructor: {
+      first_name: string;
+      last_name: string;
+    };
   };
 }
 
@@ -67,7 +78,11 @@ const InstructorCertificates = () => {
           ),
           course:courses (
             title,
-            level
+            level,
+            instructor:user_profiles!instructor_id (
+              first_name,
+              last_name
+            )
           )
         `)
         .in('course_id', courseIds)
@@ -118,17 +133,28 @@ const InstructorCertificates = () => {
   // Generate certificate HTML for printing
   const generateCertificateMutation = useMutation({
     mutationFn: async (certificate: Certificate) => {
-      return generateCertificateHTML(certificate);
-    },
-    onSuccess: (htmlContent: string) => {
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(htmlContent);
-        newWindow.document.close();
+      const certificateWindow = window.open('', '_blank');
+      if (!certificateWindow) {
+        throw new Error('Unable to open certificate window');
       }
+
+      const html = generateCertificateHTML(certificate);
+      
+      certificateWindow.document.write(html);
+      certificateWindow.document.close();
+      
+      setTimeout(() => {
+        if (certificateWindow && !certificateWindow.closed) {
+          certificateWindow.focus();
+        }
+      }, 500);
+      
+      return { success: true };
+    },
+    onSuccess: () => {
       toast({
-        title: "Certificate Ready",
-        description: "Certificate opened in new window. Use browser's print function to save as PDF.",
+        title: "Certificate Generated",
+        description: "Certificate opened for printing. Use Ctrl+P or Cmd+P to save as PDF.",
       });
     },
     onError: () => {
@@ -140,211 +166,6 @@ const InstructorCertificates = () => {
     },
   });
 
-  const generateCertificateHTML = (certificate: Certificate) => {
-    const currentDate = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Certificate of Completion</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&display=swap');
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .certificate {
-            background: white;
-            border-radius: 20px;
-            padding: 60px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-            text-align: center;
-            width: 100%;
-            max-width: 800px;
-            position: relative;
-        }
-        .logo-container {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            display: flex;
-            align-items: center;
-        }
-        .logo-image {
-            height: 40px;
-            width: auto;
-        }
-        .logo-text {
-            margin-left: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .seal {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 50px;
-            font-weight: bold;
-            font-size: 12px;
-            letter-spacing: 1px;
-        }
-        .header {
-            margin-bottom: 40px;
-        }
-        .title {
-            font-family: 'Playfair Display', serif;
-            font-size: 48px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 20px;
-        }
-        .subtitle {
-            font-size: 18px;
-            color: #718096;
-            font-weight: 300;
-        }
-        .recipient {
-            margin: 40px 0;
-        }
-        .recipient-label {
-            font-size: 16px;
-            color: #718096;
-            margin-bottom: 10px;
-        }
-        .recipient-name {
-            font-family: 'Playfair Display', serif;
-            font-size: 36px;
-            font-weight: 700;
-            color: #2d3748;
-            border-bottom: 2px solid #667eea;
-            display: inline-block;
-            padding-bottom: 5px;
-        }
-        .course-info {
-            margin: 40px 0;
-        }
-        .course-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 10px;
-        }
-        .course-details {
-            font-size: 16px;
-            color: #718096;
-        }
-        .footer {
-            margin-top: 50px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .date-section, .signature-section {
-            text-align: center;
-        }
-        .date, .signature-line {
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-            min-width: 150px;
-            font-weight: 500;
-        }
-        .label {
-            font-size: 14px;
-            color: #718096;
-        }
-        .verification {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
-            text-align: center;
-        }
-        .verification-code {
-            font-size: 12px;
-            color: #718096;
-            font-family: monospace;
-        }
-        .verify-link {
-            color: #667eea;
-            text-decoration: none;
-            font-size: 12px;
-        }
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-            .certificate {
-                box-shadow: none;
-                border-radius: 0;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate">
-        <div class="logo-container">
-            <img src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" alt="Switch2Tech Academy" class="logo-image" />
-            <span class="logo-text">Switch2Tech</span>
-        </div>
-        <div class="seal">CERTIFIED</div>
-        <div class="header">
-            <h1 class="title">Certificate of Completion</h1>
-            <p class="subtitle">This is to certify that</p>
-        </div>
-        
-        <div class="recipient">
-            <p class="recipient-label">has successfully completed</p>
-            <h2 class="recipient-name">${certificate.student.first_name} ${certificate.student.last_name}</h2>
-        </div>
-        
-        <div class="course-info">
-            <h3 class="course-title">${certificate.course.title}</h3>
-            <p class="course-details">Level: ${certificate.course.level}</p>
-        </div>
-        
-        <div class="footer">
-            <div class="date-section">
-                <div class="date">${new Date(certificate.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                <div class="label">Date of Completion</div>
-            </div>
-            
-            <div class="signature-section">
-                <div class="signature-line">Switch2Tech Academy</div>
-                <div class="label">Authorized Signature</div>
-            </div>
-        </div>
-        
-        <div class="verification">
-            <p class="verification-code">Certificate Number: ${certificate.certificate_number}</p>
-            <p class="verification-code">Verification Code: ${certificate.verification_code}</p>
-            <a href="${window.location.origin}/verify-certificate" class="verify-link">Verify this certificate online</a>
-        </div>
-    </div>
-</body>
-</html>
-    `;
-  };
 
   // Filter certificates based on search
   const filteredCertificates = certificates?.filter(cert => 

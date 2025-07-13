@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -8,91 +7,106 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDate } from "@/lib/utils";
-import { Award, Download, ExternalLink, Search, Share2, Shield, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import CertificateVerification from "./CertificateVerification";
+import { Award, Download, Share2, Shield, Copy, Search, Eye } from "lucide-react";
+import { generateCertificateHTML } from "@/components/common/CertificateTemplate";
 
+// Certificate interface
 interface Certificate {
   id: string;
   certificate_number: string;
   verification_code: string;
   issue_date: string;
-  pdf_url: string;
+  pdf_url?: string;
+  student: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
   course: {
     id: string;
     title: string;
-    image_url: string;
     level: string;
     instructor: {
+      id: string;
       first_name: string;
       last_name: string;
-    }
+    };
   };
-  student: {
-    first_name: string;
-    last_name: string;
-  }
 }
 
-const Certificates = () => {
+// Certificates component
+export default function Certificates() {
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch certificates from Supabase
+  // Fetch certificates
   const { data: certificates, isLoading } = useQuery({
-    queryKey: ['certificates', user?.id],
+    queryKey: ["certificates", user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
-        .from('certificates')
+        .from("certificates")
         .select(`
           *,
-          course:courses (
+          student:student_id(id, first_name, last_name),
+          course:course_id(
             id,
             title,
-            image_url,
             level,
-            instructor:user_profiles!instructor_id (
-              first_name,
-              last_name
-            )
-          ),
-          student:user_profiles!student_id (
-            first_name,
-            last_name
+            instructor:instructor_id(id, first_name, last_name)
           )
         `)
-        .eq('student_id', user?.id)
-        .order('issue_date', { ascending: false });
+        .eq("student_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error('Error fetching certificates:', error);
-        return [];
-      }
-
+      if (error) throw error;
       return data as Certificate[];
     },
     enabled: !!user?.id,
   });
 
-  // Filter certificates based on search query
+  // Filter certificates based on search
   const filteredCertificates = certificates?.filter(cert => 
     cert.course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cert.certificate_number.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) || [];
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   if (isLoading) {
     return (
-      <div className="p-6 text-center">
-        <p>Loading your certificates...</p>
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-40 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold">My Certificates</h2>
+        <p className="text-muted-foreground">
+          View and manage your earned certificates
+        </p>
+      </div>
+
       <Tabs defaultValue="my-certificates" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="my-certificates">My Certificates</TabsTrigger>
@@ -100,51 +114,53 @@ const Certificates = () => {
         </TabsList>
         
         <TabsContent value="my-certificates" className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold mb-1 flex items-center">
-                <Award className="mr-2" /> My Certificates
-              </h1>
-              <p className="text-gray-600">View and manage your earned certificates</p>
-            </div>
-            
-            <div className="relative mt-4 md:mt-0 w-full md:w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+          {certificates && certificates.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search certificates..."
-                className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
               />
             </div>
-          </div>
+          )}
 
-          {filteredCertificates?.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium mb-2">No certificates yet</h3>
-              <p className="text-gray-500 mb-6">Complete courses to earn your first certificate</p>
-              <Button asChild>
-                <Link to="/courses">Browse Courses</Link>
-              </Button>
-            </div>
+          {filteredCertificates.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Award className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No certificates found</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {searchQuery ? "No certificates match your search." : "Complete courses to earn certificates."}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCertificates?.map(certificate => (
-                <CertificateCard key={certificate.id} certificate={certificate} toast={toast} queryClient={queryClient} />
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredCertificates.map((certificate) => (
+                <CertificateCard 
+                  key={certificate.id} 
+                  certificate={certificate} 
+                  toast={toast}
+                  queryClient={queryClient}
+                />
               ))}
             </div>
           )}
         </TabsContent>
         
         <TabsContent value="verify">
-          <CertificateVerification />
+          <VerifyCertificate />
         </TabsContent>
       </Tabs>
     </div>
   );
-};
+}
 
+// Certificate Card Component
 interface CertificateCardProps {
   certificate: Certificate;
   toast: any;
@@ -152,253 +168,71 @@ interface CertificateCardProps {
 }
 
 const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardProps) => {
+  // Format date function
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Share certificate function
   const handleShareCertificate = async () => {
     const shareUrl = `${window.location.origin}/verify-certificate?cert=${certificate.certificate_number}`;
     
-    // Always use clipboard as fallback since navigator.share has permission issues
-    try {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Certificate - ${certificate.course.title}`,
+          text: `Check out my certificate for completing ${certificate.course.title}!`,
+          url: shareUrl,
+        });
+      } catch (error) {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link copied",
+          description: "Certificate link copied to clipboard!",
+        });
+      }
+    } else {
       await navigator.clipboard.writeText(shareUrl);
       toast({
-        title: "Link Copied",
-        description: "Certificate verification link copied to clipboard.",
-      });
-    } catch (error) {
-      // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      toast({
-        title: "Link Copied",
-        description: "Certificate verification link copied to clipboard.",
+        title: "Link copied",
+        description: "Certificate link copied to clipboard!",
       });
     }
   };
 
+  // Copy verification code
   const copyVerificationCode = async () => {
-    try {
-      await navigator.clipboard.writeText(certificate.verification_code);
-      toast({
-        title: "Code Copied",
-        description: "Verification code copied to clipboard.",
-      });
-    } catch (error) {
-      // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement('textarea');
-      textArea.value = certificate.verification_code;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      toast({
-        title: "Code Copied",
-        description: "Verification code copied to clipboard.",
-      });
-    }
+    await navigator.clipboard.writeText(certificate.verification_code);
+    toast({
+      title: "Copied",
+      description: "Verification code copied to clipboard!",
+    });
   };
 
-  // Generate PDF certificate using browser print functionality
+  // Generate PDF mutation
   const generatePdfMutation = useMutation({
-    mutationFn: async (certificate: any) => {
-      // Create HTML content for the certificate
-      const certificateHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Certificate - ${certificate.student.first_name} ${certificate.student.last_name}</title>
-    <style>
-        @page { size: A4 landscape; margin: 0.5in; }
-        body { 
-            font-family: 'Times New Roman', serif; 
-            margin: 0; 
-            padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-        .certificate {
-            background: white;
-            padding: 60px 80px;
-            text-align: center;
-            border: 8px solid #4a5568;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 800px;
-            position: relative;
-        }
-        .logo-container {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            display: flex;
-            align-items: center;
-        }
-        .logo-image {
-            height: 40px;
-            width: auto;
-        }
-        .logo-text {
-            margin-left: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .seal {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 100px;
-            height: 100px;
-            border: 4px solid #4a5568;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f7fafc;
-            font-size: 14px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .header {
-            border-bottom: 4px solid #4a5568;
-            padding-bottom: 30px;
-            margin-bottom: 40px;
-        }
-        .title {
-            font-size: 48px;
-            font-weight: bold;
-            color: #2d3748;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-        }
-        .subtitle {
-            font-size: 20px;
-            color: #718096;
-            margin: 10px 0 0 0;
-        }
-        .recipient {
-            font-size: 32px;
-            color: #2b6cb0;
-            margin: 30px 0;
-            font-weight: bold;
-        }
-        .course-title {
-            font-size: 28px;
-            color: #2d3748;
-            margin: 20px 0;
-            font-style: italic;
-        }
-        .completion-text {
-            font-size: 18px;
-            color: #4a5568;
-            margin: 30px 0;
-            line-height: 1.6;
-        }
-        .details {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 50px;
-            padding-top: 30px;
-            border-top: 2px solid #e2e8f0;
-        }
-        .detail-item {
-            text-align: center;
-        }
-        .detail-label {
-            font-size: 14px;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .detail-value {
-            font-size: 16px;
-            color: #2d3748;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-        @media print {
-            body { background: white !important; }
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate">
-        <div class="logo-container">
-            <img src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" alt="Switch2Tech Academy" class="logo-image" />
-            <span class="logo-text">Switch2Tech</span>
-        </div>
-        <div class="seal">CERTIFIED</div>
-        <div class="header">
-            <h1 class="title">Certificate of Completion</h1>
-            <p class="subtitle">This is to certify that</p>
-        </div>
-        
-        <div class="recipient">
-            ${certificate.student.first_name} ${certificate.student.last_name}
-        </div>
-        
-        <p class="completion-text">
-            has successfully completed the course
-        </p>
-        
-        <div class="course-title">
-            "${certificate.course.title}"
-        </div>
-        
-        <p class="completion-text">
-            demonstrating proficiency and dedication in the subject matter.
-            This achievement represents a significant milestone in their educational journey.
-        </p>
-        
-        <div class="details">
-            <div class="detail-item">
-                <div class="detail-label">Certificate Number</div>
-                <div class="detail-value">${certificate.certificate_number}</div>
-            </div>
-            <div class="detail-item">
-                <div class="detail-label">Issue Date</div>
-                <div class="detail-value">${new Date(certificate.issue_date).toLocaleDateString()}</div>
-            </div>
-            <div class="detail-item">
-                <div class="detail-label">Course Level</div>
-                <div class="detail-value">${certificate.course.level || 'N/A'}</div>
-            </div>
-            <div class="detail-item">
-                <div class="detail-label">Instructor</div>
-                <div class="detail-value">${certificate.course.instructor.first_name} ${certificate.course.instructor.last_name}</div>
-            </div>
-            <div class="detail-item">
-                <div class="detail-label">Verification Code</div>
-                <div class="detail-value">${certificate.verification_code}</div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
-
-      // Open the certificate in a new window for printing
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(certificateHtml);
-        newWindow.document.close();
-        
-        // Wait a moment for the content to load, then trigger print
-        setTimeout(() => {
-          newWindow.print();
-        }, 500);
+    mutationFn: async (certificate: Certificate) => {
+      const certificateWindow = window.open('', '_blank');
+      if (!certificateWindow) {
+        throw new Error('Unable to open certificate window');
       }
+
+      const html = generateCertificateHTML(certificate);
+      
+      certificateWindow.document.write(html);
+      certificateWindow.document.close();
+      
+      // Wait for the content to load before focusing
+      setTimeout(() => {
+        if (certificateWindow && !certificateWindow.closed) {
+          certificateWindow.focus();
+        }
+      }, 500);
       
       return { success: true };
     },
@@ -484,23 +318,25 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
       </CardContent>
       
       <CardFooter className="flex flex-col gap-2">
-        {certificate.pdf_url ? (
-          <Button className="w-full" asChild>
-            <a href={certificate.pdf_url} download target="_blank" rel="noopener noreferrer">
-              <Download className="mr-1 h-4 w-4" />
-              Download Certificate
-            </a>
-          </Button>
-        ) : (
+        <div className="flex w-full gap-2">
           <Button 
-            className="w-full" 
+            variant="outline" 
+            className="flex-1" 
+            onClick={() => generatePdfMutation.mutate(certificate)}
+            disabled={generatePdfMutation.isPending}
+          >
+            <Eye className="mr-1 h-4 w-4" />
+            View
+          </Button>
+          <Button 
+            className="flex-1" 
             onClick={() => generatePdfMutation.mutate(certificate)}
             disabled={generatePdfMutation.isPending}
           >
             <Download className="mr-1 h-4 w-4" />
             {generatePdfMutation.isPending ? "Opening..." : "Print Certificate"}
           </Button>
-        )}
+        </div>
         
         <div className="flex w-full gap-2">
           <Button variant="outline" className="flex-1" onClick={handleShareCertificate}>
@@ -519,4 +355,90 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
   );
 };
 
-export default Certificates;
+// Verify Certificate Component
+const VerifyCertificate = () => {
+  const [certNumber, setCertNumber] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
+  const { toast } = useToast();
+
+  const verifyCertificate = async () => {
+    if (!certNumber.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a certificate number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const { data, error } = await supabase.rpc('verify_certificate', {
+        cert_number: certNumber.trim()
+      });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setVerificationResult(data[0]);
+        toast({
+          title: "Certificate Verified",
+          description: "This certificate is valid!",
+        });
+      } else {
+        setVerificationResult(null);
+        toast({
+          title: "Certificate Not Found",
+          description: "Invalid certificate number or certificate does not exist.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      toast({
+        title: "Verification Failed",
+        description: "Unable to verify certificate. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Verify Certificate</CardTitle>
+        <CardDescription>
+          Enter a certificate number to verify its authenticity
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            placeholder="Enter certificate number..."
+            value={certNumber}
+            onChange={(e) => setCertNumber(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && verifyCertificate()}
+          />
+          <Button onClick={verifyCertificate} disabled={isVerifying}>
+            {isVerifying ? "Verifying..." : "Verify"}
+          </Button>
+        </div>
+
+        {verificationResult && (
+          <div className="mt-4 p-4 border rounded-lg bg-green-50">
+            <h3 className="font-semibold text-green-800">✓ Certificate Verified</h3>
+            <div className="mt-2 space-y-1 text-sm text-green-700">
+              <p><strong>Student:</strong> {verificationResult.student_name}</p>
+              <p><strong>Course:</strong> {verificationResult.course_title}</p>
+              <p><strong>Issue Date:</strong> {new Date(verificationResult.issue_date).toLocaleDateString()}</p>
+              <p><strong>Verification Code:</strong> {verificationResult.verification_code}</p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
