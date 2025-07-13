@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationService } from "@/services/NotificationService";
 import { useProfileData } from "@/hooks/useProfileData";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -278,7 +279,17 @@ const EnrollmentPage = () => {
       // Create payment transaction record if payment data is provided
       if (paymentData && paymentData.amount && paymentData.amount > 0) {
         console.log('Creating payment transaction record...');
-        const { error: paymentError } = await supabase
+        console.log('Payment data being inserted:', {
+          user_id: userId,
+          course_id: courseId,
+          amount: paymentData.amount,
+          currency: paymentData.currency || 'USD',
+          status: "successful",
+          payment_method: paymentData.paymentMethod || 'card',
+          payment_reference: paymentData.transactionId,
+        });
+
+        const { data: insertedTransaction, error: paymentError } = await supabase
           .from("payment_transactions")
           .insert({
             user_id: userId,
@@ -290,13 +301,16 @@ const EnrollmentPage = () => {
             payment_reference: paymentData.transactionId,
             paystack_reference: paymentData.transactionId,
             created_at: new Date().toISOString()
-          });
+          })
+          .select()
+          .single();
 
         if (paymentError) {
           console.error('Error creating payment transaction:', paymentError);
+          console.error('Payment error details:', paymentError.message, paymentError.details, paymentError.hint);
           // Don't throw error here, continue with enrollment
         } else {
-          console.log('Payment transaction record created successfully');
+          console.log('Payment transaction record created successfully:', insertedTransaction);
         }
       }
 
@@ -316,6 +330,36 @@ const EnrollmentPage = () => {
       }
 
       console.log('Enrollment created successfully!');
+      
+      // Send notification to student and instructor
+      try {
+        console.log('Sending enrollment notifications...');
+        
+        // Get student name for instructor notification
+        const { data: studentProfile } = await supabase
+          .from('user_profiles')
+          .select('first_name, last_name')
+          .eq('id', userId)
+          .single();
+        
+        const studentName = studentProfile 
+          ? `${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || 'A student'
+          : 'A student';
+
+        await Promise.all([
+          NotificationService.notifyStudentEnrollment(userId, course?.title || 'Course', courseId),
+          course?.instructor_id ? NotificationService.notifyInstructorEnrollment(
+            course.instructor_id, 
+            studentName, 
+            course.title || 'Course', 
+            courseId
+          ) : Promise.resolve()
+        ]);
+        console.log('Enrollment notifications sent successfully');
+      } catch (notificationError) {
+        console.error('Error sending enrollment notifications:', notificationError);
+        // Don't fail the enrollment for notification errors
+      }
       
       // Clear any stored enrollment data
       localStorage.removeItem(`enrollment_${courseId}`);
