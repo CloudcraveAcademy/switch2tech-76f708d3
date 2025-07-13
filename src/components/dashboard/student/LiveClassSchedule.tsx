@@ -85,7 +85,7 @@ function LiveClassSchedule() {
         .select('id')
         .eq('class_session_id', sessionId)
         .eq('student_id', user.id)
-        .single();
+        .maybeSingle();
         
       if (existingAttendance) {
         return existingAttendance;
