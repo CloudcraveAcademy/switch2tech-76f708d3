@@ -79,7 +79,7 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
               courses!inner(instructor_id)
             `)
             .eq('courses.instructor_id', instructor.id)
-            .eq('status', 'success');
+            .eq('status', 'completed');
 
           if (error) return { ...instructor, totalRevenue: 0, pendingRevenue: 0 };
 

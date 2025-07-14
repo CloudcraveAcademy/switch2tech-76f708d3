@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, convertFromNGN, Currency } from "@/utils/currencyConverter";
 import AdminPayouts from "@/components/dashboard/admin/AdminPayouts";
+import CommissionSettings from "@/components/dashboard/admin/CommissionSettings";
 import { CircleDollarSign, ArrowUpRight, ArrowDownRight, Calendar, CreditCard, Download, Search, DollarSign, TrendingUp, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,10 +206,11 @@ const FinancePage = () => {
       </div>
 
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="payouts">Payouts</TabsTrigger>
+          <TabsTrigger value="commission">Commission</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
@@ -471,6 +473,10 @@ const FinancePage = () => {
 
         <TabsContent value="payouts" className="space-y-6">
           <AdminPayouts currency={currency} />
+        </TabsContent>
+
+        <TabsContent value="commission" className="space-y-6">
+          <CommissionSettings />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
