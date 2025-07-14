@@ -144,7 +144,7 @@ const MyRevenue = () => {
       }
       
       const { data: transactions, error: transactionsError } = await query
-        .in("status", ["completed", "success"])
+        .eq("status", "completed")
         .order("created_at", { ascending: false });
         
       console.log("Revenue query filters:", {
