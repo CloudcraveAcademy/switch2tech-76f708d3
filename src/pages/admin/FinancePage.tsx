@@ -61,7 +61,7 @@ const FinancePage = () => {
           course_id,
           courses:course_id (title)
         `)
-        .eq('status', 'completed')
+        .in('status', ['completed', 'success'])
         .gte('created_at', startDate.toISOString())
         .order('created_at', { ascending: true });
 
@@ -82,7 +82,7 @@ const FinancePage = () => {
       const { data: prevMonthTx } = await supabase
         .from('payment_transactions')
         .select('amount')
-        .eq('status', 'completed')
+        .in('status', ['completed', 'success'])
         .gte('created_at', prevMonthStart.toISOString())
         .lte('created_at', prevMonthEnd.toISOString());
       

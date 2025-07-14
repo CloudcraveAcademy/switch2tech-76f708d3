@@ -128,7 +128,8 @@ const MyRevenue = () => {
           created_at, 
           course_id, 
           payment_method,
-          user_id
+          user_id,
+          status
         `)
         .in("course_id", courseIds)
         .gte("created_at", startDate.toISOString())
