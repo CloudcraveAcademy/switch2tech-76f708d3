@@ -47,7 +47,7 @@ const InstructorPayouts = () => {
           courses!inner(instructor_id, title)
         `)
         .eq('courses.instructor_id', user.id)
-        .eq('status', 'success');
+        .eq('status', 'completed');
 
       if (error) throw error;
 
