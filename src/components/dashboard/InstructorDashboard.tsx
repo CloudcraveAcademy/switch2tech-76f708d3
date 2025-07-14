@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { convertFromUSD, formatCurrency, Currency } from "@/utils/currencyConverter";
 import {
   AreaChart,
   Area,
@@ -100,6 +102,7 @@ const InstructorDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>('NGN');
 
   const analyticsData = generateAnalyticsData();
   const engagementData = generateEngagementData();
@@ -319,6 +322,12 @@ const InstructorDashboard = () => {
     courseStats.reduce((acc, curr) => acc + curr.average_rating, 0) / courseStats.length : 0;
   const totalCourses = courseStats?.length || 0;
   const publishedCourses = courseStats?.filter(c => c.is_published).length || 0;
+
+  // Currency conversion helpers
+  const formatAmount = (amount: number) => {
+    const convertedAmount = convertFromUSD(amount, selectedCurrency);
+    return formatCurrency(convertedAmount, selectedCurrency);
+  };
   
   // Metrics for pie chart
   const courseMetrics = [
@@ -343,7 +352,18 @@ const InstructorDashboard = () => {
             Here's what's happening with your courses today
           </p>
         </div>
-        <div className="mt-4 md:mt-0">
+        <div className="mt-4 md:mt-0 flex items-center gap-4">
+          <Select value={selectedCurrency} onValueChange={(value: Currency) => setSelectedCurrency(value)}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Currency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NGN">NGN (₦)</SelectItem>
+              <SelectItem value="USD">USD ($)</SelectItem>
+              <SelectItem value="EUR">EUR (€)</SelectItem>
+              <SelectItem value="GBP">GBP (£)</SelectItem>
+            </SelectContent>
+          </Select>
           <Link to="/dashboard/create-course">
             <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
               Create New Course
@@ -412,9 +432,9 @@ const InstructorDashboard = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Total Revenue
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">₦{totalRevenue.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{formatAmount(totalRevenue)}</p>
                     <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
-                      +₦{Math.floor(Math.random() * 10000) + 1000} this month
+                      +{formatAmount(Math.floor(Math.random() * 10000) + 1000)} this month
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
@@ -744,7 +764,7 @@ const InstructorDashboard = () => {
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Total Revenue
                         </p>
-                        <p className="text-3xl font-bold">₦{totalRevenue.toLocaleString()}</p>
+                        <p className="text-3xl font-bold">{formatAmount(totalRevenue)}</p>
                       </div>
                       <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                         <CircleDollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -760,7 +780,7 @@ const InstructorDashboard = () => {
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Monthly Revenue
                         </p>
-                        <p className="text-3xl font-bold">₦{(totalRevenue / 12).toFixed(0).toLocaleString()}</p>
+                        <p className="text-3xl font-bold">{formatAmount(totalRevenue / 12)}</p>
                       </div>
                       <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                         <CalendarDays className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -777,7 +797,7 @@ const InstructorDashboard = () => {
                           Revenue per Student
                         </p>
                         <p className="text-3xl font-bold">
-                          ₦{totalStudents > 0 ? (totalRevenue / totalStudents).toFixed(0).toLocaleString() : 0}
+                          {totalStudents > 0 ? formatAmount(totalRevenue / totalStudents) : formatAmount(0)}
                         </p>
                       </div>
                       <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
@@ -830,9 +850,9 @@ const InstructorDashboard = () => {
                             <span className="font-medium">{course.title}</span>
                           </td>
                           <td className="text-center py-3 px-4">{course.total_students}</td>
-                          <td className="text-center py-3 px-4">₦{course.revenue.toLocaleString()}</td>
+                          <td className="text-center py-3 px-4">{formatAmount(course.revenue)}</td>
                           <td className="text-right py-3 px-4">
-                            ₦{course.total_students > 0 ? (course.revenue / course.total_students).toFixed(0).toLocaleString() : 0}
+                            {course.total_students > 0 ? formatAmount(course.revenue / course.total_students) : formatAmount(0)}
                           </td>
                         </tr>
                       ))}
