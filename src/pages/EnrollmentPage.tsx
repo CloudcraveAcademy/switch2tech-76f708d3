@@ -413,8 +413,8 @@ const EnrollmentPage = () => {
         
         const paymentData = {
           transactionId: transactionId,
-          amount: Math.round(displayPrice * 100), // Convert to cents/kobo for accurate storage
-          currency: watchedCurrency,
+          amount: Math.round(basePriceUSD * 100), // Store in base currency (USD) cents
+          currency: 'USD', // Always store as USD in database
           paymentMethod: 'flutterwave'
         };
         
