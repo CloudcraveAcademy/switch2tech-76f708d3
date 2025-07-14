@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { CircleDollarSign, ArrowUpRight, ArrowDownRight, Calendar, CreditCard, Download, Search } from "lucide-react";
+import { CircleDollarSign, ArrowUpRight, ArrowDownRight, Calendar, CreditCard, Download, Search, DollarSign, TrendingUp, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AreaChart,
   Area,
@@ -25,6 +26,18 @@ import {
 const FinancePage = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [dateRange, setDateRange] = useState("month");
+  const [currency, setCurrency] = useState("NGN");
+
+  const currencySymbols = {
+    NGN: "₦",
+    USD: "$",
+    EUR: "€",
+    GBP: "£"
+  };
+
+  const formatCurrency = (amount: number) => {
+    return `${currencySymbols[currency as keyof typeof currencySymbols]}${amount.toLocaleString()}`;
+  };
 
   // Fetch revenue analytics data
   const { data: revenueStats, isLoading: isLoadingStats } = useQuery({
@@ -176,7 +189,18 @@ const FinancePage = () => {
           <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Finance</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage revenue and transactions</p>
         </div>
-        <div className="mt-4 md:mt-0 space-x-2">
+        <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <Select value={currency} onValueChange={setCurrency}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NGN">NGN (₦)</SelectItem>
+              <SelectItem value="USD">USD ($)</SelectItem>
+              <SelectItem value="EUR">EUR (€)</SelectItem>
+              <SelectItem value="GBP">GBP (£)</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -185,9 +209,11 @@ const FinancePage = () => {
       </div>
 
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="payouts">Payouts</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
         
@@ -202,7 +228,7 @@ const FinancePage = () => {
                       Total Revenue
                     </p>
                     <p className="text-3xl font-bold">
-                      ₦{revenueStats?.totalRevenue?.toLocaleString() || '0'}
+                      {formatCurrency(revenueStats?.totalRevenue || 0)}
                     </p>
                     <p className={`text-sm flex items-center mt-1 ${
                       (revenueStats?.monthlyGrowth || 0) >= 0 
@@ -232,7 +258,7 @@ const FinancePage = () => {
                       Monthly Revenue
                     </p>
                     <p className="text-3xl font-bold">
-                      ₦{revenueStats?.monthlyRevenue?.toLocaleString() || '0'}
+                      {formatCurrency(revenueStats?.monthlyRevenue || 0)}
                     </p>
                     <p className={`text-sm flex items-center mt-1 ${
                       (revenueStats?.monthlyGrowth || 0) >= 0 
@@ -323,8 +349,8 @@ const FinancePage = () => {
                         >
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
-                          <YAxis tickFormatter={(value) => `₦${value.toLocaleString()}`} />
-                          <Tooltip formatter={(value: number) => [`₦${value.toLocaleString()}`, 'Revenue']} />
+                          <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                          <Tooltip formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
                           <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -357,9 +383,9 @@ const FinancePage = () => {
                           }}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" tickFormatter={(value) => `₦${value.toLocaleString()}`} />
+                          <XAxis type="number" tickFormatter={(value) => formatCurrency(value)} />
                           <YAxis dataKey="name" type="category" width={120} />
-                          <Tooltip formatter={(value: number) => [`₦${value.toLocaleString()}`, 'Revenue']} />
+                          <Tooltip formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
                           <Legend />
                           <Bar dataKey="revenue" fill="#82ca9d" />
                         </BarChart>
@@ -416,7 +442,7 @@ const FinancePage = () => {
                               <div>{payment.courses?.title || "N/A"}</div>
                             </td>
                             <td className="py-3 px-4 font-medium">
-                              ₦{Number(payment.amount).toLocaleString()}
+                              {formatCurrency(Number(payment.amount))}
                             </td>
                             <td className="py-3 px-4 text-gray-600">
                               {new Date(payment.created_at).toLocaleDateString()}
@@ -447,45 +473,237 @@ const FinancePage = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="payouts" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Instructor Payouts</CardTitle>
+              <CardDescription>Manage instructor payouts and commission tracking</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <Card className="p-4">
+                  <div className="flex items-center">
+                    <DollarSign className="h-8 w-8 text-green-600 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Pending Payouts</p>
+                      <p className="text-xl font-bold">{formatCurrency(0)}</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center">
+                    <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Monthly Payouts</p>
+                      <p className="text-xl font-bold">{formatCurrency(0)}</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center">
+                    <Users className="h-8 w-8 text-purple-600 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Active Instructors</p>
+                      <p className="text-xl font-bold">0</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b text-sm text-gray-500">
+                      <th className="text-left py-3 px-4 font-medium">Instructor</th>
+                      <th className="text-left py-3 px-4 font-medium">Course Revenue</th>
+                      <th className="text-left py-3 px-4 font-medium">Commission</th>
+                      <th className="text-left py-3 px-4 font-medium">Payout Amount</th>
+                      <th className="text-left py-3 px-4 font-medium">Status</th>
+                      <th className="text-right py-3 px-4 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                        No payout data available
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Trends</CardTitle>
+                <CardDescription>Track revenue patterns over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={revenueStats?.revenueData || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                      <Tooltip formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
+                      <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Methods</CardTitle>
+                <CardDescription>Distribution of payment methods used</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Credit/Debit Card</span>
+                    <span className="text-sm font-medium">85%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Bank Transfer</span>
+                    <span className="text-sm font-medium">12%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '12%' }}></div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Other</span>
+                    <span className="text-sm font-medium">3%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-purple-600 h-2 rounded-full" style={{ width: '3%' }}></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Financial Metrics</CardTitle>
+              <CardDescription>Key performance indicators</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-blue-600">92%</p>
+                  <p className="text-sm text-gray-500">Payment Success Rate</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(45)}</p>
+                  <p className="text-sm text-gray-500">Avg Transaction Value</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-purple-600">1.2%</p>
+                  <p className="text-sm text-gray-500">Chargeback Rate</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600">3.2 days</p>
+                  <p className="text-sm text-gray-500">Avg Settlement Time</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="reports" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Financial Reports</CardTitle>
-              <CardDescription>Download and view financial reports</CardDescription>
+              <CardDescription>Generate and download detailed financial reports</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-medium mb-2">Monthly Revenue Report</h3>
-                  <p className="text-sm text-gray-500 mb-4">Summary of all revenue for the current month</p>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                    <FileText className="h-6 w-6 mb-2" />
+                    <span>Revenue Report</span>
+                    <span className="text-xs text-gray-500">Monthly breakdown</span>
                   </Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-medium mb-2">Quarterly Tax Report</h3>
-                  <p className="text-sm text-gray-500 mb-4">Financial summary for tax purposes</p>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
+                  <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                    <TrendingUp className="h-6 w-6 mb-2" />
+                    <span>Growth Analytics</span>
+                    <span className="text-xs text-gray-500">Quarterly trends</span>
                   </Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-medium mb-2">Annual Statement</h3>
-                  <p className="text-sm text-gray-500 mb-4">Complete annual financial statement</p>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
+                  <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
+                    <DollarSign className="h-6 w-6 mb-2" />
+                    <span>Payout Summary</span>
+                    <span className="text-xs text-gray-500">Instructor earnings</span>
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+                
+                <div className="border-t pt-6">
+                  <h4 className="text-lg font-medium mb-4">Custom Report Generator</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Report Type</label>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="revenue">Revenue Report</SelectItem>
+                          <SelectItem value="transactions">Transaction Report</SelectItem>
+                          <SelectItem value="payouts">Payout Report</SelectItem>
+                          <SelectItem value="tax">Tax Report</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">From Date</label>
+                      <Input type="date" className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">To Date</label>
+                      <Input type="date" className="mt-1" />
+                    </div>
+                    <div className="flex items-end">
+                      <Button className="w-full">
+                        <Download className="h-4 w-4 mr-2" />
+                        Generate
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-6">
+                  <h4 className="text-lg font-medium mb-4">Recent Reports</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">December 2024 Revenue Report</p>
+                        <p className="text-sm text-gray-500">Generated on Dec 31, 2024</p>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">Q4 2024 Analytics Report</p>
+                        <p className="text-sm text-gray-500">Generated on Dec 30, 2024</p>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
