@@ -85,6 +85,7 @@ const DashboardRoutes = () => {
   const instructorRoutesFragment = useMemo(() => (
     <>
       <Route path="/students" element={<MyStudents />} />
+      <Route path="/revenue" element={<MyRevenue />} />
       <Route path="/payouts" element={<InstructorPayouts />} />
       <Route path="/live-classes" element={<LiveClassManager />} />
       <Route path="/certificates" element={<InstructorCertificates />} />
