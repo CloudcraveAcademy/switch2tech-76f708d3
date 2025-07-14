@@ -153,8 +153,13 @@ const MyRevenue = () => {
         endDate: endDate.toISOString(),
         period
       });
+      
+      console.log("Raw query result:", transactions);
         
-      if (transactionsError) throw transactionsError;
+      if (transactionsError) {
+        console.error("Transaction query error:", transactionsError);
+        throw transactionsError;
+      }
       
       console.log("Transactions found:", transactions?.length, transactions);
       
