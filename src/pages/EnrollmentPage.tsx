@@ -296,7 +296,7 @@ const EnrollmentPage = () => {
             course_id: courseId,
             amount: Number(paymentData.amount),
             currency: paymentData.currency || 'USD',
-            status: "success",
+            status: "completed",
             payment_method: 'flutterwave',
             payment_reference: paymentData.transactionId || null,
             paystack_reference: paymentData.transactionId || null,

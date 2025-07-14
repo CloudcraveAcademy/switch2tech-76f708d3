@@ -178,7 +178,7 @@ export const CourseEnrollmentService = {
           course_id: courseId,
           amount: amount,
           currency: currency,
-          status: "successful",
+          status: "completed",
           payment_method: paymentMethod,
           payment_reference: paymentReference,
           paystack_reference: paymentReference,
