@@ -176,7 +176,7 @@ export const CourseEnrollmentService = {
         .insert({
           user_id: userId,
           course_id: courseId,
-          amount: amount,
+          amount: Math.round(amount * 100), // Convert to cents
           currency: currency,
           status: "completed",
           payment_method: paymentMethod,

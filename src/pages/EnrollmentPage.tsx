@@ -294,7 +294,7 @@ const EnrollmentPage = () => {
           .insert({
             user_id: userId,
             course_id: courseId,
-            amount: Number(paymentData.amount),
+            amount: Math.round(Number(paymentData.amount) * 100), // Convert to cents
             currency: paymentData.currency || 'USD',
             status: "completed",
             payment_method: 'flutterwave',
