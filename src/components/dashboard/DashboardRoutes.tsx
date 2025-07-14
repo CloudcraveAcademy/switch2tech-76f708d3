@@ -29,6 +29,7 @@ import DiscussionOverview from "./admin/DiscussionOverview";
 import InstructorAssignments from "./instructor/InstructorAssignments";
 import InstructorQuizzes from "./instructor/InstructorQuizzes";
 import InstructorDiscussions from "./instructor/InstructorDiscussions";
+import InstructorPayouts from "./instructor/InstructorPayouts";
 
 // Import live class components
 import LiveClassManager from "./instructor/LiveClassManager";
@@ -84,7 +85,7 @@ const DashboardRoutes = () => {
   const instructorRoutesFragment = useMemo(() => (
     <>
       <Route path="/students" element={<MyStudents />} />
-      <Route path="/revenue" element={<MyRevenue />} />
+      <Route path="/payouts" element={<InstructorPayouts />} />
       <Route path="/live-classes" element={<LiveClassManager />} />
       <Route path="/certificates" element={<InstructorCertificates />} />
       <Route path="/create-course" element={<CreateCourse />} />

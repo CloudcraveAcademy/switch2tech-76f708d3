@@ -317,6 +317,30 @@ export type Database = {
           },
         ]
       }
+      commission_settings: {
+        Row: {
+          commission_percentage: number
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_percentage?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_percentage?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       course_announcements: {
         Row: {
           content: string
@@ -691,6 +715,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      instructor_payouts: {
+        Row: {
+          commission_amount: number
+          commission_percentage: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          gross_revenue: number
+          id: string
+          instructor_id: string
+          net_payout: number
+          paid_at: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission_amount?: number
+          commission_percentage: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          gross_revenue?: number
+          id?: string
+          instructor_id: string
+          net_payout?: number
+          paid_at?: string | null
+          payment_reference?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_percentage?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          gross_revenue?: number
+          id?: string
+          instructor_id?: string
+          net_payout?: number
+          paid_at?: string | null
+          payment_reference?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       internship_applications: {
         Row: {
@@ -1540,6 +1618,10 @@ export type Database = {
           total_ratings: number
           rating_distribution: Json
         }[]
+      }
+      get_current_commission_percentage: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       get_payment_gateway_config: {
         Args: { gateway_name_param: string }

@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   CheckCircle2
 } from "lucide-react";
+import CommissionSettings from "@/components/dashboard/admin/CommissionSettings";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -173,9 +174,10 @@ const SystemPage = () => {
       </div>
 
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full md:w-fit">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full md:w-fit">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="commission">Commission</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
           <TabsTrigger value="backups">Backups</TabsTrigger>
         </TabsList>
@@ -562,6 +564,11 @@ const SystemPage = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Commission Tab */}
+        <TabsContent value="commission" className="space-y-6">
+          <CommissionSettings />
         </TabsContent>
 
         {/* Backups Tab */}
