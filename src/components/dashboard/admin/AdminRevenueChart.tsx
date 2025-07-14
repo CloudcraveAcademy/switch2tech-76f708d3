@@ -7,9 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AdminRevenueChartProps {
   periodFilter: 'day' | 'week' | 'month' | 'year';
+  currency?: 'NGN' | 'USD' | 'EUR' | 'GBP';
 }
 
-const AdminRevenueChart = ({ periodFilter }: AdminRevenueChartProps) => {
+const AdminRevenueChart = ({ periodFilter, currency = 'NGN' }: AdminRevenueChartProps) => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-revenue-chart', periodFilter],
     queryFn: async () => {
@@ -150,12 +151,15 @@ const AdminRevenueChart = ({ periodFilter }: AdminRevenueChartProps) => {
 
   // Format currency for display
   const formatCurrency = (value: number) => {
+    const currencySymbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£' };
+    const symbol = currencySymbols[currency];
+    
     if (value >= 1000000) {
-      return `₦${(value / 1000000).toFixed(1)}M`;
+      return `${symbol}${(value / 1000000).toFixed(1)}M`;
     } else if (value >= 1000) {
-      return `₦${(value / 1000).toFixed(1)}K`;
+      return `${symbol}${(value / 1000).toFixed(1)}K`;
     }
-    return `₦${value}`;
+    return `${symbol}${value}`;
   };
 
   const chartConfig = {

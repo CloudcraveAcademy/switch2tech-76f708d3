@@ -13,9 +13,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AdminOverviewProps {
   periodFilter: 'day' | 'week' | 'month' | 'year';
+  currency?: 'NGN' | 'USD' | 'EUR' | 'GBP';
 }
 
-const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
+const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) => {
   // Fetch real data from backend
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-overview', periodFilter],
@@ -104,12 +105,15 @@ const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
   });
 
   const formatCurrency = (value: number) => {
+    const currencySymbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£' };
+    const symbol = currencySymbols[currency];
+    
     if (value >= 1000000) {
-      return `₦${(value / 1000000).toFixed(1)}M`;
+      return `${symbol}${(value / 1000000).toFixed(1)}M`;
     } else if (value >= 1000) {
-      return `₦${(value / 1000).toFixed(1)}K`;
+      return `${symbol}${(value / 1000).toFixed(1)}K`;
     }
-    return `₦${value.toLocaleString()}`;
+    return `${symbol}${value.toLocaleString()}`;
   };
 
   if (isLoading) {
