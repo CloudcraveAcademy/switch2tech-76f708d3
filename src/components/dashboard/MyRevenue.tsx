@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CircleDollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, Calendar, Loader2 } from "lucide-react";
+import { CircleDollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, Calendar, Loader2, Globe } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -55,9 +55,17 @@ const monthNames = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+const CURRENCIES = {
+  NGN: { symbol: '₦', name: 'Nigerian Naira' },
+  USD: { symbol: '$', name: 'US Dollar' },
+  EUR: { symbol: '€', name: 'Euro' },
+  GBP: { symbol: '£', name: 'British Pound' }
+};
+
 const MyRevenue = () => {
   const { user } = useAuth();
   const [period, setPeriod] = useState<"7days" | "30days" | "90days" | "year" | "all">("all");
+  const [currency, setCurrency] = useState<keyof typeof CURRENCIES>('NGN');
 
   // Calculate date range based on selected period
   const getDateRange = () => {
@@ -102,10 +110,10 @@ const MyRevenue = () => {
 
       const { startDate, endDate } = getDateRange();
       
-      // Get instructor's courses
+      // Get instructor's courses with pricing information
       const { data: courses, error: coursesError } = await supabase
         .from("courses")
-        .select("id, title")
+        .select("id, title, price, discounted_price")
         .eq("instructor_id", user.id);
         
       if (coursesError) throw coursesError;
@@ -163,11 +171,24 @@ const MyRevenue = () => {
       
       console.log("Transactions found:", transactions?.length, transactions);
       
-      // Calculate total revenue
-      const totalRevenue = transactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
-      const totalTransactions = transactions?.length || 0;
+      // Create a map of courses for easy lookup
+      const coursesMap = courses.reduce((acc, course) => {
+        acc[course.id] = course;
+        return acc;
+      }, {} as Record<string, any>);
       
-      // Calculate revenue by month
+      // Fix transaction amounts - use course price if transaction amount is 0
+      const fixedTransactions = transactions?.map(tx => {
+        const course = coursesMap[tx.course_id];
+        const actualAmount = Number(tx.amount) || Number(course?.discounted_price || course?.price || 0);
+        return { ...tx, amount: actualAmount };
+      }) || [];
+      
+      // Calculate total revenue with corrected amounts
+      const totalRevenue = fixedTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+      const totalTransactions = fixedTransactions.length;
+      
+      // Calculate revenue by month using corrected amounts
       const monthlyData = Array(12).fill(0);
       const revenueByMonth: { name: string; revenue: number }[] = [];
       
@@ -175,10 +196,10 @@ const MyRevenue = () => {
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth();
       
-      transactions?.forEach(tx => {
+      fixedTransactions.forEach(tx => {
         const txDate = new Date(tx.created_at);
         const monthIndex = txDate.getMonth();
-        monthlyData[monthIndex] += (tx.amount || 0);
+        monthlyData[monthIndex] += tx.amount;
       });
       
       // Create the last 6 months of data for chart
@@ -190,21 +211,21 @@ const MyRevenue = () => {
         });
       }
       
-      // Get revenue by source (payment method)
+      // Get revenue by source (payment method) using corrected amounts
       const revenueBySource: { name: string; value: number }[] = [];
       const paymentMethods: Record<string, number> = {};
       
-      transactions?.forEach(tx => {
+      fixedTransactions.forEach(tx => {
         const method = tx.payment_method || "Other";
-        paymentMethods[method] = (paymentMethods[method] || 0) + (tx.amount || 0);
+        paymentMethods[method] = (paymentMethods[method] || 0) + tx.amount;
       });
       
       Object.entries(paymentMethods).forEach(([method, amount]) => {
         revenueBySource.push({ name: method, value: amount });
       });
       
-      // Get student and course information for recent transactions
-      const recentTxs = transactions?.slice(0, 10) || [];
+      // Get student and course information for recent transactions using corrected amounts
+      const recentTxs = fixedTransactions.slice(0, 10);
       
       // Fetch user profiles for the transactions
       const userIds = [...new Set(recentTxs.map(tx => tx.user_id))];
@@ -225,7 +246,7 @@ const MyRevenue = () => {
           id: tx.id,
           student_name: studentName,
           course_name: course?.title || "Unknown Course",
-          amount: tx.amount || 0,
+          amount: tx.amount, // Now using corrected amount
           date: tx.created_at,
           payment_method: tx.payment_method || "Unknown"
         };
@@ -259,6 +280,18 @@ const MyRevenue = () => {
   const percentageChange = calculateChange();
   const isPositiveChange = percentageChange >= 0;
 
+  // Format currency based on selected currency
+  const formatCurrency = (amount: number) => {
+    const currencyConfig = CURRENCIES[currency];
+    if (currency === 'NGN') {
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+      }).format(amount);
+    }
+    return `${currencyConfig.symbol}${amount.toLocaleString()}`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -277,19 +310,39 @@ const MyRevenue = () => {
           <p className="text-gray-600">Track your earnings and transaction history</p>
         </div>
         
-        <div className="w-48">
-          <Select value={period} onValueChange={(value: any) => setPeriod(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All time</SelectItem>
-              <SelectItem value="7days">Last 7 days</SelectItem>
-              <SelectItem value="30days">Last 30 days</SelectItem>
-              <SelectItem value="90days">Last 90 days</SelectItem>
-              <SelectItem value="year">Last year</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex gap-3">
+          <div className="w-48">
+            <Select value={currency} onValueChange={(value: any) => setCurrency(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CURRENCIES).map(([code, config]) => (
+                  <SelectItem key={code} value={code}>
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      {config.symbol} {config.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-48">
+            <Select value={period} onValueChange={(value: any) => setPeriod(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All time</SelectItem>
+                <SelectItem value="7days">Last 7 days</SelectItem>
+                <SelectItem value="30days">Last 30 days</SelectItem>
+                <SelectItem value="90days">Last 90 days</SelectItem>
+                <SelectItem value="year">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -303,7 +356,7 @@ const MyRevenue = () => {
                   Total Revenue
                 </p>
                 <p className="text-3xl font-bold">
-                  ₦{revenueData?.totalRevenue.toLocaleString() || "0"}
+                  {formatCurrency(revenueData?.totalRevenue || 0)}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
@@ -346,9 +399,9 @@ const MyRevenue = () => {
                   Average Transaction
                 </p>
                 <p className="text-3xl font-bold">
-                  ₦{revenueData?.totalTransactions 
-                    ? Math.round(revenueData.totalRevenue / revenueData.totalTransactions).toLocaleString() 
-                    : "0"}
+                  {revenueData?.totalTransactions 
+                    ? formatCurrency(Math.round(revenueData.totalRevenue / revenueData.totalTransactions))
+                    : formatCurrency(0)}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -401,10 +454,10 @@ const MyRevenue = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" />
                   <YAxis 
-                    tickFormatter={(value) => `₦${value.toLocaleString()}`}
+                    tickFormatter={(value) => formatCurrency(value)}
                   />
                   <Tooltip 
-                    formatter={(value: number) => [`₦${value.toLocaleString()}`, 'Revenue']}
+                    formatter={(value: number) => [formatCurrency(value), 'Revenue']}
                   />
                   <Legend />
                   <Bar dataKey="revenue" name="Revenue" fill="#7C3AED" radius={[4, 4, 0, 0]} />
@@ -438,7 +491,7 @@ const MyRevenue = () => {
                   {revenueData.recentTransactions.map((tx) => (
                     <TableRow key={tx.id}>
                       <TableCell className="font-medium">{tx.course_name}</TableCell>
-                      <TableCell>₦{tx.amount.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(tx.amount)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -479,7 +532,7 @@ const MyRevenue = () => {
                       <TableCell className="font-medium">{tx.student_name}</TableCell>
                       <TableCell>{tx.course_name}</TableCell>
                       <TableCell>{new Date(tx.date).toLocaleDateString()}</TableCell>
-                      <TableCell>₦{tx.amount.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(tx.amount)}</TableCell>
                       <TableCell className="capitalize">{tx.payment_method}</TableCell>
                     </TableRow>
                   ))}
