@@ -57,7 +57,7 @@ const monthNames = [
 
 const MyRevenue = () => {
   const { user } = useAuth();
-  const [period, setPeriod] = useState<"7days" | "30days" | "90days" | "year">("30days");
+  const [period, setPeriod] = useState<"7days" | "30days" | "90days" | "year" | "all">("all");
 
   // Calculate date range based on selected period
   const getDateRange = () => {
@@ -76,6 +76,9 @@ const MyRevenue = () => {
         break;
       case "year":
         startDate.setFullYear(endDate.getFullYear() - 1);
+        break;
+      case "all":
+        startDate.setFullYear(2020); // Set to a very early date to get all transactions
         break;
     }
     
@@ -120,7 +123,7 @@ const MyRevenue = () => {
       const courseIds = courses.map(course => course.id);
       
       // Get payment transactions for the instructor's courses
-      const { data: transactions, error: transactionsError } = await supabase
+      let query = supabase
         .from("payment_transactions")
         .select(`
           id, 
@@ -131,13 +134,29 @@ const MyRevenue = () => {
           user_id,
           status
         `)
-        .in("course_id", courseIds)
-        .gte("created_at", startDate.toISOString())
-        .lte("created_at", endDate.toISOString())
+        .in("course_id", courseIds);
+        
+      // Only apply date filters if not "all" period
+      if (period !== "all") {
+        query = query
+          .gte("created_at", startDate.toISOString())
+          .lte("created_at", endDate.toISOString());
+      }
+      
+      const { data: transactions, error: transactionsError } = await query
         .in("status", ["completed", "success"])
         .order("created_at", { ascending: false });
         
+      console.log("Revenue query filters:", {
+        courseIds,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        period
+      });
+        
       if (transactionsError) throw transactionsError;
+      
+      console.log("Transactions found:", transactions?.length, transactions);
       
       // Calculate total revenue
       const totalRevenue = transactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
@@ -259,6 +278,7 @@ const MyRevenue = () => {
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All time</SelectItem>
               <SelectItem value="7days">Last 7 days</SelectItem>
               <SelectItem value="30days">Last 30 days</SelectItem>
               <SelectItem value="90days">Last 90 days</SelectItem>
