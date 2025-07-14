@@ -405,6 +405,12 @@ const EnrollmentPage = () => {
         console.log('Session user:', session.user.id);
         
         // Pass payment data for transaction recording
+        console.log('=== PAYMENT DATA DEBUG ===');
+        console.log('basePriceUSD:', basePriceUSD);
+        console.log('isFree:', isFree);
+        console.log('displayPrice:', displayPrice);
+        console.log('watchedCurrency:', watchedCurrency);
+        
         const paymentData = {
           transactionId: transactionId,
           amount: Math.round(displayPrice * 100), // Convert to cents/kobo for accurate storage
