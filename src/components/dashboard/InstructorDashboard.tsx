@@ -146,7 +146,7 @@ const InstructorDashboard = () => {
             .from('payment_transactions')
             .select('amount')
             .eq('course_id', course.id)
-            .eq('status', 'success');
+            .eq('status', 'completed');
             
           const revenue = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
           
