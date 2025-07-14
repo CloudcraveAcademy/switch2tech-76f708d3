@@ -191,6 +191,51 @@ export class NotificationService {
     });
   }
 
+  // Payout notifications for instructors
+  static async notifyInstructorPayoutCreated(instructorId: string, amount: number, currency: string = 'USD') {
+    return this.createNotification({
+      user_id: instructorId,
+      type: 'payment',
+      title: 'New Payout Created',
+      description: `A new payout of ${currency} ${amount.toFixed(2)} has been created for you`,
+      action_url: `/dashboard/instructor/payouts`,
+      metadata: { amount, currency, action: 'payout_created' }
+    });
+  }
+
+  static async notifyInstructorPayoutProcessing(instructorId: string, amount: number, currency: string = 'USD') {
+    return this.createNotification({
+      user_id: instructorId,
+      type: 'payment',
+      title: 'Payout Being Processed',
+      description: `Your payout of ${currency} ${amount.toFixed(2)} is now being processed`,
+      action_url: `/dashboard/instructor/payouts`,
+      metadata: { amount, currency, action: 'payout_processing' }
+    });
+  }
+
+  static async notifyInstructorPayoutPaid(instructorId: string, amount: number, currency: string = 'USD', reference?: string) {
+    return this.createNotification({
+      user_id: instructorId,
+      type: 'payment',
+      title: 'Payout Completed',
+      description: `Your payout of ${currency} ${amount.toFixed(2)} has been successfully processed${reference ? ` (Ref: ${reference})` : ''}`,
+      action_url: `/dashboard/instructor/payouts`,
+      metadata: { amount, currency, reference, action: 'payout_paid' }
+    });
+  }
+
+  static async notifyInstructorPayoutCancelled(instructorId: string, amount: number, currency: string = 'USD', reason?: string) {
+    return this.createNotification({
+      user_id: instructorId,
+      type: 'payment',
+      title: 'Payout Cancelled',
+      description: `Your payout of ${currency} ${amount.toFixed(2)} has been cancelled${reason ? `. Reason: ${reason}` : ''}`,
+      action_url: `/dashboard/instructor/payouts`,
+      metadata: { amount, currency, reason, action: 'payout_cancelled' }
+    });
+  }
+
   // Bulk notifications for course students
   static async notifyAllCourseStudents(
     courseId: string, 

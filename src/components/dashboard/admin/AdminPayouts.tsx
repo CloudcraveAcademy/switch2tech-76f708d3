@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatCurrency, convertFromUSD, Currency } from "@/utils/currencyConverter";
+import { NotificationService } from "@/services/NotificationService";
 
 interface AdminPayoutsProps {
   currency: Currency;
@@ -110,6 +111,10 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
   const handleUpdatePayoutStatus = async (payoutId: string, newStatus: string, reference?: string) => {
     setIsProcessing(true);
     try {
+      // Get payout details for notification
+      const payout = payouts?.find(p => p.id === payoutId);
+      if (!payout) throw new Error('Payout not found');
+
       const updateData: any = { 
         status: newStatus,
         updated_at: new Date().toISOString()
@@ -126,6 +131,38 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
         .eq('id', payoutId);
 
       if (error) throw error;
+
+      // Send notification to instructor based on status
+      try {
+        const netAmount = Number(payout.net_payout);
+        switch (newStatus) {
+          case 'processing':
+            await NotificationService.notifyInstructorPayoutProcessing(
+              payout.instructor_id, 
+              netAmount, 
+              payout.currency
+            );
+            break;
+          case 'paid':
+            await NotificationService.notifyInstructorPayoutPaid(
+              payout.instructor_id, 
+              netAmount, 
+              payout.currency, 
+              reference
+            );
+            break;
+          case 'cancelled':
+            await NotificationService.notifyInstructorPayoutCancelled(
+              payout.instructor_id, 
+              netAmount, 
+              payout.currency
+            );
+            break;
+        }
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+        // Don't fail the main operation if notification fails
+      }
 
       toast.success(`Payout ${newStatus === 'paid' ? 'marked as paid' : 'status updated'}`);
       queryClient.invalidateQueries({ queryKey: ['admin-payouts'] });
@@ -167,6 +204,18 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
         });
 
       if (error) throw error;
+
+      // Send notification to instructor about new payout
+      try {
+        await NotificationService.notifyInstructorPayoutCreated(
+          instructorId, 
+          netPayout, 
+          'NGN'
+        );
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+        // Don't fail the main operation if notification fails
+      }
 
       toast.success('Payout created successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-payouts'] });
