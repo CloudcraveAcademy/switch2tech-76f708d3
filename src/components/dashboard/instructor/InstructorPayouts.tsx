@@ -10,15 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { formatCurrency, convertFromNGN, Currency } from "@/utils/currencyConverter";
 
-type Currency = 'NGN' | 'USD' | 'EUR' | 'GBP';
-
-const currencySymbols = {
-  NGN: '₦',
-  USD: '$',
-  EUR: '€',
-  GBP: '£'
-};
 
 const InstructorPayouts = () => {
   const { user } = useAuth();
@@ -97,10 +90,8 @@ const InstructorPayouts = () => {
   });
 
   const formatAmount = (amount: number) => {
-    return `${currencySymbols[selectedCurrency]}${amount.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`;
+    const convertedAmount = convertFromNGN(amount, selectedCurrency);
+    return formatCurrency(convertedAmount, selectedCurrency);
   };
 
   const getStatusBadge = (status: string) => {

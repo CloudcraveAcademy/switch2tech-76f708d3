@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency, convertFromNGN, Currency } from "@/utils/currencyConverter";
+import AdminPayouts from "@/components/dashboard/admin/AdminPayouts";
 import { CircleDollarSign, ArrowUpRight, ArrowDownRight, Calendar, CreditCard, Download, Search, DollarSign, TrendingUp, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,17 +28,11 @@ import {
 const FinancePage = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [dateRange, setDateRange] = useState("month");
-  const [currency, setCurrency] = useState("NGN");
+  const [currency, setCurrency] = useState<Currency>("NGN");
 
-  const currencySymbols = {
-    NGN: "₦",
-    USD: "$",
-    EUR: "€",
-    GBP: "£"
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `${currencySymbols[currency as keyof typeof currencySymbols]}${amount.toLocaleString()}`;
+  const formatAmount = (amount: number) => {
+    const convertedAmount = convertFromNGN(amount, currency);
+    return formatCurrency(convertedAmount, currency);
   };
 
   // Fetch revenue analytics data
@@ -190,7 +186,7 @@ const FinancePage = () => {
           <p className="text-gray-600 dark:text-gray-400">Manage revenue and transactions</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
-          <Select value={currency} onValueChange={setCurrency}>
+          <Select value={currency} onValueChange={(value) => setCurrency(value as Currency)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -228,7 +224,7 @@ const FinancePage = () => {
                       Total Revenue
                     </p>
                     <p className="text-3xl font-bold">
-                      {formatCurrency(revenueStats?.totalRevenue || 0)}
+                      {formatAmount(revenueStats?.totalRevenue || 0)}
                     </p>
                     <p className={`text-sm flex items-center mt-1 ${
                       (revenueStats?.monthlyGrowth || 0) >= 0 
@@ -258,7 +254,7 @@ const FinancePage = () => {
                       Monthly Revenue
                     </p>
                     <p className="text-3xl font-bold">
-                      {formatCurrency(revenueStats?.monthlyRevenue || 0)}
+                      {formatAmount(revenueStats?.monthlyRevenue || 0)}
                     </p>
                     <p className={`text-sm flex items-center mt-1 ${
                       (revenueStats?.monthlyGrowth || 0) >= 0 
@@ -349,8 +345,8 @@ const FinancePage = () => {
                         >
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
-                          <YAxis tickFormatter={(value) => formatCurrency(value)} />
-                          <Tooltip formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
+                           <YAxis tickFormatter={(value) => formatAmount(value)} />
+                           <Tooltip formatter={(value: number) => [formatAmount(value), 'Revenue']} />
                           <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -383,9 +379,9 @@ const FinancePage = () => {
                           }}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" tickFormatter={(value) => formatCurrency(value)} />
-                          <YAxis dataKey="name" type="category" width={120} />
-                          <Tooltip formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
+                           <XAxis type="number" tickFormatter={(value) => formatAmount(value)} />
+                           <YAxis dataKey="name" type="category" width={120} />
+                           <Tooltip formatter={(value: number) => [formatAmount(value), 'Revenue']} />
                           <Legend />
                           <Bar dataKey="revenue" fill="#82ca9d" />
                         </BarChart>
@@ -442,7 +438,7 @@ const FinancePage = () => {
                               <div>{payment.courses?.title || "N/A"}</div>
                             </td>
                             <td className="py-3 px-4 font-medium">
-                              {formatCurrency(Number(payment.amount))}
+                              {formatAmount(Number(payment.amount))}
                             </td>
                             <td className="py-3 px-4 text-gray-600">
                               {new Date(payment.created_at).toLocaleDateString()}
@@ -474,65 +470,7 @@ const FinancePage = () => {
         </TabsContent>
 
         <TabsContent value="payouts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Instructor Payouts</CardTitle>
-              <CardDescription>Manage instructor payouts and commission tracking</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <Card className="p-4">
-                  <div className="flex items-center">
-                    <DollarSign className="h-8 w-8 text-green-600 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Pending Payouts</p>
-                      <p className="text-xl font-bold">{formatCurrency(0)}</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card className="p-4">
-                  <div className="flex items-center">
-                    <TrendingUp className="h-8 w-8 text-blue-600 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Monthly Payouts</p>
-                      <p className="text-xl font-bold">{formatCurrency(0)}</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card className="p-4">
-                  <div className="flex items-center">
-                    <Users className="h-8 w-8 text-purple-600 mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-500">Active Instructors</p>
-                      <p className="text-xl font-bold">0</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b text-sm text-gray-500">
-                      <th className="text-left py-3 px-4 font-medium">Instructor</th>
-                      <th className="text-left py-3 px-4 font-medium">Course Revenue</th>
-                      <th className="text-left py-3 px-4 font-medium">Commission</th>
-                      <th className="text-left py-3 px-4 font-medium">Payout Amount</th>
-                      <th className="text-left py-3 px-4 font-medium">Status</th>
-                      <th className="text-right py-3 px-4 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-500">
-                        No payout data available
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <AdminPayouts currency={currency} />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
@@ -548,8 +486,8 @@ const FinancePage = () => {
                     <LineChart data={revenueStats?.revenueData || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
-                      <YAxis tickFormatter={(value) => formatCurrency(value)} />
-                      <Tooltip formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
+                       <YAxis tickFormatter={(value) => formatAmount(value)} />
+                       <Tooltip formatter={(value: number) => [formatAmount(value), 'Revenue']} />
                       <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -604,7 +542,7 @@ const FinancePage = () => {
                   <p className="text-sm text-gray-500">Payment Success Rate</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">{formatCurrency(45)}</p>
+                  <p className="text-2xl font-bold text-green-600">{formatAmount(45)}</p>
                   <p className="text-sm text-gray-500">Avg Transaction Value</p>
                 </div>
                 <div className="text-center">
