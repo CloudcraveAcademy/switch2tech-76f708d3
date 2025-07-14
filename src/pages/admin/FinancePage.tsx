@@ -32,8 +32,7 @@ const FinancePage = () => {
   const [currency, setCurrency] = useState<Currency>("NGN");
 
   const formatAmount = (amount: number) => {
-    const convertedAmount = convertFromNGN(amount, currency);
-    return formatCurrency(convertedAmount, currency);
+    return formatCurrency(amount, currency);
   };
 
   // Fetch revenue analytics data

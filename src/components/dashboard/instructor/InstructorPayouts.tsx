@@ -90,8 +90,7 @@ const InstructorPayouts = () => {
   });
 
   const formatAmount = (amount: number) => {
-    const convertedAmount = convertFromNGN(amount, selectedCurrency);
-    return formatCurrency(convertedAmount, selectedCurrency);
+    return formatCurrency(amount, selectedCurrency);
   };
 
   const getStatusBadge = (status: string) => {
