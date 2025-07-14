@@ -277,7 +277,7 @@ const EnrollmentPage = () => {
       }
 
       // Create payment transaction record if payment data is provided
-      if (paymentData && paymentData.amount && paymentData.amount > 0) {
+      if (paymentData && paymentData.amount !== undefined) {
         console.log('Creating payment transaction record...');
         console.log('Payment data being inserted:', {
           user_id: userId,
