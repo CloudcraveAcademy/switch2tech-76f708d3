@@ -2,62 +2,151 @@
 import { useMemo } from "react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdminRevenueChartProps {
   periodFilter: 'day' | 'week' | 'month' | 'year';
 }
 
 const AdminRevenueChart = ({ periodFilter }: AdminRevenueChartProps) => {
-  const data = useMemo(() => {
-    // Generate data based on the selected period filter
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-revenue-chart', periodFilter],
+    queryFn: async () => {
+      const now = new Date();
+      let startDate = new Date();
+      let intervals: any[] = [];
+
+      // Generate time intervals based on period
+      if (periodFilter === 'day') {
+        startDate.setHours(0, 0, 0, 0);
+        for (let i = 0; i < 24; i += 3) {
+          intervals.push({
+            name: `${i}:00`,
+            start: new Date(startDate.getTime() + (i * 60 * 60 * 1000)),
+            end: new Date(startDate.getTime() + ((i + 3) * 60 * 60 * 1000))
+          });
+        }
+      } else if (periodFilter === 'week') {
+        startDate.setDate(now.getDate() - 6);
+        startDate.setHours(0, 0, 0, 0);
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(startDate.getTime() + (i * 24 * 60 * 60 * 1000));
+          intervals.push({
+            name: days[date.getDay()],
+            start: date,
+            end: new Date(date.getTime() + (24 * 60 * 60 * 1000))
+          });
+        }
+      } else if (periodFilter === 'month') {
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        const weeksInMonth = 4;
+        for (let i = 0; i < weeksInMonth; i++) {
+          const weekStart = new Date(startDate.getTime() + (i * 7 * 24 * 60 * 60 * 1000));
+          intervals.push({
+            name: `Week ${i + 1}`,
+            start: weekStart,
+            end: new Date(weekStart.getTime() + (7 * 24 * 60 * 60 * 1000))
+          });
+        }
+      } else { // year
+        startDate = new Date(now.getFullYear(), 0, 1);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        for (let i = 0; i < 12; i++) {
+          intervals.push({
+            name: months[i],
+            start: new Date(now.getFullYear(), i, 1),
+            end: new Date(now.getFullYear(), i + 1, 1)
+          });
+        }
+      }
+
+      // Fetch all transactions
+      const { data: transactions } = await supabase
+        .from('payment_transactions')
+        .select('amount, created_at, course_id, courses:course_id(price)')
+        .in('status', ['completed', 'success'])
+        .gte('created_at', startDate.toISOString());
+
+      // Group transactions by intervals
+      const chartData = intervals.map(interval => {
+        const intervalTransactions = transactions?.filter(tx => {
+          const txDate = new Date(tx.created_at);
+          return txDate >= interval.start && txDate < interval.end;
+        }) || [];
+
+        const revenue = intervalTransactions.reduce((sum, tx) => {
+          const amount = Number(tx.amount) || Number(tx.courses?.price) || 0;
+          return sum + amount;
+        }, 0);
+
+        // Calculate payout (70% of revenue for instructors)
+        const payout = Math.round(revenue * 0.7);
+
+        return {
+          name: interval.name,
+          revenue,
+          payout
+        };
+      });
+
+      return chartData;
+    }
+  });
+
+  const chartData = useMemo(() => {
+    if (data) return data;
+    // Fallback mock data if no real data available
     if (periodFilter === 'day') {
       return [
-        { name: '12AM', revenue: 12000, payout: 8400 },
-        { name: '3AM', revenue: 8000, payout: 5600 },
-        { name: '6AM', revenue: 16000, payout: 11200 },
-        { name: '9AM', revenue: 25000, payout: 17500 },
-        { name: '12PM', revenue: 40000, payout: 28000 },
-        { name: '3PM', revenue: 35000, payout: 24500 },
-        { name: '6PM', revenue: 45000, payout: 31500 },
-        { name: '9PM', revenue: 25000, payout: 17500 },
+        { name: '0:00', revenue: 0, payout: 0 },
+        { name: '3:00', revenue: 0, payout: 0 },
+        { name: '6:00', revenue: 0, payout: 0 },
+        { name: '9:00', revenue: 0, payout: 0 },
+        { name: '12:00', revenue: 0, payout: 0 },
+        { name: '15:00', revenue: 0, payout: 0 },
+        { name: '18:00', revenue: 0, payout: 0 },
+        { name: '21:00', revenue: 0, payout: 0 },
       ];
     } 
     else if (periodFilter === 'week') {
       return [
-        { name: 'Mon', revenue: 45000, payout: 31500 },
-        { name: 'Tue', revenue: 52000, payout: 36400 },
-        { name: 'Wed', revenue: 48000, payout: 33600 },
-        { name: 'Thu', revenue: 61000, payout: 42700 },
-        { name: 'Fri', revenue: 55000, payout: 38500 },
-        { name: 'Sat', revenue: 67000, payout: 46900 },
-        { name: 'Sun', revenue: 42000, payout: 29400 },
+        { name: 'Sun', revenue: 0, payout: 0 },
+        { name: 'Mon', revenue: 0, payout: 0 },
+        { name: 'Tue', revenue: 0, payout: 0 },
+        { name: 'Wed', revenue: 0, payout: 0 },
+        { name: 'Thu', revenue: 0, payout: 0 },
+        { name: 'Fri', revenue: 0, payout: 0 },
+        { name: 'Sat', revenue: 0, payout: 0 },
       ];
     }
     else if (periodFilter === 'month') {
       return [
-        { name: 'Week 1', revenue: 320000, payout: 224000 },
-        { name: 'Week 2', revenue: 280000, payout: 196000 },
-        { name: 'Week 3', revenue: 350000, payout: 245000 },
-        { name: 'Week 4', revenue: 290000, payout: 203000 },
+        { name: 'Week 1', revenue: 0, payout: 0 },
+        { name: 'Week 2', revenue: 0, payout: 0 },
+        { name: 'Week 3', revenue: 0, payout: 0 },
+        { name: 'Week 4', revenue: 0, payout: 0 },
       ];
     }
     else { // year
       return [
-        { name: 'Jan', revenue: 900000, payout: 630000 },
-        { name: 'Feb', revenue: 870000, payout: 609000 },
-        { name: 'Mar', revenue: 950000, payout: 665000 },
-        { name: 'Apr', revenue: 1020000, payout: 714000 },
-        { name: 'May', revenue: 980000, payout: 686000 },
-        { name: 'Jun', revenue: 1150000, payout: 805000 },
-        { name: 'Jul', revenue: 1080000, payout: 756000 },
-        { name: 'Aug', revenue: 1200000, payout: 840000 },
-        { name: 'Sep', revenue: 1300000, payout: 910000 },
-        { name: 'Oct', revenue: 1400000, payout: 980000 },
-        { name: 'Nov', revenue: 1250000, payout: 875000 },
-        { name: 'Dec', revenue: 1300000, payout: 910000 },
+        { name: 'Jan', revenue: 0, payout: 0 },
+        { name: 'Feb', revenue: 0, payout: 0 },
+        { name: 'Mar', revenue: 0, payout: 0 },
+        { name: 'Apr', revenue: 0, payout: 0 },
+        { name: 'May', revenue: 0, payout: 0 },
+        { name: 'Jun', revenue: 0, payout: 0 },
+        { name: 'Jul', revenue: 0, payout: 0 },
+        { name: 'Aug', revenue: 0, payout: 0 },
+        { name: 'Sep', revenue: 0, payout: 0 },
+        { name: 'Oct', revenue: 0, payout: 0 },
+        { name: 'Nov', revenue: 0, payout: 0 },
+        { name: 'Dec', revenue: 0, payout: 0 },
       ];
     }
-  }, [periodFilter]);
+  }, [data, periodFilter]);
 
   // Format currency for display
   const formatCurrency = (value: number) => {
@@ -80,11 +169,19 @@ const AdminRevenueChart = ({ periodFilter }: AdminRevenueChartProps) => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="h-[350px] w-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[350px] w-full">
       <ChartContainer config={chartConfig}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>

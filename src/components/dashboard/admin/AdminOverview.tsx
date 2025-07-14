@@ -8,72 +8,138 @@ import {
   CheckCircle,
   Activity
 } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdminOverviewProps {
   periodFilter: 'day' | 'week' | 'month' | 'year';
 }
 
 const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
-  // In a real implementation, this data would come from an API call using the periodFilter
-  // Here we're just simulating different data based on the filter
-  const getStats = () => {
-    switch (periodFilter) {
-      case 'day':
-        return {
-          totalUsers: 85,
-          newUsers: 12,
-          totalCourses: 124,
-          newCourses: 1,
-          revenue: '₦180K',
-          revenueTrend: 5,
-          completionRate: 76,
-          completionTrend: 2,
-          totalEnrollments: 28,
-          enrollmentsTrend: 8
-        };
-      case 'month':
-        return {
-          totalUsers: 2845,
-          newUsers: 310,
-          totalCourses: 124,
-          newCourses: 15,
-          revenue: '₦1.2M',
-          revenueTrend: 12,
-          completionRate: 78,
-          completionTrend: 3,
-          totalEnrollments: 820,
-          enrollmentsTrend: 15
-        };
-      case 'year':
-        return {
-          totalUsers: 2845,
-          newUsers: 1450,
-          totalCourses: 124,
-          newCourses: 82,
-          revenue: '₦12.4M',
-          revenueTrend: 32,
-          completionRate: 78,
-          completionTrend: 8,
-          totalEnrollments: 7800,
-          enrollmentsTrend: 25
-        };
-      default: // week
-        return {
-          totalUsers: 2845,
-          newUsers: 65,
-          totalCourses: 124,
-          newCourses: 3,
-          revenue: '₦320K',
-          revenueTrend: 8,
-          completionRate: 78,
-          completionTrend: 0,
-          totalEnrollments: 180,
-          enrollmentsTrend: 12
-        };
+  // Fetch real data from backend
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['admin-overview', periodFilter],
+    queryFn: async () => {
+      const now = new Date();
+      const startDate = new Date();
+      
+      // Calculate date range based on period filter
+      switch (periodFilter) {
+        case 'day':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+
+      // Fetch total users
+      const { data: totalUsers } = await supabase
+        .from('user_profiles')
+        .select('id, created_at');
+
+      // Fetch new users in period
+      const { data: newUsers } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .gte('created_at', startDate.toISOString());
+
+      // Fetch total courses
+      const { data: totalCourses } = await supabase
+        .from('courses')
+        .select('id, created_at');
+
+      // Fetch new courses in period
+      const { data: newCourses } = await supabase
+        .from('courses')
+        .select('id')
+        .gte('created_at', startDate.toISOString());
+
+      // Fetch revenue data
+      const { data: transactions } = await supabase
+        .from('payment_transactions')
+        .select('amount, created_at, course_id, courses:course_id(price)')
+        .in('status', ['completed', 'success'])
+        .gte('created_at', startDate.toISOString());
+
+      // Calculate revenue (use course price if transaction amount is 0)
+      const revenue = transactions?.reduce((sum, tx) => {
+        const amount = Number(tx.amount) || Number(tx.courses?.price) || 0;
+        return sum + amount;
+      }, 0) || 0;
+
+      // Fetch enrollments data
+      const { data: totalEnrollments } = await supabase
+        .from('enrollments')
+        .select('id, enrollment_date')
+        .gte('enrollment_date', startDate.toISOString());
+
+      // Fetch completed enrollments
+      const { data: completedEnrollments } = await supabase
+        .from('enrollments')
+        .select('id')
+        .eq('completed', true);
+
+      const totalEnrollmentsCount = totalEnrollments?.length || 0;
+      const completedCount = completedEnrollments?.length || 0;
+      const completionRate = totalEnrollmentsCount > 0 ? Math.round((completedCount / totalEnrollmentsCount) * 100) : 0;
+
+      return {
+        totalUsers: totalUsers?.length || 0,
+        newUsers: newUsers?.length || 0,
+        totalCourses: totalCourses?.length || 0,
+        newCourses: newCourses?.length || 0,
+        revenue: revenue,
+        totalEnrollments: totalEnrollmentsCount,
+        completionRate: completionRate,
+        completedCourses: completedCount
+      };
     }
+  });
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) {
+      return `₦${(value / 1000000).toFixed(1)}M`;
+    } else if (value >= 1000) {
+      return `₦${(value / 1000).toFixed(1)}K`;
+    }
+    return `₦${value.toLocaleString()}`;
   };
 
-  const stats = getStats();
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-3/4 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  const data = stats || {
+    totalUsers: 0,
+    newUsers: 0,
+    totalCourses: 0,
+    newCourses: 0,
+    revenue: 0,
+    totalEnrollments: 0,
+    completionRate: 0,
+    completedCourses: 0
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
@@ -84,9 +150,9 @@ const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
               <p className="text-sm font-medium text-gray-500">
                 Total Users
               </p>
-              <p className="text-3xl font-bold">{stats.totalUsers}</p>
+              <p className="text-3xl font-bold">{data.totalUsers}</p>
               <p className="text-xs mt-1">
-                <span className="text-green-600">+{stats.newUsers} new</span> in this {periodFilter}
+                <span className="text-green-600">+{data.newUsers} new</span> in this {periodFilter}
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -103,9 +169,9 @@ const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
               <p className="text-sm font-medium text-gray-500">
                 Total Courses
               </p>
-              <p className="text-3xl font-bold">{stats.totalCourses}</p>
+              <p className="text-3xl font-bold">{data.totalCourses}</p>
               <p className="text-xs mt-1">
-                <span className="text-green-600">+{stats.newCourses} new</span> in this {periodFilter}
+                <span className="text-green-600">+{data.newCourses} new</span> in this {periodFilter}
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
@@ -122,9 +188,9 @@ const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
               <p className="text-sm font-medium text-gray-500">
                 Revenue
               </p>
-              <p className="text-3xl font-bold">{stats.revenue}</p>
+              <p className="text-3xl font-bold">{formatCurrency(data.revenue)}</p>
               <p className="text-xs mt-1">
-                <span className="text-green-600">+{stats.revenueTrend}%</span> from previous {periodFilter}
+                <span className="text-green-600">Current period</span> revenue
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
@@ -141,9 +207,9 @@ const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
               <p className="text-sm font-medium text-gray-500">
                 Avg. Completion
               </p>
-              <p className="text-3xl font-bold">{stats.completionRate}%</p>
+              <p className="text-3xl font-bold">{data.completionRate}%</p>
               <p className="text-xs mt-1">
-                <span className="text-green-600">+{stats.completionTrend}%</span> from previous {periodFilter}
+                <span className="text-green-600">Course completion</span> rate
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
@@ -160,9 +226,9 @@ const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
               <p className="text-sm font-medium text-gray-500">
                 Enrollments
               </p>
-              <p className="text-3xl font-bold">{stats.totalEnrollments}</p>
+              <p className="text-3xl font-bold">{data.totalEnrollments}</p>
               <p className="text-xs mt-1">
-                <span className="text-green-600">+{stats.enrollmentsTrend}%</span> from previous {periodFilter}
+                <span className="text-green-600">New enrollments</span> in this {periodFilter}
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
@@ -179,9 +245,9 @@ const AdminOverview = ({ periodFilter }: AdminOverviewProps) => {
               <p className="text-sm font-medium text-gray-500">
                 Completed Courses
               </p>
-              <p className="text-3xl font-bold">468</p>
+              <p className="text-3xl font-bold">{data.completedCourses}</p>
               <p className="text-xs mt-1">
-                <span className="text-green-600">+12</span> in this {periodFilter}
+                <span className="text-green-600">Total completed</span> courses
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">

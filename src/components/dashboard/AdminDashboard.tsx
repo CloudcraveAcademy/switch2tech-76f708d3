@@ -124,69 +124,8 @@ const AdminDashboard = () => {
 
         {/* Users Tab Content */}
         <TabsContent value="users" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Total Users</p>
-                    <p className="text-3xl font-bold">2,845</p>
-                    <p className="text-sm text-green-600 mt-1">+12% from last month</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Students</p>
-                    <p className="text-3xl font-bold">2,156</p>
-                    <p className="text-sm text-green-600 mt-1">+8% from last month</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Instructors</p>
-                    <p className="text-3xl font-bold">124</p>
-                    <p className="text-sm text-green-600 mt-1">+15% from last month</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Admins</p>
-                    <p className="text-3xl font-bold">12</p>
-                    <p className="text-sm text-gray-500 mt-1">No change</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <Shield className="h-6 w-6 text-red-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           <AdminUserStats />
+
 
           <Card>
             <CardHeader>
