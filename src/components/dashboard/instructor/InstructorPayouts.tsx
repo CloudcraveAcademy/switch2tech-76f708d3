@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { formatCurrency, convertFromNGN, Currency } from "@/utils/currencyConverter";
+import { formatCurrency, convertFromUSD, Currency } from "@/utils/currencyConverter";
 
 
 const InstructorPayouts = () => {
@@ -90,7 +90,8 @@ const InstructorPayouts = () => {
   });
 
   const formatAmount = (amount: number) => {
-    return formatCurrency(amount, selectedCurrency);
+    const convertedAmount = convertFromUSD(amount, selectedCurrency);
+    return formatCurrency(convertedAmount, selectedCurrency);
   };
 
   const getStatusBadge = (status: string) => {

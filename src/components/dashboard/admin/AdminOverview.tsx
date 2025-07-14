@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
+import { convertFromUSD } from "@/utils/currencyConverter";
 
 interface AdminOverviewProps {
   periodFilter: 'day' | 'week' | 'month' | 'year';
@@ -108,12 +109,15 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
     const currencySymbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£' };
     const symbol = currencySymbols[currency];
     
-    if (value >= 1000000) {
-      return `${symbol}${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `${symbol}${(value / 1000).toFixed(1)}K`;
+    // Convert from USD (base currency) to selected currency
+    const convertedValue = currency === 'USD' ? value : convertFromUSD(value, currency);
+    
+    if (convertedValue >= 1000000) {
+      return `${symbol}${(convertedValue / 1000000).toFixed(1)}M`;
+    } else if (convertedValue >= 1000) {
+      return `${symbol}${(convertedValue / 1000).toFixed(1)}K`;
     }
-    return `${symbol}${value.toLocaleString()}`;
+    return `${symbol}${convertedValue.toLocaleString()}`;
   };
 
   if (isLoading) {

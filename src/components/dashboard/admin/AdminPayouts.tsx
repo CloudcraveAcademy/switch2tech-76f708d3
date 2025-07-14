@@ -12,7 +12,7 @@ import { DollarSign, Eye, CheckCircle, XCircle, Clock, Search, Filter, Plus } fr
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { formatCurrency, convertFromNGN, Currency } from "@/utils/currencyConverter";
+import { formatCurrency, convertFromUSD, Currency } from "@/utils/currencyConverter";
 
 interface AdminPayoutsProps {
   currency: Currency;
@@ -211,7 +211,7 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
   });
 
   const convertAmount = (amount: number) => {
-    return convertFromNGN(amount, currency);
+    return convertFromUSD(amount, currency);
   };
 
   if (isLoading) {

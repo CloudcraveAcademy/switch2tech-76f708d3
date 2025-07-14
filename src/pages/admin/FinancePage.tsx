@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, convertFromNGN, Currency } from "@/utils/currencyConverter";
+import { formatCurrency, convertFromUSD, Currency } from "@/utils/currencyConverter";
 import AdminPayouts from "@/components/dashboard/admin/AdminPayouts";
 import CommissionSettings from "@/components/dashboard/admin/CommissionSettings";
 import { CircleDollarSign, ArrowUpRight, ArrowDownRight, Calendar, CreditCard, Download, Search, DollarSign, TrendingUp, Users, FileText } from "lucide-react";
@@ -32,7 +32,8 @@ const FinancePage = () => {
   const [currency, setCurrency] = useState<Currency>("NGN");
 
   const formatAmount = (amount: number) => {
-    return formatCurrency(amount, currency);
+    const convertedAmount = convertFromUSD(amount, currency);
+    return formatCurrency(convertedAmount, currency);
   };
 
   // Fetch revenue analytics data

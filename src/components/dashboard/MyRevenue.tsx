@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { convertFromUSD, Currency } from "@/utils/currencyConverter";
 
 // Define interfaces for the data structures
 interface RevenueData {
@@ -65,7 +66,7 @@ const CURRENCIES = {
 const MyRevenue = () => {
   const { user } = useAuth();
   const [period, setPeriod] = useState<"7days" | "30days" | "90days" | "year" | "all">("all");
-  const [currency, setCurrency] = useState<keyof typeof CURRENCIES>('NGN');
+  const [currency, setCurrency] = useState<keyof typeof CURRENCIES>('USD');
 
   // Calculate date range based on selected period
   const getDateRange = () => {
@@ -283,13 +284,29 @@ const MyRevenue = () => {
   // Format currency based on selected currency
   const formatCurrency = (amount: number) => {
     const currencyConfig = CURRENCIES[currency];
-    if (currency === 'NGN') {
+    
+    // Convert from USD (base currency) to selected currency
+    const convertedAmount = currency === 'NGN' ? convertFromUSD(amount, 'NGN' as any) : convertFromUSD(amount, currency as Currency);
+    
+    if (currency === 'NGN' as any) {
       return new Intl.NumberFormat('en-NG', {
         style: 'currency',
         currency: 'NGN',
-      }).format(amount);
+      }).format(convertedAmount);
     }
-    return `${currencyConfig.symbol}${amount.toLocaleString()}`;
+    
+    if (Intl.NumberFormat) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency === 'NGN' ? 'USD' : currency, // Use USD for NGN since NGN isn't supported
+        currencyDisplay: 'symbol'
+      }).format(convertedAmount);
+    }
+    
+    return `${currencyConfig.symbol}${convertedAmount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
   };
 
   if (isLoading) {

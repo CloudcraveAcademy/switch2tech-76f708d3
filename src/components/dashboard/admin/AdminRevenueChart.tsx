@@ -4,6 +4,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
+import { convertFromUSD } from "@/utils/currencyConverter";
 
 interface AdminRevenueChartProps {
   periodFilter: 'day' | 'week' | 'month' | 'year';
@@ -154,12 +155,15 @@ const AdminRevenueChart = ({ periodFilter, currency = 'NGN' }: AdminRevenueChart
     const currencySymbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£' };
     const symbol = currencySymbols[currency];
     
-    if (value >= 1000000) {
-      return `${symbol}${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `${symbol}${(value / 1000).toFixed(1)}K`;
+    // Convert from USD (base currency) to selected currency
+    const convertedValue = currency === 'USD' ? value : convertFromUSD(value, currency);
+    
+    if (convertedValue >= 1000000) {
+      return `${symbol}${(convertedValue / 1000000).toFixed(1)}M`;
+    } else if (convertedValue >= 1000) {
+      return `${symbol}${(convertedValue / 1000).toFixed(1)}K`;
     }
-    return `${symbol}${value}`;
+    return `${symbol}${convertedValue}`;
   };
 
   const chartConfig = {
