@@ -39,6 +39,13 @@ const InstructorNavigation: React.FC<InstructorNavigationProps> = ({ isActive })
       />
       
       <SidebarMenuItem
+        to="/dashboard/revenue"
+        icon={DollarSign}
+        label="Revenue"
+        isActive={isActive("/dashboard/revenue")}
+      />
+      
+      <SidebarMenuItem
         to="/dashboard/payouts"
         icon={DollarSign}
         label="Payouts"
