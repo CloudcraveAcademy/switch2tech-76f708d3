@@ -62,11 +62,15 @@ const Contact = () => {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Email</h3>
-                <p>support@switch2tech.com</p>
+                <p>contact@cloudcraves.com</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-white mb-2">Phone</h3>
+                <p>+23408033011305</p>
               </div>
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Location</h3>
-                <p>123 Tech Street<br />San Francisco, CA 94105</p>
+                <p>28B, Abdul Quadri Lateral Street<br />Magodo, Lagos, Nigeria</p>
               </div>
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Hours</h3>
