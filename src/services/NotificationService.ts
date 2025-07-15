@@ -15,13 +15,18 @@ export class NotificationService {
   // Create a single notification
   static async createNotification(params: CreateNotificationParams) {
     try {
+      console.log('Creating notification:', params);
       const { data, error } = await supabase
         .from('notifications')
         .insert(params)
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Notification creation error:', error);
+        throw error;
+      }
+      console.log('Notification created successfully:', data);
       return data;
     } catch (error) {
       console.error('Failed to create notification:', error);
