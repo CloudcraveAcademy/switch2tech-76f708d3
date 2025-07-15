@@ -117,9 +117,13 @@ export const CourseEnrollmentService = {
         .single();
 
       if (course) {
+        console.log("Found course for notifications:", course);
+        
         // Notify student of successful enrollment
         try {
+          console.log("Sending student enrollment notification...");
           await NotificationService.notifyStudentEnrollment(userId, course.title, courseId);
+          console.log("Student notification sent successfully");
         } catch (notificationError) {
           console.error("Failed to send student enrollment notification:", notificationError);
         }
@@ -127,6 +131,7 @@ export const CourseEnrollmentService = {
         // Notify instructor of new enrollment
         if (course.instructor_id) {
           try {
+            console.log("Sending instructor enrollment notification...");
             const studentName = `Student`; // We could fetch the actual student name here
             await NotificationService.notifyInstructorEnrollment(
               course.instructor_id, 
@@ -134,10 +139,15 @@ export const CourseEnrollmentService = {
               course.title, 
               courseId
             );
+            console.log("Instructor notification sent successfully");
           } catch (notificationError) {
             console.error("Failed to send instructor enrollment notification:", notificationError);
           }
+        } else {
+          console.log("No instructor_id found for course");
         }
+      } else {
+        console.log("No course data found for notifications");
       }
       
       toast({

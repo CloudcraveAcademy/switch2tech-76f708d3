@@ -345,15 +345,27 @@ const EnrollmentPage = () => {
           ? `${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || 'A student'
           : 'A student';
 
-        await Promise.all([
-          NotificationService.notifyStudentEnrollment(userId, course?.title || 'Course', courseId),
-          course?.instructor_id ? NotificationService.notifyInstructorEnrollment(
-            course.instructor_id, 
-            studentName, 
-            course.title || 'Course', 
-            courseId
-          ) : Promise.resolve()
-        ]);
+        console.log('Student name for notification:', studentName);
+        console.log('Course instructor_id:', course?.instructor_id);
+
+        const notificationPromises = [
+          NotificationService.notifyStudentEnrollment(userId, course?.title || 'Course', courseId)
+        ];
+
+        if (course?.instructor_id) {
+          notificationPromises.push(
+            NotificationService.notifyInstructorEnrollment(
+              course.instructor_id, 
+              studentName, 
+              course.title || 'Course', 
+              courseId
+            )
+          );
+        } else {
+          console.log('No instructor_id found for course');
+        }
+
+        await Promise.all(notificationPromises);
         console.log('Enrollment notifications sent successfully');
       } catch (notificationError) {
         console.error('Error sending enrollment notifications:', notificationError);
