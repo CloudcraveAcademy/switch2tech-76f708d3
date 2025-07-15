@@ -179,7 +179,10 @@ const InstructorPayouts = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {formatAmount(revenueData?.netEarnings || 0)}
+              {formatAmount(
+                payoutHistory?.filter(p => p.status === 'pending' || p.status === 'processing')
+                  .reduce((sum, p) => sum + Number(p.net_payout), 0) || 0
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               Awaiting next payout cycle
@@ -259,12 +262,58 @@ const InstructorPayouts = () => {
         </TabsContent>
 
         <TabsContent value="payouts" className="space-y-4">
+          {/* Pending Payouts */}
+          {payoutHistory?.filter(p => p.status === 'pending' || p.status === 'processing').length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Payouts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Gross Revenue</TableHead>
+                      <TableHead>Commission</TableHead>
+                      <TableHead>Net Payout</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payoutHistory
+                      .filter(payout => payout.status === 'pending' || payout.status === 'processing')
+                      .map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell>
+                            {new Date(payout.period_start).toLocaleDateString()} - {new Date(payout.period_end).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>{formatAmount(Number(payout.gross_revenue))}</TableCell>
+                          <TableCell className="text-red-600">
+                            -{formatAmount(Number(payout.commission_amount))}
+                          </TableCell>
+                          <TableCell className="text-green-600">
+                            {formatAmount(Number(payout.net_payout))}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                          <TableCell>
+                            {new Date(payout.created_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Payout History */}
           <Card>
             <CardHeader>
               <CardTitle>Payout History</CardTitle>
             </CardHeader>
             <CardContent>
-              {payoutHistory && payoutHistory.length > 0 ? (
+              {payoutHistory?.filter(p => p.status === 'paid' || p.status === 'cancelled').length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -277,29 +326,31 @@ const InstructorPayouts = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payoutHistory.map((payout) => (
-                      <TableRow key={payout.id}>
-                        <TableCell>
-                          {new Date(payout.period_start).toLocaleDateString()} - {new Date(payout.period_end).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>{formatAmount(Number(payout.gross_revenue))}</TableCell>
-                        <TableCell className="text-red-600">
-                          -{formatAmount(Number(payout.commission_amount))}
-                        </TableCell>
-                        <TableCell className="text-green-600">
-                          {formatAmount(Number(payout.net_payout))}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(payout.status)}</TableCell>
-                        <TableCell>
-                          {payout.paid_at ? new Date(payout.paid_at).toLocaleDateString() : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {payoutHistory
+                      .filter(payout => payout.status === 'paid' || payout.status === 'cancelled')
+                      .map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell>
+                            {new Date(payout.period_start).toLocaleDateString()} - {new Date(payout.period_end).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>{formatAmount(Number(payout.gross_revenue))}</TableCell>
+                          <TableCell className="text-red-600">
+                            -{formatAmount(Number(payout.commission_amount))}
+                          </TableCell>
+                          <TableCell className="text-green-600">
+                            {formatAmount(Number(payout.net_payout))}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                          <TableCell>
+                            {payout.paid_at ? new Date(payout.paid_at).toLocaleDateString() : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No payout history available
+                  No completed payouts yet
                 </div>
               )}
             </CardContent>

@@ -403,16 +403,18 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {payout.status === 'pending' && (
+                        {(payout.status === 'pending' || payout.status === 'processing') && (
                           <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleUpdatePayoutStatus(payout.id, 'processing')}
-                              disabled={isProcessing}
-                            >
-                              <Clock className="h-4 w-4" />
-                            </Button>
+                            {payout.status === 'pending' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUpdatePayoutStatus(payout.id, 'processing')}
+                                disabled={isProcessing}
+                              >
+                                <Clock className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -420,6 +422,14 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
                               disabled={isProcessing}
                             >
                               <CheckCircle className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleUpdatePayoutStatus(payout.id, 'cancelled')}
+                              disabled={isProcessing}
+                            >
+                              <XCircle className="h-4 w-4" />
                             </Button>
                           </>
                         )}
