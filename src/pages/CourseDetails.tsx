@@ -423,19 +423,19 @@ const CourseDetails = () => {
                     .sort((a, b) => a.order_number - b.order_number)
                     .map((lesson, index) => (
                       <div key={lesson.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-1">
                           <span className="text-sm font-medium text-gray-500">
                             {index + 1}.
                           </span>
-                          <div>
+                          <div className="flex-1">
                             <h4 className="font-medium">{lesson.title}</h4>
                           </div>
                           {lesson.video_url && index === 0 && (
                             <Button
                               onClick={() => handleVideoPreview(lesson.video_url!)}
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="text-blue-600 hover:text-blue-800"
+                              className="ml-3 text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-200 shrink-0"
                             >
                               <Play className="h-3 w-3 mr-1" />
                               Preview
