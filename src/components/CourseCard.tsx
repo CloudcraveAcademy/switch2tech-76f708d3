@@ -3,7 +3,25 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
-import { Course } from "@/utils/mockData";
+// Using dynamic Course interface that matches Supabase structure
+interface Course {
+  id: string;
+  title: string;
+  instructor: {
+    id?: string;
+    name: string;
+    avatar: string;
+  };
+  price: number;
+  discounted_price?: number;
+  level: "beginner" | "intermediate" | "advanced";
+  image: string;
+  mode: "self-paced" | "virtual" | "live";
+  enrolledStudents: number;
+  lessons: number;
+  category: string;
+  featured: boolean;
+}
 import { Book, Star, Users } from "lucide-react";
 import { useCourseRating } from "@/hooks/useCourseRating";
 
