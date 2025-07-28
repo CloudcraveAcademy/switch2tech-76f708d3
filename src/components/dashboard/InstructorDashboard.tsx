@@ -37,6 +37,7 @@ import {
   Pie,
   Cell
 } from "recharts";
+import { useInstructorEngagementData, useInstructorRevenueData, useInstructorStudentGrowth } from "@/hooks/useInstructorAnalytics";
 
 import {
   ChartContainer,
@@ -78,21 +79,11 @@ interface Notification {
   read: boolean;
 }
 
-// Analytics data mock (would come from API in production)
-const generateAnalyticsData = () => {
-  return Array.from({ length: 30 }, (_, i) => ({
-    day: `Day ${i + 1}`,
-    revenue: Math.floor(Math.random() * 10000) + 1000,
-    students: Math.floor(Math.random() * 50) + 5,
-  }));
-};
-
-// Engagement data mock
-const generateEngagementData = () => {
-  return Array.from({ length: 30 }, (_, i) => ({
-    day: `Day ${i + 1}`,
-    engagement: Math.floor(Math.random() * 100),
-    completion: Math.floor(Math.random() * 100),
+// Chart data formatting helpers
+const formatChartData = (data: any[], labelKey: string, dateKey: string = 'date') => {
+  return data.map((item, index) => ({
+    [labelKey]: `Day ${index + 1}`,
+    ...item
   }));
 };
 
@@ -104,8 +95,15 @@ const InstructorDashboard = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>('NGN');
 
-  const analyticsData = generateAnalyticsData();
-  const engagementData = generateEngagementData();
+  // Fetch analytics data
+  const { data: engagementData = [], isLoading: isLoadingEngagement } = useInstructorEngagementData(user?.id || '', 30);
+  const { data: revenueData = [], isLoading: isLoadingRevenue } = useInstructorRevenueData(user?.id || '', 30);
+  const { data: studentGrowthData = [], isLoading: isLoadingStudentGrowth } = useInstructorStudentGrowth(user?.id || '', 30);
+
+  // Format data for charts
+  const formattedEngagementData = formatChartData(engagementData, 'day');
+  const formattedRevenueData = formatChartData(revenueData, 'day');
+  const formattedStudentGrowthData = formatChartData(studentGrowthData, 'day');
 
   // Query courses with aggregated data
   const { data: courseStats, isLoading: isLoadingStats } = useQuery({
@@ -308,7 +306,7 @@ const InstructorDashboard = () => {
     fetchNotifications();
   }, [courseStats]);
 
-  if (isLoadingStats || isLoadingEnrollments) {
+  if (isLoadingStats || isLoadingEnrollments || isLoadingEngagement || isLoadingRevenue || isLoadingStudentGrowth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -631,16 +629,22 @@ const InstructorDashboard = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Engagement Trends</h3>
                   <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={engagementData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="day" />
-                        <YAxis />
-                        <RechartsTooltip />
-                        <Line type="monotone" dataKey="engagement" stroke="#8884d8" activeDot={{ r: 8 }} />
-                        <Line type="monotone" dataKey="completion" stroke="#82ca9d" />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {formattedEngagementData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={formattedEngagementData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="day" />
+                          <YAxis />
+                          <RechartsTooltip />
+                          <Line type="monotone" dataKey="engagement" stroke="#8884d8" activeDot={{ r: 8 }} name="Engagement %" />
+                          <Line type="monotone" dataKey="completion" stroke="#82ca9d" name="Completion %" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No engagement data available
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -811,23 +815,29 @@ const InstructorDashboard = () => {
               <div className="mb-8">
                 <h3 className="text-lg font-medium mb-4">Revenue Over Time</h3>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={analyticsData}
-                      margin={{
-                        top: 10,
-                        right: 30,
-                        left: 0,
-                        bottom: 0,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {formattedRevenueData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={formattedRevenueData}
+                        margin={{
+                          top: 10,
+                          right: 30,
+                          left: 0,
+                          bottom: 0,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="day" />
+                        <YAxis />
+                        <RechartsTooltip formatter={(value, name) => [formatAmount(Number(value)), name]} />
+                        <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" name="Revenue" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      No revenue data available
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -875,15 +885,21 @@ const InstructorDashboard = () => {
               <div className="mb-8">
                 <h3 className="text-lg font-medium mb-4">Student Growth</h3>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={analyticsData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Line type="monotone" dataKey="students" stroke="#10b981" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {formattedStudentGrowthData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={formattedStudentGrowthData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="day" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Line type="monotone" dataKey="students" stroke="#10b981" strokeWidth={2} name="Total Students" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      No student growth data available
+                    </div>
+                  )}
                 </div>
               </div>
 
