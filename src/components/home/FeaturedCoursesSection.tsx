@@ -42,16 +42,12 @@ const FeaturedCoursesSection = () => {
       try {
         console.log("Fetching courses from database...");
         
+        // First, get all published courses
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
-          .select(`
-            *,
-            enrollments(count)
-          `)
+          .select("*")
           .eq("is_published", true);
-
-        if (!isMounted) return;
-
+        
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
           setError("Unable to load courses");
@@ -60,17 +56,36 @@ const FeaturedCoursesSection = () => {
           return;
         }
 
-        if (!coursesData || coursesData.length === 0) {
+        // Then get enrollment counts for each course
+        const coursesWithEnrollmentCounts = await Promise.all(
+          (coursesData || []).map(async (course: any) => {
+            const { count } = await supabase
+              .from('enrollments')
+              .select('*', { count: 'exact', head: true })
+              .eq('course_id', course.id);
+            
+            return {
+              ...course,
+              enrollment_count: count || 0
+            };
+          })
+        );
+
+        console.log("Courses with enrollment counts:", coursesWithEnrollmentCounts);
+
+        if (!isMounted) return;
+
+        if (!coursesWithEnrollmentCounts || coursesWithEnrollmentCounts.length === 0) {
           console.log("No courses found");
           setCourses([]);
           setLoading(false);
           return;
         }
 
-        console.log("Processing", coursesData.length, "courses");
+        console.log("Processing", coursesWithEnrollmentCounts.length, "courses");
 
         // Transform and sort courses by enrollment count
-        const transformedCourses: Course[] = coursesData
+        const transformedCourses: Course[] = coursesWithEnrollmentCounts
           .map((course: any) => ({
             id: course.id,
             title: course.title || "Untitled Course",
@@ -81,7 +96,7 @@ const FeaturedCoursesSection = () => {
             rating: 4.5,
             reviews: 120,
             mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-            enrolledStudents: course.enrollments?.length || 0, // Get actual enrollment count
+            enrolledStudents: course.enrollment_count, // Use the actual enrollment count
             lessons: 12,
             instructor: {
               name: "Expert Instructor",
@@ -96,6 +111,7 @@ const FeaturedCoursesSection = () => {
           .sort((a, b) => b.enrolledStudents - a.enrolledStudents) // Sort by enrollment count (highest first)
           .slice(0, 6); // Take only top 6 most enrolled courses
 
+        console.log("Transformed courses with enrollment counts:", transformedCourses.map(c => ({ title: c.title, enrolledStudents: c.enrolledStudents })));
         console.log("Successfully processed", transformedCourses.length, "featured courses (most enrolled)");
         setCourses(transformedCourses);
         setLoading(false);
