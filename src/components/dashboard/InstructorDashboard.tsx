@@ -372,7 +372,7 @@ const InstructorDashboard = () => {
 
       {/* Tabs Navigation */}
       <Tabs defaultValue="overview" className="mb-8" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:w-[600px] mb-4">
+        <TabsList className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 w-full max-w-2xl mx-auto mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
