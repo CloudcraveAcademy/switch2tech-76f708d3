@@ -22,7 +22,13 @@ import {
   User,
   MapPin,
   Video,
-  Play
+  Play,
+  ExternalLink,
+  Github,
+  Linkedin,
+  Twitter,
+  Briefcase,
+  GraduationCap
 } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import CourseEnrollButton from "@/components/dashboard/course/CourseEnrollButton";
@@ -58,6 +64,14 @@ interface Course {
     last_name: string;
     bio: string;
     avatar_url: string;
+    professional_title?: string;
+    career_level?: string;
+    skills?: string;
+    website?: string;
+    linkedin_url?: string;
+    twitter_url?: string;
+    github_url?: string;
+    country?: string;
   };
   lessons: Array<{
     id: string;
@@ -90,7 +104,15 @@ const CourseDetails = () => {
             first_name,
             last_name,
             bio,
-            avatar_url
+            avatar_url,
+            professional_title,
+            career_level,
+            skills,
+            website,
+            linkedin_url,
+            twitter_url,
+            github_url,
+            country
           ),
           lessons (
             id,
@@ -446,15 +468,100 @@ const CourseDetails = () => {
                   <img
                     src={course.instructor.avatar_url || '/placeholder.svg'}
                     alt={`${course.instructor.first_name} ${course.instructor.last_name}`}
-                    className="w-16 h-16 rounded-full object-cover"
+                    className="w-20 h-20 rounded-full object-cover"
                   />
-                  <div>
-                    <h3 className="font-semibold text-lg">
-                      {course.instructor.first_name} {course.instructor.last_name}
-                    </h3>
-                    <p className="text-gray-600 mt-2">
-                      {course.instructor.bio || "Experienced instructor passionate about teaching."}
-                    </p>
+                  <div className="flex-1">
+                    <div className="mb-3">
+                      <h3 className="font-semibold text-lg">
+                        {course.instructor.first_name} {course.instructor.last_name}
+                      </h3>
+                      {course.instructor.professional_title && (
+                        <p className="text-brand-600 font-medium">
+                          {course.instructor.professional_title}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                        {course.instructor.career_level && (
+                          <div className="flex items-center gap-1">
+                            <GraduationCap className="h-3 w-3" />
+                            {course.instructor.career_level}
+                          </div>
+                        )}
+                        {course.instructor.country && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {course.instructor.country}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {course.instructor.bio && (
+                      <p className="text-gray-600 mb-3 leading-relaxed">
+                        {course.instructor.bio}
+                      </p>
+                    )}
+
+                    {course.instructor.skills && (
+                      <div className="mb-3">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Skills & Expertise</p>
+                        <div className="flex flex-wrap gap-1">
+                          {course.instructor.skills.split(',').map((skill, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {skill.trim()}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Social Links */}
+                    <div className="flex items-center gap-3">
+                      {course.instructor.website && (
+                        <a
+                          href={course.instructor.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Website
+                        </a>
+                      )}
+                      {course.instructor.linkedin_url && (
+                        <a
+                          href={course.instructor.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                        >
+                          <Linkedin className="h-3 w-3" />
+                          LinkedIn
+                        </a>
+                      )}
+                      {course.instructor.github_url && (
+                        <a
+                          href={course.instructor.github_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <Github className="h-3 w-3" />
+                          GitHub
+                        </a>
+                      )}
+                      {course.instructor.twitter_url && (
+                        <a
+                          href={course.instructor.twitter_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700"
+                        >
+                          <Twitter className="h-3 w-3" />
+                          Twitter
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
