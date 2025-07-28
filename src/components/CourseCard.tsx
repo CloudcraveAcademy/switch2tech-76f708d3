@@ -17,7 +17,6 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const {
     id,
     title,
-    instructor,
     price,
     discounted_price,
     level,
@@ -30,14 +29,45 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   // State for dynamic course data
   const [lessonsCount, setLessonsCount] = useState<number>(0);
   const [enrollmentsCount, setEnrollmentsCount] = useState<number>(0);
+  const [instructor, setInstructor] = useState<{
+    id: string;
+    name: string;
+    avatar: string;
+  } | null>(null);
 
   // Get dynamic rating data
   const { data: ratingData } = useCourseRating(id);
 
-  // Fetch lessons count and enrollments count
+  // Fetch course data including instructor, lessons count, and enrollments count
   useEffect(() => {
     const fetchCourseData = async () => {
       try {
+        // Fetch course with instructor info
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select(`
+            instructor_id,
+            user_profiles!instructor_id (
+              id,
+              first_name,
+              last_name,
+              avatar_url
+            )
+          `)
+          .eq('id', id)
+          .single();
+
+        if (courseError) {
+          console.error('Error fetching course:', courseError);
+        } else if (courseData?.user_profiles) {
+          const profile = courseData.user_profiles as any;
+          setInstructor({
+            id: profile.id,
+            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown Instructor',
+            avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.first_name || 'U')}&background=4F46E5&color=fff`
+          });
+        }
+
         // Fetch lessons count
         const { count: lessonsCount } = await supabase
           .from('lessons')
@@ -159,13 +189,15 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
           <span>{enrollmentsCount} students</span>
         </div>
 
-        <div className="flex items-center mt-4">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={instructor.avatar} />
-            <AvatarFallback>{instructor.name.substring(0, 2)}</AvatarFallback>
-          </Avatar>
-          <span className="ml-2 text-sm font-medium">{instructor.name}</span>
-        </div>
+        {instructor && (
+          <div className="flex items-center mt-4">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={instructor.avatar} />
+              <AvatarFallback>{instructor.name.substring(0, 2)}</AvatarFallback>
+            </Avatar>
+            <span className="ml-2 text-sm font-medium">{instructor.name}</span>
+          </div>
+        )}
       </CardContent>
 
       <CardFooter className="border-t p-5 flex items-center justify-between">
