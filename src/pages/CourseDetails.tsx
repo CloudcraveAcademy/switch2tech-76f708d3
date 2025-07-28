@@ -291,7 +291,7 @@ const CourseDetails = () => {
     );
   }
 
-  const totalDuration = course.lessons.reduce((total, lesson) => total + (lesson.duration_minutes || 0), 0);
+  const totalDuration = course?.lessons?.reduce((total, lesson) => total + (lesson.duration_minutes || 0), 0) || 0;
   const formattedDuration = `${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m`;
   const previewVideoUrl = getPreviewVideoUrl();
 
