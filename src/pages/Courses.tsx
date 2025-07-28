@@ -70,7 +70,13 @@ const Courses = () => {
               first_name,
               last_name,
               avatar_url
-            )
+            ),
+            course_category:course_categories!courses_category_fkey(
+              id,
+              name
+            ),
+            enrollments(count),
+            lessons(count)
           `)
           .eq("is_published", true);
 
@@ -104,17 +110,17 @@ const Courses = () => {
             price: Number(course.price) || 0,
             discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
             level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-            rating: 4.5,
-            reviews: 120,
+            rating: 0, // Will be fetched dynamically in CourseCard
+            reviews: 0, // Will be fetched dynamically in CourseCard
             mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-            enrolledStudents: 150,
-            lessons: 12,
+            enrolledStudents: course.enrollments?.[0]?.count || 0,
+            lessons: course.lessons?.[0]?.count || 0,
             instructor: {
               id: course.instructor?.id,
               name: instructorName,
               avatar: course.instructor?.avatar_url || "/placeholder.svg"
             },
-            category: course.category || "General",
+            category: course.course_category?.name || "General",
             image: course.image_url || "/placeholder.svg",
             featured: course.id.includes("featured"),
             tags: [],
