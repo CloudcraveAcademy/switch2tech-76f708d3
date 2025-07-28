@@ -44,9 +44,11 @@ const FeaturedCoursesSection = () => {
         
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
-          .select("*")
-          .eq("is_published", true)
-          .limit(6);
+          .select(`
+            *,
+            enrollments(count)
+          `)
+          .eq("is_published", true);
 
         if (!isMounted) return;
 
@@ -67,30 +69,34 @@ const FeaturedCoursesSection = () => {
 
         console.log("Processing", coursesData.length, "courses");
 
-        const transformedCourses: Course[] = coursesData.map((course: any) => ({
-          id: course.id,
-          title: course.title || "Untitled Course",
-          description: course.description || "No description available",
-          price: Number(course.price) || 0,
-          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-          rating: 4.5,
-          reviews: 120,
-          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: 150,
-          lessons: 12,
-          instructor: {
-            name: "Expert Instructor",
-            avatar: "/placeholder.svg"
-          },
-          category: "Technology",
-          image: course.image_url || "/placeholder.svg",
-          featured: true,
-          tags: [],
-          duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
-        }));
+        // Transform and sort courses by enrollment count
+        const transformedCourses: Course[] = coursesData
+          .map((course: any) => ({
+            id: course.id,
+            title: course.title || "Untitled Course",
+            description: course.description || "No description available",
+            price: Number(course.price) || 0,
+            discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+            rating: 4.5,
+            reviews: 120,
+            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+            enrolledStudents: course.enrollments?.length || 0, // Get actual enrollment count
+            lessons: 12,
+            instructor: {
+              name: "Expert Instructor",
+              avatar: "/placeholder.svg"
+            },
+            category: "Technology",
+            image: course.image_url || "/placeholder.svg",
+            featured: true,
+            tags: [],
+            duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
+          }))
+          .sort((a, b) => b.enrolledStudents - a.enrolledStudents) // Sort by enrollment count (highest first)
+          .slice(0, 6); // Take only top 6 most enrolled courses
 
-        console.log("Successfully processed", transformedCourses.length, "courses");
+        console.log("Successfully processed", transformedCourses.length, "featured courses (most enrolled)");
         setCourses(transformedCourses);
         setLoading(false);
         
