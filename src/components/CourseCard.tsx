@@ -3,25 +3,9 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
-// Using dynamic Course interface that matches Supabase structure
-interface Course {
-  id: string;
-  title: string;
-  instructor: {
-    id?: string;
-    name: string;
-    avatar: string;
-  };
-  price: number;
-  discounted_price?: number;
-  level: "beginner" | "intermediate" | "advanced";
-  image: string;
-  mode: "self-paced" | "virtual" | "live";
-  enrolledStudents: number;
-  lessons: number;
-  category: string;
-  featured: boolean;
-}
+import { Course } from "@/utils/mockData";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Book, Star, Users } from "lucide-react";
 import { useCourseRating } from "@/hooks/useCourseRating";
 
@@ -39,14 +23,44 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     level,
     image,
     mode,
-    enrolledStudents,
-    lessons,
     category,
     featured,
   } = course;
 
+  // State for dynamic course data
+  const [lessonsCount, setLessonsCount] = useState<number>(0);
+  const [enrollmentsCount, setEnrollmentsCount] = useState<number>(0);
+
   // Get dynamic rating data
   const { data: ratingData } = useCourseRating(id);
+
+  // Fetch lessons count and enrollments count
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      try {
+        // Fetch lessons count
+        const { count: lessonsCount } = await supabase
+          .from('lessons')
+          .select('*', { count: 'exact', head: true })
+          .eq('course_id', id);
+
+        // Fetch enrollments count  
+        const { count: enrollmentsCount } = await supabase
+          .from('enrollments')
+          .select('*', { count: 'exact', head: true })
+          .eq('course_id', id);
+
+        setLessonsCount(lessonsCount || 0);
+        setEnrollmentsCount(enrollmentsCount || 0);
+      } catch (error) {
+        console.error('Error fetching course data:', error);
+      }
+    };
+
+    if (id) {
+      fetchCourseData();
+    }
+  }, [id]);
 
   const levelColor = {
     beginner: "bg-green-100 text-green-800",
@@ -140,9 +154,9 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
 
         <div className="flex items-center mt-2 text-sm text-gray-600">
           <Book className="w-4 h-4 mr-1" />
-          <span>{lessons} lessons</span>
+          <span>{lessonsCount} lessons</span>
           <Users className="w-4 h-4 ml-3 mr-1" />
-          <span>{enrolledStudents} students</span>
+          <span>{enrollmentsCount} students</span>
         </div>
 
         <div className="flex items-center mt-4">
