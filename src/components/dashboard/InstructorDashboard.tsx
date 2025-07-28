@@ -666,10 +666,10 @@ const InstructorDashboard = () => {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            outerRadius={80}
+                            outerRadius={70}
                             fill="#8884d8"
                             dataKey="value"
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            label={false}
                           >
                             {courseCompletionData?.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -679,6 +679,7 @@ const InstructorDashboard = () => {
                             content={
                               <ChartTooltipContent 
                                 labelKey="name"
+                                formatter={(value, name) => [`${value}%`, name]}
                               />
                             }
                           />
