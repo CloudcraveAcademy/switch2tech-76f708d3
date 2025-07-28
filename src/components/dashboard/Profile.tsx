@@ -133,7 +133,7 @@ const Profile = () => {
     country: "Nigeria",
     phone: "",
     // --- PROFESSIONAL ---
-    professional_title: "", // This maps to career_level in the database
+    professional_title: "", // This is now a separate field from career_level
     skills: "",
     website: "",
     linkedin_url: "",
@@ -169,7 +169,7 @@ const Profile = () => {
         country: profileData.country || "Nigeria",
         phone: profileData.phone || "",
         // --- PROFESSIONAL ---
-        professional_title: profileData.career_level || "", // Use career_level as the professional title
+        professional_title: profileData.professional_title || "", // Now separate from career_level
         skills: profileData.skills || "",
         website: profileData.website || "",
         linkedin_url: profileData.linkedin_url || "",
@@ -234,7 +234,8 @@ const Profile = () => {
         country: formData.country,
         phone: formData.phone,
         website: formData.website,
-        career_level: formData.professional_title || formData.career_level,
+        professional_title: formData.professional_title,
+        career_level: formData.career_level,
         skills: formData.skills,
         linkedin_url: formData.linkedin_url,
         github_url: formData.github_url,
@@ -912,7 +913,7 @@ const Profile = () => {
                         onChange={handleChange}
                         placeholder="e.g. Software Developer"
                       />
-                      <p className="text-xs text-gray-500 mt-1">This is your display title (stored as career_level)</p>
+                      <p className="text-xs text-gray-500 mt-1">Your job title or role (e.g., Senior Software Developer)</p>
                     </div>
                     
                     <div>
@@ -973,19 +974,20 @@ const Profile = () => {
                       />
                     </div>
                     
-                    <div>
-                      <Label htmlFor="career_level">Career Level</Label>
-                      <Select name="career_level" value={formData.career_level} onValueChange={(value) => setFormData(prev => ({ ...prev, career_level: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select career level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {careerLevels.map(level => (
-                            <SelectItem key={level} value={level}>{level}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                     <div>
+                       <Label htmlFor="career_level">Career Level</Label>
+                       <Select name="career_level" value={formData.career_level} onValueChange={(value) => setFormData(prev => ({ ...prev, career_level: value }))}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select career level" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {careerLevels.map(level => (
+                             <SelectItem key={level} value={level}>{level}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                       <p className="text-xs text-gray-500 mt-1">Your experience level (e.g., Junior, Senior, Lead)</p>
+                     </div>
                     
                     <div className="mt-6 flex justify-end">
                       <Button type="submit">Save Changes</Button>

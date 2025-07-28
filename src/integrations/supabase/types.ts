@@ -1518,6 +1518,7 @@ export type Database = {
           paystack_recipient_code: string | null
           phone: string | null
           preferences: Json | null
+          professional_title: string | null
           role: string
           skills: string | null
           student_status: string | null
@@ -1544,6 +1545,7 @@ export type Database = {
           paystack_recipient_code?: string | null
           phone?: string | null
           preferences?: Json | null
+          professional_title?: string | null
           role: string
           skills?: string | null
           student_status?: string | null
@@ -1570,6 +1572,7 @@ export type Database = {
           paystack_recipient_code?: string | null
           phone?: string | null
           preferences?: Json | null
+          professional_title?: string | null
           role?: string
           skills?: string | null
           student_status?: string | null

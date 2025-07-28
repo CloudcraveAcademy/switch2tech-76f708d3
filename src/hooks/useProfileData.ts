@@ -21,6 +21,7 @@ export interface ProfileData {
   twitter_url?: string;
   skills?: string;
   career_level?: string;
+  professional_title?: string;
   bank_name?: string;
   account_number?: string;
   account_name?: string;
