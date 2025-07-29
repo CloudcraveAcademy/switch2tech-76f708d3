@@ -157,7 +157,9 @@ const Courses = () => {
                          course.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || course.category === selectedCategory;
     const matchesLevel = selectedLevel === "all" || course.level === selectedLevel;
-    const matchesMode = selectedMode === "all" || course.mode === selectedMode;
+    const matchesMode = selectedMode === "all" || 
+                       (selectedMode === "virtual-live" && course.mode === "virtual-live") ||
+                       (selectedMode === "self-paced" && course.mode === "self-paced");
     
     return matchesSearch && matchesCategory && matchesLevel && matchesMode;
   });
