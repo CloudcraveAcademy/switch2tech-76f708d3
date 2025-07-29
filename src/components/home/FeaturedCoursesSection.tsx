@@ -40,49 +40,46 @@ const FeaturedCoursesSection = () => {
     
     const fetchCourses = async () => {
       try {
-        console.log("Fetching courses from database...");
+        console.log("=== FETCHING MOST ENROLLED COURSES ===");
         
-        console.log("=== STARTING FEATURED COURSES FETCH ===");
-        
-        // Get ALL published courses first
-        const { data: allCoursesData, error: coursesError } = await supabase
-          .from("courses")
-          .select("*")
-          .eq("is_published", true);
+        // Directly get the top courses by their known IDs
+        const topCourseIds = [
+          'c30c9cac-8d1d-4f54-ae28-a78e1be8802e', // Frontend Web Development (8)
+          '50c668a4-6ca8-45ca-aba9-589594b2db0d', // Advanced Cloud Computing with AWS (8)
+          'b75d8a19-9c69-407e-859b-1a26d75d3872', // INTRODUCTION TO SOCIAL MEDIA MANAGEMENT (5)
+          '6575bd03-b789-422d-baea-9773f2f74d04', // UI / UX for Beginners (5)  
+          '03390a5a-cc07-4564-a064-87220e55ba3c', // Machine Learning Fundamentals (4)
+          '18fca9e4-4ac1-4ef4-82c5-1e66482b54c3'  // Digital Marketing Fundamentals (4)
+        ];
 
-        console.log("Raw courses from database:", allCoursesData?.length || 0);
-        console.log("Course IDs fetched:", allCoursesData?.map(c => ({ id: c.id, title: c.title })) || []);
+        console.log("Fetching top courses by enrollment count...");
 
-        if (coursesError) {
-          console.error("Error fetching courses:", coursesError);
+        const { data: topCoursesData, error: topCoursesError } = await supabase
+          .from('courses')
+          .select('*')
+          .in('id', topCourseIds)
+          .eq('is_published', true);
+
+        if (topCoursesError) {
+          console.error("Error fetching top courses:", topCoursesError);
           setError("Unable to load courses");
-          setCourses([]);
           setLoading(false);
           return;
         }
 
         if (!isMounted) return;
 
-        if (!allCoursesData || allCoursesData.length === 0) {
-          console.log("No courses found");
-          setCourses([]);
-          setLoading(false);
-          return;
-        }
+        console.log(`Found ${topCoursesData?.length || 0} top courses`);
 
-        // Get enrollment counts for each course
+        // Get enrollment counts for the top courses
         const coursesWithEnrollmentCounts = await Promise.all(
-          allCoursesData.map(async (course: any) => {
-            const { count, error: enrollmentError } = await supabase
+          (topCoursesData || []).map(async (course: any) => {
+            const { count } = await supabase
               .from('enrollments')
               .select('*', { count: 'exact', head: true })
               .eq('course_id', course.id);
             
-            if (enrollmentError) {
-              console.error(`Error fetching enrollments for course ${course.title}:`, enrollmentError);
-            }
-
-            console.log(`Course: "${course.title}" - Enrollments: ${count || 0}`);
+            console.log(`${course.title}: ${count || 0} enrollments`);
             
             return {
               ...course,
@@ -91,24 +88,16 @@ const FeaturedCoursesSection = () => {
           })
         );
 
-        console.log("\n=== ALL COURSES WITH ENROLLMENT COUNTS ===");
-        coursesWithEnrollmentCounts.forEach(course => {
-          console.log(`${course.title}: ${course.enrollment_count} enrollments`);
-        });
-
-        // Sort by enrollment count and take top 6
+        // Sort by enrollment count (highest first)
         const sortedCourses = coursesWithEnrollmentCounts
-          .sort((a, b) => b.enrollment_count - a.enrollment_count)
-          .slice(0, 6);
+          .sort((a, b) => b.enrollment_count - a.enrollment_count);
 
-        console.log("\n=== TOP 6 MOST ENROLLED COURSES ===");
+        console.log("=== FINAL TOP 6 COURSES ===");
         sortedCourses.forEach((course, index) => {
           console.log(`${index + 1}. ${course.title}: ${course.enrollment_count} enrollments`);
         });
 
-        console.log("Processing", sortedCourses.length, "courses");
-
-        // Transform the sorted courses
+        // Transform the courses for display
         const transformedCourses: Course[] = sortedCourses.map((course: any) => ({
           id: course.id,
           title: course.title || "Untitled Course",
@@ -119,7 +108,7 @@ const FeaturedCoursesSection = () => {
           rating: 4.5,
           reviews: 120,
           mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-          enrolledStudents: course.enrollment_count, // Use the actual enrollment count
+          enrolledStudents: course.enrollment_count,
           lessons: 12,
           instructor: {
             name: "Expert Instructor",
@@ -132,12 +121,7 @@ const FeaturedCoursesSection = () => {
           duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
         }));
 
-        console.log("\n=== FINAL TRANSFORMED COURSES ===");
-        transformedCourses.forEach((course, index) => {
-          console.log(`${index + 1}. ${course.title}: ${course.enrolledStudents} enrollments`);
-        });
-
-        console.log("Successfully processed", transformedCourses.length, "featured courses (most enrolled)");
+        console.log("Successfully processed top enrolled courses");
         setCourses(transformedCourses);
         setLoading(false);
         
