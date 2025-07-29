@@ -88,11 +88,14 @@ const FeaturedCoursesSection = () => {
           })
         );
 
-        // Sort by enrollment count (highest first)
+        // Sort by enrollment count (highest first) - ensure proper ordering
         const sortedCourses = coursesWithEnrollmentCounts
-          .sort((a, b) => b.enrollment_count - a.enrollment_count);
+          .sort((a, b) => {
+            console.log(`Comparing: ${a.title} (${a.enrollment_count}) vs ${b.title} (${b.enrollment_count})`);
+            return b.enrollment_count - a.enrollment_count;
+          });
 
-        console.log("=== FINAL TOP 6 COURSES ===");
+        console.log("=== FINAL TOP 6 COURSES (SORTED BY ENROLLMENT) ===");
         sortedCourses.forEach((course, index) => {
           console.log(`${index + 1}. ${course.title}: ${course.enrollment_count} enrollments`);
         });

@@ -24,11 +24,11 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     mode,
     category,
     featured,
+    enrolledStudents, // Use this from the course prop
   } = course;
 
   // State for dynamic course data
   const [lessonsCount, setLessonsCount] = useState<number>(0);
-  const [enrollmentsCount, setEnrollmentsCount] = useState<number>(0);
   const [instructor, setInstructor] = useState<{
     id: string;
     name: string;
@@ -74,14 +74,8 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
           .select('*', { count: 'exact', head: true })
           .eq('course_id', id);
 
-        // Fetch enrollments count  
-        const { count: enrollmentsCount } = await supabase
-          .from('enrollments')
-          .select('*', { count: 'exact', head: true })
-          .eq('course_id', id);
-
         setLessonsCount(lessonsCount || 0);
-        setEnrollmentsCount(enrollmentsCount || 0);
+        // Note: enrollmentsCount comes from course prop, no need to fetch
       } catch (error) {
         console.error('Error fetching course data:', error);
       }
@@ -186,7 +180,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
           <Book className="w-4 h-4 mr-1" />
           <span>{lessonsCount} lessons</span>
           <Users className="w-4 h-4 ml-3 mr-1" />
-          <span>{enrollmentsCount} students</span>
+          <span>{enrolledStudents || 0} students</span>
         </div>
 
         {instructor && (
