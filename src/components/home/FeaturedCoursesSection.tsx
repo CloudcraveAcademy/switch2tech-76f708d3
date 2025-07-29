@@ -51,6 +51,7 @@ const FeaturedCoursesSection = () => {
           .eq("is_published", true);
 
         console.log("Raw courses from database:", allCoursesData?.length || 0);
+        console.log("Course IDs fetched:", allCoursesData?.map(c => ({ id: c.id, title: c.title })) || []);
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
