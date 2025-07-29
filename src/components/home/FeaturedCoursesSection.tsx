@@ -42,12 +42,12 @@ const FeaturedCoursesSection = () => {
       try {
         console.log("Fetching courses from database...");
         
-        // First, get all published courses
+        // Get courses and count enrollments manually
         const { data: coursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true);
-        
+
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
           setError("Unable to load courses");
@@ -56,13 +56,28 @@ const FeaturedCoursesSection = () => {
           return;
         }
 
-        // Then get enrollment counts for each course
+        if (!isMounted) return;
+
+        if (!coursesData || coursesData.length === 0) {
+          console.log("No courses found");
+          setCourses([]);
+          setLoading(false);
+          return;
+        }
+
+        // Get enrollment counts for each course
         const coursesWithEnrollmentCounts = await Promise.all(
-          (coursesData || []).map(async (course: any) => {
-            const { count } = await supabase
+          coursesData.map(async (course: any) => {
+            const { count, error: enrollmentError } = await supabase
               .from('enrollments')
               .select('*', { count: 'exact', head: true })
               .eq('course_id', course.id);
+            
+            if (enrollmentError) {
+              console.error(`Error fetching enrollments for course ${course.title}:`, enrollmentError);
+            }
+
+            console.log(`Course: "${course.title}" - Enrollments: ${count || 0}`);
             
             return {
               ...course,
@@ -71,47 +86,52 @@ const FeaturedCoursesSection = () => {
           })
         );
 
-        console.log("Courses with enrollment counts:", coursesWithEnrollmentCounts);
+        console.log("\n=== ALL COURSES WITH ENROLLMENT COUNTS ===");
+        coursesWithEnrollmentCounts.forEach(course => {
+          console.log(`${course.title}: ${course.enrollment_count} enrollments`);
+        });
 
-        if (!isMounted) return;
+        // Sort by enrollment count and take top 6
+        const sortedCourses = coursesWithEnrollmentCounts
+          .sort((a, b) => b.enrollment_count - a.enrollment_count)
+          .slice(0, 6);
 
-        if (!coursesWithEnrollmentCounts || coursesWithEnrollmentCounts.length === 0) {
-          console.log("No courses found");
-          setCourses([]);
-          setLoading(false);
-          return;
-        }
+        console.log("\n=== TOP 6 MOST ENROLLED COURSES ===");
+        sortedCourses.forEach((course, index) => {
+          console.log(`${index + 1}. ${course.title}: ${course.enrollment_count} enrollments`);
+        });
 
-        console.log("Processing", coursesWithEnrollmentCounts.length, "courses");
+        console.log("Processing", sortedCourses.length, "courses");
 
-        // Transform and sort courses by enrollment count
-        const transformedCourses: Course[] = coursesWithEnrollmentCounts
-          .map((course: any) => ({
-            id: course.id,
-            title: course.title || "Untitled Course",
-            description: course.description || "No description available",
-            price: Number(course.price) || 0,
-            discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
-            level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
-            rating: 4.5,
-            reviews: 120,
-            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
-            enrolledStudents: course.enrollment_count, // Use the actual enrollment count
-            lessons: 12,
-            instructor: {
-              name: "Expert Instructor",
-              avatar: "/placeholder.svg"
-            },
-            category: "Technology",
-            image: course.image_url || "/placeholder.svg",
-            featured: true,
-            tags: [],
-            duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
-          }))
-          .sort((a, b) => b.enrolledStudents - a.enrolledStudents) // Sort by enrollment count (highest first)
-          .slice(0, 6); // Take only top 6 most enrolled courses
+        // Transform the sorted courses
+        const transformedCourses: Course[] = sortedCourses.map((course: any) => ({
+          id: course.id,
+          title: course.title || "Untitled Course",
+          description: course.description || "No description available",
+          price: Number(course.price) || 0,
+          discounted_price: course.discounted_price ? Number(course.discounted_price) : undefined,
+          level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
+          rating: 4.5,
+          reviews: 120,
+          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+          enrolledStudents: course.enrollment_count, // Use the actual enrollment count
+          lessons: 12,
+          instructor: {
+            name: "Expert Instructor",
+            avatar: "/placeholder.svg"
+          },
+          category: "Technology",
+          image: course.image_url || "/placeholder.svg",
+          featured: true,
+          tags: [],
+          duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
+        }));
 
-        console.log("Transformed courses with enrollment counts:", transformedCourses.map(c => ({ title: c.title, enrolledStudents: c.enrolledStudents })));
+        console.log("\n=== FINAL TRANSFORMED COURSES ===");
+        transformedCourses.forEach((course, index) => {
+          console.log(`${index + 1}. ${course.title}: ${course.enrolledStudents} enrollments`);
+        });
+
         console.log("Successfully processed", transformedCourses.length, "featured courses (most enrolled)");
         setCourses(transformedCourses);
         setLoading(false);
