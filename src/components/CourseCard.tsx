@@ -205,8 +205,6 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         <div className="flex items-center mt-2 text-sm text-gray-600">
           <Book className="w-4 h-4 mr-1" />
           <span>{lessonsCount} lessons</span>
-          <Users className="w-4 h-4 ml-3 mr-1" />
-          <span>{enrolledStudents || 0} students</span>
         </div>
 
         {instructor && (
