@@ -26,7 +26,7 @@ type Course = {
   level: "beginner" | "intermediate" | "advanced";
   rating: number;
   reviews: number;
-  mode: "self-paced" | "virtual" | "live";
+  mode: "self-paced" | "virtual-live";
   enrolledStudents: number;
   lessons: number;
   instructor: {
@@ -112,7 +112,7 @@ const Courses = () => {
             level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
             rating: 0, // Will be fetched dynamically in CourseCard
             reviews: 0, // Will be fetched dynamically in CourseCard
-            mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+            mode: (course.mode === "virtual" || course.mode === "live") ? "virtual-live" : "self-paced",
             enrolledStudents: course.enrollments?.[0]?.count || 0,
             lessons: course.lessons?.[0]?.count || 0,
             instructor: {
@@ -255,14 +255,13 @@ const Courses = () => {
                 </Select>
 
                 <Select value={selectedMode} onValueChange={setSelectedMode}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-40">
                     <SelectValue placeholder="Mode" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Modes</SelectItem>
                     <SelectItem value="self-paced">Self-paced</SelectItem>
-                    <SelectItem value="virtual">Virtual</SelectItem>
-                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="virtual-live">Virtual Live Classes</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

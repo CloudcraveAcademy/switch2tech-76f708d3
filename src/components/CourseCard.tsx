@@ -18,7 +18,7 @@ interface Course {
   level: "beginner" | "intermediate" | "advanced";
   rating: number;
   reviews: number;
-  mode: "self-paced" | "virtual" | "live"; 
+  mode: "self-paced" | "virtual-live"; 
   enrolledStudents: number;
   lessons: number;
   instructor: {
@@ -121,8 +121,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
 
   const modeColor = {
     "self-paced": "bg-blue-100 text-blue-800",
-    "virtual": "bg-purple-100 text-purple-800",
-    "live": "bg-pink-100 text-pink-800",
+    "virtual-live": "bg-purple-100 text-purple-800",
   }[mode];
 
   const formatPrice = (price: number) => {
@@ -175,7 +174,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/70 to-transparent p-3">
           <Badge className={`${levelColor} mb-1 mr-1`}>{level}</Badge>
           <Badge className={`${modeColor} mb-1`}>
-            {mode === "self-paced" ? "Self-paced" : mode === "virtual" ? "Virtual" : "Live"}
+            {mode === "self-paced" ? "Self-paced" : "Virtual Live Classes"}
           </Badge>
         </div>
       </div>

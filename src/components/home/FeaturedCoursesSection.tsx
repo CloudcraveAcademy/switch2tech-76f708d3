@@ -15,7 +15,7 @@ type Course = {
   level: "beginner" | "intermediate" | "advanced";
   rating: number;
   reviews: number;
-  mode: "self-paced" | "virtual" | "live"; 
+  mode: "self-paced" | "virtual-live"; 
   enrolledStudents: number;
   lessons: number;
   instructor: {
@@ -141,7 +141,7 @@ const FeaturedCoursesSection = () => {
           level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
           rating: 4.5,
           reviews: 120,
-          mode: (course.mode as "self-paced" | "virtual" | "live") || "self-paced",
+          mode: (course.mode === "virtual" || course.mode === "live") ? "virtual-live" : "self-paced",
           enrolledStudents: course.enrollment_count,
           lessons: 12,
           instructor: {
