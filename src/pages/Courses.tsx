@@ -112,7 +112,7 @@ const Courses = () => {
             level: (course.level as "beginner" | "intermediate" | "advanced") || "beginner",
             rating: 0, // Will be fetched dynamically in CourseCard
             reviews: 0, // Will be fetched dynamically in CourseCard
-            mode: (course.mode === "virtual" || course.mode === "live") ? "virtual-live" : "self-paced",
+            mode: (course.mode === "virtual-live") ? "virtual-live" : "self-paced",
             enrolledStudents: course.enrollments?.[0]?.count || 0,
             lessons: course.lessons?.[0]?.count || 0,
             instructor: {

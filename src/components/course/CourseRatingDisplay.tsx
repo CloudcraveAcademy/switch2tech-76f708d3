@@ -29,6 +29,14 @@ const CourseRatingDisplay: React.FC<CourseRatingDisplayProps> = ({ courseId }) =
       if (error) throw error;
       
       const stats = data?.[0];
+      if (!stats) {
+        return {
+          average_rating: 0,
+          total_ratings: 0,
+          rating_distribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 }
+        };
+      }
+      
       const distribution = stats?.rating_distribution;
       return {
         average_rating: stats?.average_rating || 0,
