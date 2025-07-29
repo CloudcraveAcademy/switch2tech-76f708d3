@@ -42,11 +42,15 @@ const FeaturedCoursesSection = () => {
       try {
         console.log("Fetching courses from database...");
         
-        // Get courses and count enrollments manually
-        const { data: coursesData, error: coursesError } = await supabase
+        console.log("=== STARTING FEATURED COURSES FETCH ===");
+        
+        // Get ALL published courses first
+        const { data: allCoursesData, error: coursesError } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true);
+
+        console.log("Raw courses from database:", allCoursesData?.length || 0);
 
         if (coursesError) {
           console.error("Error fetching courses:", coursesError);
@@ -58,7 +62,7 @@ const FeaturedCoursesSection = () => {
 
         if (!isMounted) return;
 
-        if (!coursesData || coursesData.length === 0) {
+        if (!allCoursesData || allCoursesData.length === 0) {
           console.log("No courses found");
           setCourses([]);
           setLoading(false);
@@ -67,7 +71,7 @@ const FeaturedCoursesSection = () => {
 
         // Get enrollment counts for each course
         const coursesWithEnrollmentCounts = await Promise.all(
-          coursesData.map(async (course: any) => {
+          allCoursesData.map(async (course: any) => {
             const { count, error: enrollmentError } = await supabase
               .from('enrollments')
               .select('*', { count: 'exact', head: true })
