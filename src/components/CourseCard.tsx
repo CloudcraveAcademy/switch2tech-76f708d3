@@ -3,11 +3,35 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
-import { Course } from "@/utils/mockData";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Book, Star, Users } from "lucide-react";
 import { useCourseRating } from "@/hooks/useCourseRating";
+
+// Define Course interface to match FeaturedCoursesSection
+interface Course {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  discounted_price?: number;
+  level: "beginner" | "intermediate" | "advanced";
+  rating: number;
+  reviews: number;
+  mode: "self-paced" | "virtual" | "live"; 
+  enrolledStudents: number;
+  lessons: number;
+  instructor: {
+    id?: string;
+    name: string;
+    avatar: string | null;
+  };
+  category: string;
+  image: string;
+  featured: boolean;
+  tags: string[];
+  duration: string;
+}
 
 interface CourseCardProps {
   course: Course;
@@ -35,10 +59,13 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     avatar: string;
   } | null>(null);
 
+  // Debug: Log the enrolledStudents value
+  console.log(`CourseCard for "${title}": enrolledStudents = ${enrolledStudents}`);
+
   // Get dynamic rating data
   const { data: ratingData } = useCourseRating(id);
 
-  // Fetch course data including instructor, lessons count, and enrollments count
+  // Fetch course data including instructor and lessons count
   useEffect(() => {
     const fetchCourseData = async () => {
       try {

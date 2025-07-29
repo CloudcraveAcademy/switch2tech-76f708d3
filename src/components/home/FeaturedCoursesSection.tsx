@@ -155,6 +155,11 @@ const FeaturedCoursesSection = () => {
           duration: course.duration_hours ? `${course.duration_hours} hours` : "10 hours",
         }));
 
+        console.log("=== TRANSFORMED COURSES WITH ENROLLMENT COUNTS ===");
+        transformedCourses.forEach((course, index) => {
+          console.log(`${index + 1}. ${course.title}: ${course.enrolledStudents} students (enrolledStudents property)`);
+        });
+
         console.log("Successfully processed top enrolled courses");
         setCourses(transformedCourses);
         setLoading(false);
