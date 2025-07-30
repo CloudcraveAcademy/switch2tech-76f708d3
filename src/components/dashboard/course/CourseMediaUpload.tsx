@@ -37,14 +37,11 @@ export const CourseMediaUpload = ({
   form,
   onMaterialRemove
 }: CourseMediaUploadProps) => {
-  const [materialFileNames, setMaterialFileNames] = useState<string[]>([]);
   const [imagePreviewError, setImagePreviewError] = useState(false);
   
   // Handle file selection for course materials
   const handleMaterialsChange = (files: FileList) => {
     if (onMaterialsChange) {
-      const newFileNames = Array.from(files).map(file => file.name);
-      setMaterialFileNames(prevNames => [...prevNames, ...newFileNames]);
       onMaterialsChange(files);
     }
   };
@@ -214,18 +211,6 @@ export const CourseMediaUpload = ({
               </div>
             )}
 
-            {/* Show newly selected materials */}
-            {materialFileNames.length > 0 && (
-              <div className="w-full mt-4 space-y-2">
-                <p className="text-sm font-medium">Files to upload:</p>
-                {materialFileNames.map((name, idx) => (
-                  <div key={idx} className="flex items-center gap-3 bg-gray-50 p-2 rounded">
-                    <span className="truncate flex-1 text-xs">{name}</span>
-                    <Loader className="h-4 w-4 animate-spin text-brand-600" />
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Show upload indicators and results */}
             {materialUploads && materialUploads.length > 0 && (
