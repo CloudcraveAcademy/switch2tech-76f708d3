@@ -140,8 +140,11 @@ const Courses = () => {
           };
         });
 
-        console.log("Successfully processed courses:", transformedCourses.length);
-        setCourses(transformedCourses);
+        // Sort courses by enrollment count (popularity) - highest first
+        const sortedCourses = transformedCourses.sort((a, b) => b.enrolledStudents - a.enrolledStudents);
+        
+        console.log("Successfully processed courses:", sortedCourses.length);
+        setCourses(sortedCourses);
 
       } catch (error) {
         console.error("Exception while fetching courses:", error);
