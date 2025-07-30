@@ -75,7 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
     const personalMessage = message ? `\n\nPersonal message from ${instructorName}:\n"${message}"` : '';
     
     const emailResponse = await resend.emails.send({
-      from: "Course Invitations <onboarding@resend.dev>",
+      from: "Course Platform <onboarding@resend.dev>",
       to: [email],
       subject: `You're invited to join a course by ${instructorName}`,
       html: `
