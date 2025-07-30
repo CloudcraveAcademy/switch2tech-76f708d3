@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileData } from "@/hooks/useProfileData";
@@ -22,7 +23,12 @@ import {
   Languages,
   Laptop,
   Trash2,
-  LogOut
+  LogOut,
+  Palette,
+  BookOpen,
+  Database,
+  Link,
+  Download
 } from "lucide-react";
 
 const Settings = () => {
@@ -58,6 +64,43 @@ const Settings = () => {
     autoplay: true,
   });
 
+  const [languageSettings, setLanguageSettings] = useState({
+    interface: "en",
+    content: "en", 
+    timezone: "UTC",
+  });
+
+  const [themeSettings, setThemeSettings] = useState({
+    mode: "system",
+    accentColor: "blue",
+    compactMode: false,
+  });
+
+  const [learningSettings, setLearningSettings] = useState({
+    defaultPlaybackSpeed: "1x",
+    autoProgress: true,
+    bookmarks: true,
+    downloadQuality: "high",
+  });
+
+  const [dataSettings, setDataSettings] = useState({
+    analytics: true,
+    cookies: true,
+    dataRetention: "1year",
+  });
+
+  const [integrationSettings, setIntegrationSettings] = useState({
+    calendar: false,
+    slack: false,
+    github: false,
+  });
+
+  const [backupSettings, setBackupSettings] = useState({
+    autoBackup: false,
+    frequency: "weekly",
+    includeProgress: true,
+  });
+
   // Load settings from user preferences when component mounts
   useEffect(() => {
     if (profileData?.preferences) {
@@ -81,6 +124,36 @@ const Settings = () => {
       // Load accessibility settings
       if (prefs.accessibilitySettings) {
         setAccessibilitySettings({ ...accessibilitySettings, ...prefs.accessibilitySettings });
+      }
+
+      // Load language settings
+      if (prefs.languageSettings) {
+        setLanguageSettings({ ...languageSettings, ...prefs.languageSettings });
+      }
+
+      // Load theme settings
+      if (prefs.themeSettings) {
+        setThemeSettings({ ...themeSettings, ...prefs.themeSettings });
+      }
+
+      // Load learning settings
+      if (prefs.learningSettings) {
+        setLearningSettings({ ...learningSettings, ...prefs.learningSettings });
+      }
+
+      // Load data settings
+      if (prefs.dataSettings) {
+        setDataSettings({ ...dataSettings, ...prefs.dataSettings });
+      }
+
+      // Load integration settings
+      if (prefs.integrationSettings) {
+        setIntegrationSettings({ ...integrationSettings, ...prefs.integrationSettings });
+      }
+
+      // Load backup settings
+      if (prefs.backupSettings) {
+        setBackupSettings({ ...backupSettings, ...prefs.backupSettings });
       }
     }
   }, [profileData]);
@@ -180,6 +253,138 @@ const Settings = () => {
     }
   };
 
+  const saveLanguageSettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          languageSettings,
+        }
+      });
+      toast({
+        title: "Language settings updated",
+        description: "Your language preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveThemeSettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          themeSettings,
+        }
+      });
+      toast({
+        title: "Theme settings updated",
+        description: "Your theme preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveLearningSettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          learningSettings,
+        }
+      });
+      toast({
+        title: "Learning settings updated",
+        description: "Your learning preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveDataSettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          dataSettings,
+        }
+      });
+      toast({
+        title: "Data settings updated",
+        description: "Your data preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveIntegrationSettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          integrationSettings,
+        }
+      });
+      toast({
+        title: "Integration settings updated",
+        description: "Your integration preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveBackupSettings = async () => {
+    try {
+      const currentPrefs = profileData?.preferences || {};
+      await updateProfileData({
+        preferences: {
+          ...currentPrefs,
+          backupSettings,
+        }
+      });
+      toast({
+        title: "Backup settings updated",
+        description: "Your backup preferences have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleLogoutAllDevices = async () => {
     try {
       await supabase.auth.signOut({ scope: 'global' });
@@ -247,6 +452,48 @@ const Settings = () => {
             >
               <SettingsIcon className="h-4 w-4 mr-2" />
               Accessibility
+            </TabsTrigger>
+            <TabsTrigger 
+              value="language" 
+              className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
+            >
+              <Languages className="h-4 w-4 mr-2" />
+              Language
+            </TabsTrigger>
+            <TabsTrigger 
+              value="appearance" 
+              className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
+            >
+              <Palette className="h-4 w-4 mr-2" />
+              Appearance
+            </TabsTrigger>
+            <TabsTrigger 
+              value="learning" 
+              className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              Learning
+            </TabsTrigger>
+            <TabsTrigger 
+              value="data" 
+              className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              Data
+            </TabsTrigger>
+            <TabsTrigger 
+              value="integrations" 
+              className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
+            >
+              <Link className="h-4 w-4 mr-2" />
+              Integrations
+            </TabsTrigger>
+            <TabsTrigger 
+              value="backup" 
+              className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Backup
             </TabsTrigger>
             <TabsTrigger 
               value="account" 
@@ -497,6 +744,392 @@ const Settings = () => {
                 
                 <div className="mt-6">
                   <Button onClick={saveAccessibilitySettings}>Save Accessibility Settings</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="language">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Languages className="h-5 w-5 mr-2" />
+                Language & Localization
+              </CardTitle>
+              <CardDescription>Set your preferred language and regional settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-base font-medium">Interface Language</Label>
+                  <p className="text-sm text-gray-500 mb-3">Choose the language for menus and interface</p>
+                  <Select value={languageSettings.interface} onValueChange={(value) => setLanguageSettings({...languageSettings, interface: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Español</SelectItem>
+                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="de">Deutsch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Content Language</Label>
+                  <p className="text-sm text-gray-500 mb-3">Preferred language for course content</p>
+                  <Select value={languageSettings.content} onValueChange={(value) => setLanguageSettings({...languageSettings, content: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Español</SelectItem>
+                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="de">Deutsch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Timezone</Label>
+                  <p className="text-sm text-gray-500 mb-3">Set your timezone for accurate scheduling</p>
+                  <Select value={languageSettings.timezone} onValueChange={(value) => setLanguageSettings({...languageSettings, timezone: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTC">UTC</SelectItem>
+                      <SelectItem value="EST">Eastern Standard Time</SelectItem>
+                      <SelectItem value="PST">Pacific Standard Time</SelectItem>
+                      <SelectItem value="GMT">Greenwich Mean Time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="mt-6">
+                  <Button onClick={saveLanguageSettings}>Save Language Settings</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Palette className="h-5 w-5 mr-2" />
+                Theme & Appearance
+              </CardTitle>
+              <CardDescription>Customize the look and feel of your learning environment</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-base font-medium">Theme Mode</Label>
+                  <p className="text-sm text-gray-500 mb-4">Choose your preferred color scheme</p>
+                  <RadioGroup value={themeSettings.mode} onValueChange={(value) => setThemeSettings({...themeSettings, mode: value})}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="light" id="light" />
+                      <Label htmlFor="light">Light</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="dark" id="dark" />
+                      <Label htmlFor="dark">Dark</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="system" id="system" />
+                      <Label htmlFor="system">System (Auto)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Accent Color</Label>
+                  <p className="text-sm text-gray-500 mb-3">Choose your preferred accent color</p>
+                  <Select value={themeSettings.accentColor} onValueChange={(value) => setThemeSettings({...themeSettings, accentColor: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="blue">Blue</SelectItem>
+                      <SelectItem value="green">Green</SelectItem>
+                      <SelectItem value="purple">Purple</SelectItem>
+                      <SelectItem value="red">Red</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Compact Mode</Label>
+                    <p className="text-sm text-gray-500">Use less spacing for a more compact interface</p>
+                  </div>
+                  <Switch 
+                    checked={themeSettings.compactMode}
+                    onCheckedChange={(checked) => setThemeSettings({...themeSettings, compactMode: checked})}
+                  />
+                </div>
+
+                <div className="mt-6">
+                  <Button onClick={saveThemeSettings}>Save Appearance Settings</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="learning">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BookOpen className="h-5 w-5 mr-2" />
+                Learning Preferences
+              </CardTitle>
+              <CardDescription>Customize your learning experience and preferences</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-base font-medium">Default Playback Speed</Label>
+                  <p className="text-sm text-gray-500 mb-3">Set your preferred video playback speed</p>
+                  <Select value={learningSettings.defaultPlaybackSpeed} onValueChange={(value) => setLearningSettings({...learningSettings, defaultPlaybackSpeed: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0.5x">0.5x</SelectItem>
+                      <SelectItem value="0.75x">0.75x</SelectItem>
+                      <SelectItem value="1x">1x (Normal)</SelectItem>
+                      <SelectItem value="1.25x">1.25x</SelectItem>
+                      <SelectItem value="1.5x">1.5x</SelectItem>
+                      <SelectItem value="2x">2x</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Auto-progress Lessons</Label>
+                    <p className="text-sm text-gray-500">Automatically mark lessons as complete when finished</p>
+                  </div>
+                  <Switch 
+                    checked={learningSettings.autoProgress}
+                    onCheckedChange={(checked) => setLearningSettings({...learningSettings, autoProgress: checked})}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Enable Bookmarks</Label>
+                    <p className="text-sm text-gray-500">Allow saving bookmarks in video lessons</p>
+                  </div>
+                  <Switch 
+                    checked={learningSettings.bookmarks}
+                    onCheckedChange={(checked) => setLearningSettings({...learningSettings, bookmarks: checked})}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Download Quality</Label>
+                  <p className="text-sm text-gray-500 mb-3">Choose quality for offline downloads</p>
+                  <Select value={learningSettings.downloadQuality} onValueChange={(value) => setLearningSettings({...learningSettings, downloadQuality: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low (360p)</SelectItem>
+                      <SelectItem value="medium">Medium (720p)</SelectItem>
+                      <SelectItem value="high">High (1080p)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="mt-6">
+                  <Button onClick={saveLearningSettings}>Save Learning Settings</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="data">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Database className="h-5 w-5 mr-2" />
+                Data & Storage
+              </CardTitle>
+              <CardDescription>Manage your data and storage preferences</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Analytics & Usage Data</Label>
+                    <p className="text-sm text-gray-500">Help us improve by sharing anonymous usage data</p>
+                  </div>
+                  <Switch 
+                    checked={dataSettings.analytics}
+                    onCheckedChange={(checked) => setDataSettings({...dataSettings, analytics: checked})}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Cookies & Tracking</Label>
+                    <p className="text-sm text-gray-500">Allow cookies for personalized experience</p>
+                  </div>
+                  <Switch 
+                    checked={dataSettings.cookies}
+                    onCheckedChange={(checked) => setDataSettings({...dataSettings, cookies: checked})}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Data Retention</Label>
+                  <p className="text-sm text-gray-500 mb-3">How long to keep your learning data</p>
+                  <Select value={dataSettings.dataRetention} onValueChange={(value) => setDataSettings({...dataSettings, dataRetention: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="6months">6 Months</SelectItem>
+                      <SelectItem value="1year">1 Year</SelectItem>
+                      <SelectItem value="2years">2 Years</SelectItem>
+                      <SelectItem value="forever">Forever</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="mt-6">
+                  <Button onClick={saveDataSettings}>Save Data Settings</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Link className="h-5 w-5 mr-2" />
+                Integration & Connected Apps
+              </CardTitle>
+              <CardDescription>Connect external services to enhance your learning experience</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Calendar Integration</Label>
+                    <p className="text-sm text-gray-500">Sync course schedules with your calendar</p>
+                  </div>
+                  <Switch 
+                    checked={integrationSettings.calendar}
+                    onCheckedChange={(checked) => setIntegrationSettings({...integrationSettings, calendar: checked})}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Slack Notifications</Label>
+                    <p className="text-sm text-gray-500">Receive course updates in Slack</p>
+                  </div>
+                  <Switch 
+                    checked={integrationSettings.slack}
+                    onCheckedChange={(checked) => setIntegrationSettings({...integrationSettings, slack: checked})}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">GitHub Integration</Label>
+                    <p className="text-sm text-gray-500">Connect for coding assignments and projects</p>
+                  </div>
+                  <Switch 
+                    checked={integrationSettings.github}
+                    onCheckedChange={(checked) => setIntegrationSettings({...integrationSettings, github: checked})}
+                  />
+                </div>
+
+                <div className="mt-6">
+                  <Button onClick={saveIntegrationSettings}>Save Integration Settings</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Download className="h-5 w-5 mr-2" />
+                Backup & Export
+              </CardTitle>
+              <CardDescription>Manage your data backups and export options</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Automatic Backup</Label>
+                    <p className="text-sm text-gray-500">Automatically backup your learning progress</p>
+                  </div>
+                  <Switch 
+                    checked={backupSettings.autoBackup}
+                    onCheckedChange={(checked) => setBackupSettings({...backupSettings, autoBackup: checked})}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Backup Frequency</Label>
+                  <p className="text-sm text-gray-500 mb-3">How often to create backups</p>
+                  <Select value={backupSettings.frequency} onValueChange={(value) => setBackupSettings({...backupSettings, frequency: value})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-medium">Include Progress Data</Label>
+                    <p className="text-sm text-gray-500">Include course progress in backups</p>
+                  </div>
+                  <Switch 
+                    checked={backupSettings.includeProgress}
+                    onCheckedChange={(checked) => setBackupSettings({...backupSettings, includeProgress: checked})}
+                  />
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="font-medium mb-2">Export Data</h3>
+                  <p className="text-sm text-gray-500 mb-4">Download your data in various formats</p>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => toast({title: "Export started", description: "Your data export will be ready shortly."})}>
+                      Export Progress (JSON)
+                    </Button>
+                    <Button variant="outline" onClick={() => toast({title: "Export started", description: "Your certificates will be ready shortly."})}>
+                      Export Certificates (PDF)
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <Button onClick={saveBackupSettings}>Save Backup Settings</Button>
                 </div>
               </div>
             </CardContent>
