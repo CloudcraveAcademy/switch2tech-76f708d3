@@ -52,73 +52,7 @@ export const CourseSettings = ({ form }: CourseSettingsProps) => {
           )}
         />
 
-        {/* Multi-language Support */}
-        <FormField
-          control={form.control}
-          name="multiLanguageSupport"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between p-4 border rounded-lg">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base flex items-center">
-                  <Globe className="mr-2 h-4 w-4" />
-                  Multi-language Support
-                </FormLabel>
-                <FormDescription>
-                  Enable support for multiple languages
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
       </div>
-
-      {/* Additional Languages */}
-      {multiLanguageSupport && (
-        <FormField
-          control={form.control}
-          name="additionalLanguages"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Additional Languages</FormLabel>
-              <FormDescription>
-                Select additional languages for your course
-              </FormDescription>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {LANGUAGE_OPTIONS.filter(lang => lang !== form.getValues("language")).map((lang) => (
-                  <div key={lang} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`lang-${lang}`}
-                      value={lang}
-                      checked={field.value?.includes(lang) || false}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        const currentLangs = field.value || [];
-                        field.onChange(
-                          checked
-                            ? [...currentLangs, lang]
-                            : currentLangs.filter((l: string) => l !== lang)
-                        );
-                      }}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label htmlFor={`lang-${lang}`} className="text-sm font-medium text-gray-700">
-                      {lang}
-                    </label>
-                  </div>
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
 
       {/* Certificate Upon Completion */}
       <FormField
