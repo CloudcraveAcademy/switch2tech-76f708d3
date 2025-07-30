@@ -26,7 +26,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
                 <Input
                   {...field}
                   type="number" 
-                  className="pl-9"
+                  className="pl-9 pr-4 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100"
                   placeholder="e.g. 100"
                   onChange={(e) => field.onChange(Number(e.target.value))}
                 />
@@ -70,13 +70,13 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
               <FormControl>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    {...field}
-                    type="number" 
-                    className="pl-9"
-                    placeholder="e.g. 80"
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
+                   <Input
+                     {...field}
+                     type="number" 
+                     className="pl-9 pr-4 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100"
+                     placeholder="e.g. 80"
+                     onChange={(e) => field.onChange(Number(e.target.value))}
+                   />
                 </div>
               </FormControl>
               <FormDescription>
