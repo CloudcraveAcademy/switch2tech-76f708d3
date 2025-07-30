@@ -7,6 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Loader2 } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategories } from "@/hooks/useCategories";
 import {
@@ -50,6 +59,9 @@ const Courses = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const COURSES_PER_PAGE = 20;
   
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
@@ -164,6 +176,39 @@ const Courses = () => {
     return matchesSearch && matchesCategory && matchesLevel && matchesMode;
   });
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedLevel, selectedMode]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredCourses.length / COURSES_PER_PAGE);
+  const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
+  const endIndex = startIndex + COURSES_PER_PAGE;
+  const paginatedCourses = filteredCourses.slice(startIndex, endIndex);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        pages.push(1, 2, 3, 4, 5);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2);
+      }
+    }
+    
+    return pages;
+  };
+
   if (loading || categoriesLoading) {
     return (
       <Layout>
@@ -271,9 +316,10 @@ const Courses = () => {
           </div>
 
           {/* Results Summary */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
             <p className="text-gray-600">
-              Showing {filteredCourses.length} of {courses.length} courses
+              Showing {startIndex + 1}-{Math.min(endIndex, filteredCourses.length)} of {filteredCourses.length} courses
+              {filteredCourses.length !== courses.length && ` (filtered from ${courses.length})`}
             </p>
             {searchTerm && (
               <Badge variant="secondary" className="px-3 py-1">
@@ -303,11 +349,100 @@ const Courses = () => {
               </Button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredCourses.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {paginatedCourses.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination className="mt-8">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) setCurrentPage(currentPage - 1);
+                        }}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    
+                    {getPageNumbers().map((pageNum, index) => {
+                      const pages = getPageNumbers();
+                      const isFirst = index === 0;
+                      const isLast = index === pages.length - 1;
+                      const shouldShowEllipsis = (isFirst && pageNum > 1) || (isLast && pageNum < totalPages);
+                      
+                      return (
+                        <div key={pageNum} className="flex items-center">
+                          {isFirst && pageNum > 1 && (
+                            <>
+                              <PaginationItem>
+                                <PaginationLink
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setCurrentPage(1);
+                                  }}
+                                >
+                                  1
+                                </PaginationLink>
+                              </PaginationItem>
+                              {pageNum > 2 && <PaginationEllipsis />}
+                            </>
+                          )}
+                          
+                          <PaginationItem>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(pageNum);
+                              }}
+                              isActive={currentPage === pageNum}
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                          
+                          {isLast && pageNum < totalPages && (
+                            <>
+                              {pageNum < totalPages - 1 && <PaginationEllipsis />}
+                              <PaginationItem>
+                                <PaginationLink
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setCurrentPage(totalPages);
+                                  }}
+                                >
+                                  {totalPages}
+                                </PaginationLink>
+                              </PaginationItem>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                        }}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
           )}
         </div>
       </div>
