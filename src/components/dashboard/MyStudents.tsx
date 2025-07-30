@@ -293,13 +293,39 @@ const MyStudents = () => {
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Here you would send the invitation
-      // For now, let's simulate success
+      // Get instructor details
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('first_name, last_name')
+        .eq('id', user?.id)
+        .single();
+
+      const instructorName = profile 
+        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+        : 'Your Instructor';
+
+      // Call the edge function to send the invitation email
+      const { data, error } = await supabase.functions.invoke('send-invite-email', {
+        body: {
+          email: inviteForm.email,
+          firstName: inviteForm.firstName,
+          lastName: inviteForm.lastName,
+          message: inviteForm.message,
+          instructorName,
+        },
+      });
+
+      if (error) {
+        console.error('Error sending invitation:', error);
+        throw error;
+      }
+
       toast({
         variant: "default",
         title: "Invitation sent",
         description: `Invitation has been sent to ${inviteForm.email}`,
       });
+      
       setInviteForm({
         email: "",
         firstName: "",
@@ -308,6 +334,7 @@ const MyStudents = () => {
       });
       setIsDialogOpen(false);
     } catch (error) {
+      console.error('Error sending invitation:', error);
       toast({
         variant: "destructive",
         title: "Error",

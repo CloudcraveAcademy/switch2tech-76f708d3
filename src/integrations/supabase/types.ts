@@ -403,6 +403,54 @@ export type Database = {
         }
         Relationships: []
       }
+      course_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string | null
+          first_name: string | null
+          id: string
+          instructor_id: string | null
+          instructor_name: string
+          last_name: string | null
+          message: string | null
+          sent_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string | null
+          first_name?: string | null
+          id?: string
+          instructor_id?: string | null
+          instructor_name: string
+          last_name?: string | null
+          message?: string | null
+          sent_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string | null
+          first_name?: string | null
+          id?: string
+          instructor_id?: string | null
+          instructor_name?: string
+          last_name?: string | null
+          message?: string | null
+          sent_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       course_materials: {
         Row: {
           course_id: string

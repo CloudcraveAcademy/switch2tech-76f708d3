@@ -30,8 +30,21 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // For now, we'll create a simple invitation record in the database
-    // In a real implementation, you would integrate with an email service like Resend
+    // Get the instructor ID from the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header found');
+    }
+
+    // Parse the JWT to get user info
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      throw new Error('Invalid user token');
+    }
+
+    // Create invitation record in the database
     const { data: invitation, error: inviteError } = await supabase
       .from('course_invitations')
       .insert({
@@ -40,6 +53,7 @@ const handler = async (req: Request): Promise<Response> => {
         last_name: lastName,
         message: message,
         instructor_name: instructorName,
+        instructor_id: user.id,
         status: 'sent',
         sent_at: new Date().toISOString()
       })
