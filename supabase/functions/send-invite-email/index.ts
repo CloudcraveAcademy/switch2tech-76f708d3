@@ -111,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
           </ol>
           
           <div style="margin: 30px 0;">
-            <a href="${supabaseUrl.replace('https://', 'https://').replace('.supabase.co', '.lovableproject.com')}" 
+            <a href="https://39b31a4b-5bbc-4027-9423-cfa4db4aa0ff.lovableproject.com" 
                style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
               Get Started
             </a>
