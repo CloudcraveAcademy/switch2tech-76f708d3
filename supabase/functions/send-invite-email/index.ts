@@ -27,6 +27,8 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, firstName, lastName, message, instructorName }: InviteEmailRequest = await req.json();
 
     console.log('📧 Sending invite email to:', email);
+    console.log('🔑 RESEND_API_KEY exists:', !!Deno.env.get("RESEND_API_KEY"));
+    console.log('🔑 RESEND_API_KEY length:', Deno.env.get("RESEND_API_KEY")?.length || 0);
     
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -70,9 +72,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('✅ Invitation created successfully:', invitation);
 
+    // Check if RESEND_API_KEY is available
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error('RESEND_API_KEY is not configured');
+    }
+
     // Send invitation email using Resend
     const studentName = firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Student';
     const personalMessage = message ? `\n\nPersonal message from ${instructorName}:\n"${message}"` : '';
+    
+    console.log('📤 Attempting to send email via Resend...');
     
     const emailResponse = await resend.emails.send({
       from: "Course Platform <onboarding@resend.dev>",
@@ -113,8 +123,10 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
+    console.log('📧 Resend API response:', emailResponse);
+
     if (emailResponse.error) {
-      console.error('Error sending email:', emailResponse.error);
+      console.error('❌ Error sending email:', emailResponse.error);
       throw new Error(`Failed to send email: ${emailResponse.error.message}`);
     }
 
