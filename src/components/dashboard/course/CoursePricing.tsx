@@ -26,7 +26,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
                 <Input
                   {...field}
                   type="number" 
-                  className="pl-9 pr-4 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100"
+                  className="pl-9"
                   placeholder="e.g. 100"
                   onChange={(e) => field.onChange(Number(e.target.value))}
                 />
@@ -73,7 +73,7 @@ export const CoursePricing = ({ form }: CoursePricingProps) => {
                    <Input
                      {...field}
                      type="number" 
-                     className="pl-9 pr-4 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:opacity-100 [&::-webkit-outer-spin-button]:opacity-100"
+                     className="pl-9"
                      placeholder="e.g. 80"
                      onChange={(e) => field.onChange(Number(e.target.value))}
                    />
