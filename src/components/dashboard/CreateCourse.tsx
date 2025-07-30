@@ -298,7 +298,7 @@ const CreateCourse = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <Card>
               <CardHeader>
-                <TabsList className="grid grid-cols-2 md:grid-cols-5">
+                <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1 h-auto p-1">
                   <TabsTrigger value="basic">Basic Info</TabsTrigger>
                   <TabsTrigger value="media">Media</TabsTrigger>
                   <TabsTrigger value="mode">Course Mode</TabsTrigger>
