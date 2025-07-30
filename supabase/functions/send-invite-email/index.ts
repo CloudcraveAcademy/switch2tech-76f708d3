@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Remove global Resend initialization - we'll do it inside the handler
 
 interface InviteEmailRequest {
   email: string;
@@ -77,6 +77,9 @@ const handler = async (req: Request): Promise<Response> => {
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY is not configured');
     }
+
+    // Initialize Resend client
+    const resend = new Resend(resendApiKey);
 
     // Send invitation email using Resend
     const studentName = firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Student';
