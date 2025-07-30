@@ -59,23 +59,24 @@ export const CourseSettings = ({ form }: CourseSettingsProps) => {
         control={form.control}
         name="certificateEnabled"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between p-4 border rounded-lg">
-            <div className="space-y-0.5">
-              <FormLabel className="text-base flex items-center">
-                <Award className="mr-2 h-4 w-4" />
-                Certificate Upon Completion
-              </FormLabel>
-              <FormDescription>
-                Students will receive a certificate when they complete this course
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-          </FormItem>
+      <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg space-y-3 sm:space-y-0">
+        <div className="space-y-0.5 flex-1">
+          <FormLabel className="text-base flex items-center">
+            <Award className="mr-2 h-4 w-4 flex-shrink-0" />
+            Certificate Upon Completion
+          </FormLabel>
+          <FormDescription className="text-sm">
+            Students will receive a certificate when they complete this course
+          </FormDescription>
+        </div>
+        <FormControl>
+          <Switch
+            checked={field.value}
+            onCheckedChange={field.onChange}
+            className="self-start sm:self-center"
+          />
+        </FormControl>
+      </FormItem>
         )}
       />
     </div>
