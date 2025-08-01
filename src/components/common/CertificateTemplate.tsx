@@ -194,11 +194,11 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         
         .achievement-text {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 18px;
+            font-size: 22px;
             color: #2d3748;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
             line-height: 1.6;
-            font-weight: 400;
+            font-weight: 500;
         }
         
         .course-title {
@@ -211,18 +211,18 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         
         .course-date {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 16px;
+            font-size: 19px;
             color: #64748b;
-            margin-bottom: 15px;
-            font-weight: 400;
+            margin-bottom: 18px;
+            font-weight: 500;
         }
         
         .wishes-text {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 16px;
+            font-size: 19px;
             color: #2d3748;
             font-style: italic;
-            font-weight: 400;
+            font-weight: 500;
         }
         
         /* Footer signatures */
