@@ -159,9 +159,8 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
             font-weight: 500;
         }
         
-        /* Recipient section */
         .recipient-section {
-            margin: 5px 0 15px;
+            margin: 2px 0 8px;
         }
         
         .recipient-name {
@@ -189,7 +188,7 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         
         /* Course info section */
         .course-section {
-            margin: 25px 0 5px;
+            margin: 15px 0 5px;
         }
         
         .achievement-text {
