@@ -154,14 +154,14 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
             color: #2d3748;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-top: 20px;
-            margin-bottom: 15px;
+            margin-top: 15px;
+            margin-bottom: 10px;
             font-weight: 500;
         }
         
         /* Recipient section */
         .recipient-section {
-            margin: 10px 0 20px;
+            margin: 5px 0 15px;
         }
         
         .recipient-name {
