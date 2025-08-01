@@ -155,7 +155,7 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-top: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             font-weight: 500;
         }
         
