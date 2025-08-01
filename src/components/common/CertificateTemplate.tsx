@@ -27,7 +27,7 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Times+New+Roman:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -107,7 +107,7 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         .content {
             position: relative;
             z-index: 2;
-            padding: 80px 60px 60px;
+            padding: 120px 80px 90px;
             text-align: center;
             height: 100%;
             display: flex;
@@ -117,64 +117,69 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         
         /* Header section */
         .header {
-            margin-bottom: 40px;
+            margin-bottom: 30px;
+            margin-top: 20px;
         }
         
         .certificate-title {
-            font-family: 'Times New Roman', serif;
-            font-size: 32px;
-            font-weight: 700;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px;
+            font-weight: 600;
             color: #2d3748;
             text-transform: uppercase;
-            letter-spacing: 8px;
-            margin-bottom: 10px;
-            line-height: 1.2;
+            letter-spacing: 6px;
+            margin-bottom: 15px;
+            line-height: 1.3;
         }
         
         .certificate-of {
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: 500;
         }
         
         .completion {
-            font-size: 42px;
+            font-size: 36px;
+            font-weight: 700;
             background: linear-gradient(135deg, #8B0000, #B22222);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-top: 5px;
+            margin-top: 8px;
+            letter-spacing: 4px;
         }
         
         .presented-to {
-            font-family: 'Times New Roman', serif;
-            font-size: 18px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 16px;
             color: #2d3748;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-top: 40px;
-            margin-bottom: 30px;
+            letter-spacing: 2px;
+            margin-top: 30px;
+            margin-bottom: 25px;
             font-weight: 500;
         }
         
         /* Recipient section */
         .recipient-section {
-            margin: 40px 0;
+            margin: 25px 0;
         }
         
         .recipient-name {
             font-family: 'Playfair Display', serif;
-            font-size: 64px;
-            font-weight: 400;
+            font-size: 56px;
+            font-weight: 500;
             font-style: italic;
             color: #8B0000;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             position: relative;
             display: inline-block;
+            letter-spacing: 1px;
         }
         
         .recipient-name::after {
             content: '';
             position: absolute;
-            bottom: -5px;
+            bottom: -8px;
             left: 50%;
             transform: translateX(-50%);
             width: 100%;
@@ -184,37 +189,40 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         
         /* Course info section */
         .course-section {
-            margin: 40px 0;
+            margin: 25px 0;
         }
         
         .achievement-text {
-            font-family: 'Times New Roman', serif;
+            font-family: 'Cormorant Garamond', serif;
             font-size: 18px;
             color: #2d3748;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             line-height: 1.6;
+            font-weight: 400;
         }
         
         .course-title {
-            font-family: 'Times New Roman', serif;
-            font-size: 24px;
-            font-weight: 700;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 22px;
+            font-weight: 600;
             color: #2d3748;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         
         .course-date {
-            font-family: 'Times New Roman', serif;
+            font-family: 'Cormorant Garamond', serif;
             font-size: 16px;
             color: #64748b;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            font-weight: 400;
         }
         
         .wishes-text {
-            font-family: 'Times New Roman', serif;
+            font-family: 'Cormorant Garamond', serif;
             font-size: 16px;
             color: #2d3748;
             font-style: italic;
+            font-weight: 400;
         }
         
         /* Footer signatures */
@@ -222,8 +230,8 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
             display: flex;
             justify-content: space-between;
             align-items: end;
-            margin-top: 80px;
-            padding: 0 60px;
+            margin-top: 50px;
+            padding: 0 40px;
         }
         
         .signature {
@@ -233,33 +241,36 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         
         .signature-line {
             border-bottom: 2px solid #8B0000;
-            padding-bottom: 8px;
-            margin-bottom: 8px;
-            font-family: 'Times New Roman', serif;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            font-family: 'Cormorant Garamond', serif;
             font-size: 18px;
-            font-weight: 700;
+            font-weight: 600;
             color: #2d3748;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .signature-title {
-            font-family: 'Times New Roman', serif;
-            font-size: 14px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 13px;
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 400;
         }
         
         /* Verification section */
         .verification {
             position: absolute;
-            bottom: 15px;
+            bottom: 45px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            font-size: 12px;
+            font-size: 11px;
             color: #64748b;
             z-index: 2;
+            max-width: 90%;
         }
         
         .verification-code {
