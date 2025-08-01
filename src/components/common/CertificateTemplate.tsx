@@ -189,7 +189,7 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         
         /* Course info section */
         .course-section {
-            margin: 25px 0;
+            margin: 25px 0 5px;
         }
         
         .achievement-text {
