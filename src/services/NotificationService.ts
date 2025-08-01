@@ -203,7 +203,7 @@ export class NotificationService {
       type: 'payment',
       title: 'New Payout Created',
       description: `A new payout of ${currency} ${amount.toFixed(2)} has been created for you`,
-      action_url: `/dashboard/instructor/payouts`,
+      action_url: `/dashboard/payouts`,
       metadata: { amount, currency, action: 'payout_created' }
     });
   }
@@ -214,7 +214,7 @@ export class NotificationService {
       type: 'payment',
       title: 'Payout Being Processed',
       description: `Your payout of ${currency} ${amount.toFixed(2)} is now being processed`,
-      action_url: `/dashboard/instructor/payouts`,
+      action_url: `/dashboard/payouts`,
       metadata: { amount, currency, action: 'payout_processing' }
     });
   }
@@ -225,7 +225,7 @@ export class NotificationService {
       type: 'payment',
       title: 'Payout Completed',
       description: `Your payout of ${currency} ${amount.toFixed(2)} has been successfully processed${reference ? ` (Ref: ${reference})` : ''}`,
-      action_url: `/dashboard/instructor/payouts`,
+      action_url: `/dashboard/payouts`,
       metadata: { amount, currency, reference, action: 'payout_paid' }
     });
   }
@@ -236,7 +236,7 @@ export class NotificationService {
       type: 'payment',
       title: 'Payout Cancelled',
       description: `Your payout of ${currency} ${amount.toFixed(2)} has been cancelled${reason ? `. Reason: ${reason}` : ''}`,
-      action_url: `/dashboard/instructor/payouts`,
+      action_url: `/dashboard/payouts`,
       metadata: { amount, currency, reason, action: 'payout_cancelled' }
     });
   }
