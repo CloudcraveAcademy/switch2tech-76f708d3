@@ -23,11 +23,11 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificate of Excellence - ${certificate.student.first_name} ${certificate.student.last_name}</title>
+    <title>Certificate of Completion - ${certificate.student.first_name} ${certificate.student.last_name}</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Times+New+Roman:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -36,8 +36,8 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         body {
             margin: 0;
             padding: 20px;
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at 20% 80%, #120078 0%, #9f1cf5 25%, #ffa500 75%, #ff6b6b 100%);
+            font-family: 'Times New Roman', serif;
+            background: #f5f5f5;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -48,197 +48,125 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
             width: 1200px;
             height: 850px;
             margin: 0 auto;
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            background: white;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2), 0 20px 40px rgba(0, 0, 0, 0.1);
-            border-radius: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 20px solid #8B0000;
+            border-image: linear-gradient(45deg, #8B0000, #B22222, #CD853F, #1e3a8a) 20;
         }
         
-        /* Geometric Background Pattern */
-        .certificate::before {
-            content: '';
+        /* Decorative corner elements */
+        .corner-decoration {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 15% 20%, rgba(120, 119, 198, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 85% 80%, rgba(255, 107, 107, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(159, 28, 245, 0.03) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        
-        /* Decorative Border */
-        .certificate::after {
-            content: '';
-            position: absolute;
-            top: 40px;
-            left: 40px;
-            right: 40px;
-            bottom: 40px;
-            border: 3px solid;
-            border-image: linear-gradient(135deg, #7877c6, #9f1cf5, #ffa500, #ff6b6b) 1;
-            border-radius: 24px;
-            pointer-events: none;
+            width: 150px;
+            height: 150px;
             z-index: 1;
         }
         
-        /* Premium Logo Badge */
-        .logo-container {
+        .corner-decoration.top-left {
+            top: 0;
+            left: 0;
+            background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #CD853F 100%);
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+        
+        .corner-decoration.top-right {
+            top: 0;
+            right: 0;
+            background: linear-gradient(225deg, #1e3a8a 0%, #3b82f6 50%, #CD853F 100%);
+            clip-path: polygon(100% 0, 100% 100%, 0 0);
+        }
+        
+        .corner-decoration.bottom-left {
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(45deg, #1e3a8a 0%, #3b82f6 50%, #CD853F 100%);
+            clip-path: polygon(0 0, 100% 100%, 0 100%);
+        }
+        
+        .corner-decoration.bottom-right {
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(315deg, #8B0000 0%, #B22222 50%, #CD853F 100%);
+            clip-path: polygon(100% 0, 100% 100%, 0 100%);
+        }
+        
+        /* Inner border */
+        .inner-border {
             position: absolute;
-            top: 60px;
-            left: 60px;
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, #7877c6 0%, #9f1cf5 100%);
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 
-                0 20px 40px rgba(120, 119, 198, 0.4),
-                0 0 0 8px rgba(255, 255, 255, 0.1),
-                inset 0 2px 0 rgba(255, 255, 255, 0.2);
-            z-index: 2;
+            top: 30px;
+            left: 30px;
+            right: 30px;
+            bottom: 30px;
+            border: 3px solid #8B0000;
+            z-index: 1;
         }
         
-        .logo-image {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-            filter: brightness(0) invert(1);
-            margin-bottom: 8px;
-        }
-        
-        .logo-text {
-            font-size: 12px;
-            font-weight: 700;
-            color: white;
-            text-align: center;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        
-        /* Premium Seal */
-        .excellence-seal {
-            position: absolute;
-            top: 60px;
-            right: 60px;
-            width: 140px;
-            height: 140px;
-            background: linear-gradient(135deg, #ffa500 0%, #ff6b6b 100%);
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 
-                0 20px 40px rgba(255, 165, 0, 0.4),
-                0 0 0 8px rgba(255, 255, 255, 0.1),
-                inset 0 2px 0 rgba(255, 255, 255, 0.2);
-            z-index: 2;
-        }
-        
-        .seal-text {
-            color: white;
-            text-align: center;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            line-height: 1.2;
-        }
-        
-        .seal-main {
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-        
-        .seal-sub {
-            font-size: 10px;
-            opacity: 0.9;
-        }
-        
-        /* Elegant Watermark */
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
-            font-family: 'Playfair Display', serif;
-            font-size: 180px;
-            font-weight: 400;
-            color: rgba(120, 119, 198, 0.02);
-            z-index: 0;
-            user-select: none;
-            pointer-events: none;
-            font-style: italic;
-        }
-        
-        /* Main Content */
+        /* Main content container */
         .content {
             position: relative;
             z-index: 2;
-            padding: 120px 80px 80px;
+            padding: 80px 60px 60px;
             text-align: center;
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
         }
         
+        /* Header section */
         .header {
-            margin-bottom: 60px;
+            margin-bottom: 40px;
         }
         
-        .certificate-type {
-            font-family: 'Inter', sans-serif;
-            font-size: 16px;
-            font-weight: 500;
-            color: #7877c6;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-bottom: 16px;
-        }
-        
-        .title {
-            font-family: 'Playfair Display', serif;
-            font-size: 72px;
+        .certificate-title {
+            font-family: 'Times New Roman', serif;
+            font-size: 32px;
             font-weight: 700;
-            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: #2d3748;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+        
+        .certificate-of {
+            font-size: 24px;
+        }
+        
+        .completion {
+            font-size: 42px;
+            background: linear-gradient(135deg, #8B0000, #B22222);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 32px;
-            line-height: 1.1;
+            margin-top: 5px;
         }
         
-        .subtitle {
-            font-family: 'Inter', sans-serif;
-            font-size: 22px;
-            color: #64748b;
-            font-weight: 300;
-            letter-spacing: 0.5px;
+        .presented-to {
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+            color: #2d3748;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 40px;
+            margin-bottom: 30px;
+            font-weight: 500;
         }
         
-        /* Recipient Section */
-        .recipient {
-            margin: 50px 0;
-            position: relative;
+        /* Recipient section */
+        .recipient-section {
+            margin: 40px 0;
         }
         
         .recipient-name {
             font-family: 'Playfair Display', serif;
-            font-size: 56px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #7877c6 0%, #9f1cf5 50%, #ffa500 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 20px;
+            font-size: 64px;
+            font-weight: 400;
+            font-style: italic;
+            color: #8B0000;
+            margin-bottom: 10px;
             position: relative;
             display: inline-block;
         }
@@ -246,152 +174,130 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
         .recipient-name::after {
             content: '';
             position: absolute;
-            bottom: -8px;
+            bottom: -5px;
             left: 50%;
             transform: translateX(-50%);
-            width: 120px;
-            height: 4px;
-            background: linear-gradient(135deg, #7877c6, #9f1cf5, #ffa500);
-            border-radius: 2px;
+            width: 100%;
+            height: 2px;
+            background: #8B0000;
+        }
+        
+        /* Course info section */
+        .course-section {
+            margin: 40px 0;
         }
         
         .achievement-text {
-            font-family: 'Inter', sans-serif;
-            font-size: 20px;
-            color: #64748b;
-            font-weight: 400;
-            margin-top: 24px;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Course Information */
-        .course-info {
-            margin: 50px 0;
-            padding: 40px;
-            background: linear-gradient(135deg, rgba(120, 119, 198, 0.05) 0%, rgba(159, 28, 245, 0.05) 100%);
-            border-radius: 24px;
-            border: 1px solid rgba(120, 119, 198, 0.1);
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 20px;
+            line-height: 1.6;
         }
         
         .course-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 36px;
+            font-family: 'Times New Roman', serif;
+            font-size: 24px;
             font-weight: 700;
             color: #2d3748;
-            margin-bottom: 20px;
-            line-height: 1.3;
+            margin-bottom: 10px;
         }
         
-        .course-details {
-            font-family: 'Inter', sans-serif;
-            font-size: 18px;
+        .course-date {
+            font-family: 'Times New Roman', serif;
+            font-size: 16px;
             color: #64748b;
-            margin-bottom: 12px;
-            font-weight: 500;
+            margin-bottom: 20px;
         }
         
-        .course-level {
-            display: inline-block;
-            background: linear-gradient(135deg, #7877c6, #9f1cf5);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 16px;
+        .wishes-text {
+            font-family: 'Times New Roman', serif;
+            font-size: 16px;
+            color: #2d3748;
+            font-style: italic;
         }
         
-        /* Footer Section */
-        .footer {
-            margin-top: 60px;
+        /* Footer signatures */
+        .signatures {
             display: flex;
             justify-content: space-between;
             align-items: end;
+            margin-top: 80px;
+            padding: 0 60px;
         }
         
-        .date-section, .signature-section {
+        .signature {
             text-align: center;
-            flex: 1;
-        }
-        
-        .date-value, .signature-line {
-            font-family: 'Inter', sans-serif;
-            font-size: 18px;
-            font-weight: 600;
-            color: #2d3748;
-            padding: 16px 24px;
-            border-bottom: 3px solid transparent;
-            border-image: linear-gradient(135deg, #7877c6, #9f1cf5) 1;
-            margin-bottom: 12px;
             min-width: 200px;
-            display: inline-block;
         }
         
-        .label {
-            font-family: 'Inter', sans-serif;
+        .signature-line {
+            border-bottom: 2px solid #8B0000;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+            text-transform: uppercase;
+        }
+        
+        .signature-title {
+            font-family: 'Times New Roman', serif;
             font-size: 14px;
             color: #64748b;
-            font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         
-        /* Verification Section */
+        /* Verification section */
         .verification {
             position: absolute;
-            bottom: 60px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 20px 40px;
-            border-radius: 16px;
-            border: 1px solid rgba(120, 119, 198, 0.2);
+            font-size: 12px;
+            color: #64748b;
+            z-index: 2;
         }
         
         .verification-code {
+            margin: 2px 0;
             font-family: 'Inter', monospace;
-            font-size: 13px;
-            color: #64748b;
-            margin-bottom: 8px;
-            font-weight: 500;
         }
         
         .verify-link {
-            color: #7877c6;
+            color: #8B0000;
             text-decoration: none;
-            font-size: 13px;
             font-weight: 600;
-            transition: color 0.3s ease;
         }
         
         .verify-link:hover {
-            color: #9f1cf5;
+            text-decoration: underline;
         }
         
-        /* Decorative Elements */
-        .decorative-corner {
+        /* Logo positioning */
+        .logo-container {
             position: absolute;
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, #7877c6, transparent);
-            opacity: 0.1;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 3;
         }
         
-        .decorative-corner.top-left {
-            top: 0;
-            left: 0;
-            border-radius: 0 0 100px 0;
-        }
-        
-        .decorative-corner.bottom-right {
-            bottom: 0;
-            right: 0;
-            border-radius: 100px 0 0 0;
-            background: linear-gradient(135deg, transparent, #ffa500);
+        .logo-image {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
         }
         
         @media print {
@@ -401,7 +307,6 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
             }
             .certificate {
                 box-shadow: none;
-                border-radius: 0;
                 width: 100%;
                 height: auto;
                 min-height: 100vh;
@@ -411,60 +316,54 @@ export const generateCertificateHTML = (certificate: CertificateData): string =>
 </head>
 <body>
     <div class="certificate">
-        <!-- Decorative Corners -->
-        <div class="decorative-corner top-left"></div>
-        <div class="decorative-corner bottom-right"></div>
+        <!-- Corner decorations -->
+        <div class="corner-decoration top-left"></div>
+        <div class="corner-decoration top-right"></div>
+        <div class="corner-decoration bottom-left"></div>
+        <div class="corner-decoration bottom-right"></div>
         
-        <!-- Premium Logo Badge -->
+        <!-- Inner border -->
+        <div class="inner-border"></div>
+        
+        <!-- Logo -->
         <div class="logo-container">
             <img src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" alt="Switch2Tech Academy" class="logo-image" />
-            <span class="logo-text">Switch2Tech</span>
         </div>
         
-        <!-- Excellence Seal -->
-        <div class="excellence-seal">
-            <div class="seal-text">
-                <div class="seal-main">Excellence</div>
-                <div class="seal-sub">Certified</div>
-            </div>
-        </div>
-        
-        <!-- Elegant Watermark -->
-        <div class="watermark">Excellence</div>
-        
-        <!-- Main Content -->
+        <!-- Main content -->
         <div class="content">
             <div class="header">
-                <div class="certificate-type">Certificate of</div>
-                <h1 class="title">Excellence</h1>
-                <p class="subtitle">This is to proudly certify that</p>
+                <div class="certificate-title">
+                    <div class="certificate-of">Certificate of</div>
+                    <div class="completion">Completion</div>
+                </div>
+                <div class="presented-to">This Certificate is Presented to:</div>
             </div>
             
-            <div class="recipient">
+            <div class="recipient-section">
                 <h2 class="recipient-name">${certificate.student.first_name} ${certificate.student.last_name}</h2>
-                <p class="achievement-text">has successfully demonstrated mastery and completed</p>
             </div>
             
-            <div class="course-info">
-                <h3 class="course-title">${certificate.course.title}</h3>
-                <p class="course-details">Under the expert guidance of ${certificate.course.instructor.first_name} ${certificate.course.instructor.last_name}</p>
-                <div class="course-level">${certificate.course.level} Level</div>
+            <div class="course-section">
+                <p class="achievement-text">For achievements and participation in <strong>${certificate.course.title}</strong></p>
+                <p class="course-date">Held on ${new Date(certificate.issue_date).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                <p class="wishes-text">We wish a bright future and great success in life.</p>
             </div>
             
-            <div class="footer">
-                <div class="date-section">
-                    <div class="date-value">${new Date(certificate.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                    <div class="label">Date of Achievement</div>
+            <div class="signatures">
+                <div class="signature">
+                    <div class="signature-line">${certificate.course.instructor.first_name} ${certificate.course.instructor.last_name}</div>
+                    <div class="signature-title">Course Instructor</div>
                 </div>
                 
-                <div class="signature-section">
+                <div class="signature">
                     <div class="signature-line">Switch2Tech Academy</div>
-                    <div class="label">Authorized Institution</div>
+                    <div class="signature-title">Academy Director</div>
                 </div>
             </div>
         </div>
         
-        <!-- Verification Section -->
+        <!-- Verification section -->
         <div class="verification">
             <p class="verification-code">Certificate ID: ${certificate.certificate_number}</p>
             <p class="verification-code">Verification: ${certificate.verification_code}</p>
