@@ -283,6 +283,7 @@ const Settings = () => {
               <Lock className="h-4 w-4 mr-2" />
               Privacy
             </TabsTrigger>
+            {/* TODO: Implement accessibility features
             <TabsTrigger 
               value="accessibility" 
               className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
@@ -290,6 +291,7 @@ const Settings = () => {
               <SettingsIcon className="h-4 w-4 mr-2" />
               Accessibility
             </TabsTrigger>
+            */}
             <TabsTrigger 
               value="appearance" 
               className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-brand-600 rounded-none"
@@ -554,7 +556,7 @@ const Settings = () => {
           </div>
         </TabsContent>
 
-        {/* Accessibility Tab */}
+        {/* TODO: Implement accessibility features
         <TabsContent value="accessibility">
           <div className="space-y-6">
             <Card>
@@ -633,6 +635,7 @@ const Settings = () => {
             </div>
           </div>
         </TabsContent>
+        */}
 
         {/* Appearance Tab */}
         <TabsContent value="appearance">
