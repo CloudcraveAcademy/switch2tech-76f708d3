@@ -452,7 +452,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
                   <div className="mt-3 flex items-center gap-2">
                     {notification.action_url && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link to={notification.action_url}>View Details</Link>
+                        <Link to={notification.action_url || "/dashboard"}>View Details</Link>
                       </Button>
                     )}
                     
