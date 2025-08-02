@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileData } from "@/hooks/useProfileData";
+import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
@@ -29,6 +31,8 @@ const Settings = () => {
   const { toast } = useToast();
   const { user, logout } = useAuth();
   const { profileData, updateProfileData, loading } = useProfileData();
+  const { theme, setTheme } = useTheme();
+  const { accentColor, compactMode, setAccentColor, setCompactMode } = useCustomTheme();
   
   const [emailSettings, setEmailSettings] = useState({
     courseUpdates: true,
@@ -59,9 +63,9 @@ const Settings = () => {
   });
 
   const [themeSettings, setThemeSettings] = useState({
-    mode: "system",
-    accentColor: "blue",
-    compactMode: false,
+    mode: theme || "system",
+    accentColor: accentColor,
+    compactMode: compactMode,
   });
 
   // Load settings from user preferences when component mounts
@@ -91,7 +95,11 @@ const Settings = () => {
 
       // Load theme settings
       if (prefs.themeSettings) {
-        setThemeSettings({ ...themeSettings, ...prefs.themeSettings });
+        setThemeSettings({ 
+          mode: theme || "system",
+          accentColor: accentColor,
+          compactMode: compactMode,
+        });
       }
     }
   }, [profileData]);
@@ -129,6 +137,15 @@ const Settings = () => {
       ...themeSettings,
       [setting]: value,
     });
+    
+    // Apply changes immediately
+    if (setting === 'mode') {
+      setTheme(value);
+    } else if (setting === 'accentColor') {
+      setAccentColor(value);
+    } else if (setting === 'compactMode') {
+      setCompactMode(value);
+    }
   };
 
   const saveNotificationSettings = async () => {
@@ -199,25 +216,10 @@ const Settings = () => {
   };
 
   const saveAppearanceSettings = async () => {
-    try {
-      const currentPrefs = profileData?.preferences || {};
-      await updateProfileData({
-        preferences: {
-          ...currentPrefs,
-          themeSettings,
-        }
-      });
-      toast({
-        title: "Appearance settings updated",
-        description: "Your appearance preferences have been saved successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Update failed",
-        description: "There was a problem updating your settings. Please try again.",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Appearance settings updated", 
+      description: "Your appearance preferences have been applied and saved.",
+    });
   };
 
   const handleLogoutAllDevices = async () => {

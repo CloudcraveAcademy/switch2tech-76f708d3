@@ -127,3 +127,34 @@
 .card-hover {
   @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
 }
+
+/* Compact mode styles */
+.compact-mode {
+  --spacing-unit: 0.75;
+}
+
+.compact-mode .space-y-6 > * + * {
+  margin-top: 1rem;
+}
+
+.compact-mode .space-y-4 > * + * {
+  margin-top: 0.75rem;
+}
+
+.compact-mode .p-6 {
+  padding: 1rem;
+}
+
+.compact-mode .p-4 {
+  padding: 0.75rem;
+}
+
+.compact-mode .text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.compact-mode .text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}

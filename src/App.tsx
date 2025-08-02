@@ -18,6 +18,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyCertificate from "./pages/VerifyCertificate";
 
@@ -28,7 +29,8 @@ const App = () => (
     <BrowserRouter>
       <TooltipProvider>
         <Sonner />
-        <AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/courses" element={<Courses />} />
@@ -46,7 +48,8 @@ const App = () => (
             <Route path="/verify-certificate" element={<VerifyCertificate />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </TooltipProvider>
     </BrowserRouter>
   </QueryClientProvider>
