@@ -50,7 +50,7 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
       <DialogOverlay className="md:hidden" />
       <DialogContent className="p-0 border-none sm:rounded-none bg-transparent max-w-full h-full md:hidden">
         <div className="fixed inset-0 z-40 flex">
-          <div className="relative flex w-full max-w-xs flex-1 flex-col bg-white pb-4">
+          <div className="relative flex w-full max-w-xs flex-1 flex-col bg-sidebar pb-4">
             <div className="absolute top-0 right-0 -mr-12 pt-2">
               <button
                 type="button"
@@ -68,10 +68,10 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
               <nav className="space-y-1 px-2">
                 <Link
                   to="/dashboard"
-                  className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                  className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                   onClick={onClose}
                 >
-                  <Home className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                  <Home className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                   Dashboard
                 </Link>
 
@@ -80,26 +80,26 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                   <>
                     <Link
                       to="/dashboard/my-courses"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       My Courses
                     </Link>
                     <Link
                       to="/dashboard/class-schedule"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Calendar className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Calendar className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Class Schedule
                     </Link>
                     <Link
                       to="/dashboard/certificates"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <GraduationCap className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <GraduationCap className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Certificates
                     </Link>
                   </>
@@ -110,74 +110,74 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                   <>
                     <Link
                       to="/dashboard/my-courses"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       My Courses
                     </Link>
                     <Link
                       to="/dashboard/students"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Users className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Users className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       My Students
                     </Link>
                     <Link
                       to="/dashboard/live-classes"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Monitor className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Monitor className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Live Classes
                     </Link>
                     <Link
                       to="/dashboard/certificates"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Award className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Award className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Certificates
                     </Link>
                     <Link
                       to="/dashboard/revenue"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <DollarSign className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <DollarSign className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Revenue
                     </Link>
                     <Link
                       to="/dashboard/create-course"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <PlusCircle className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <PlusCircle className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Create Course
                     </Link>
                     <Link
                       to="/dashboard/assignments"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Assignments
                     </Link>
                     <Link
                       to="/dashboard/quizzes"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <ClipboardList className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <ClipboardList className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Quizzes
                     </Link>
                     <Link
                       to="/dashboard/discussions"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Discussions
                     </Link>
                   </>
@@ -188,106 +188,106 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                   <>
                     <Link
                       to="/dashboard/users"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Users className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Users className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Users
                     </Link>
                     <Link
                       to="/dashboard/courses"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Courses
                     </Link>
                     <Link
                       to="/dashboard/live-classes-overview"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Monitor className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Monitor className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Live Classes
                     </Link>
                     <Link
                       to="/dashboard/certificates"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Award className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Award className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Certificates
                     </Link>
                     <Link
                       to="/dashboard/finance"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <DollarSign className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <DollarSign className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Finance
                     </Link>
                     <Link
                       to="/dashboard/reports"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <FileText className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Reports
                     </Link>
                     <Link
                       to="/dashboard/support-tickets"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <HeadphonesIcon className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <HeadphonesIcon className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Support
                     </Link>
                     <Link
                       to="/dashboard/announcements"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Announcements
                     </Link>
                     <Link
                       to="/dashboard/system"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Settings className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Settings className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       System
                     </Link>
                     <Link
                       to="/dashboard/ratings"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Star className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Star className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Ratings
                     </Link>
                     <Link
                       to="/dashboard/assignments-overview"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <ClipboardList className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <ClipboardList className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Assignments
                     </Link>
                     <Link
                       to="/dashboard/quizzes-overview"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <Brain className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <Brain className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Quizzes
                     </Link>
                     <Link
                       to="/dashboard/discussions-overview"
-                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                       onClick={onClose}
                     >
-                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                      <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                       Discussions
                     </Link>
                   </>
@@ -296,33 +296,33 @@ const DashboardMobileMenu = ({ isOpen, onClose }: DashboardMobileMenuProps) => {
                 <div className="border-t pt-4 mt-4">
                   <Link
                     to="/dashboard/profile"
-                    className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                    className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                     onClick={onClose}
                   >
-                    <User className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                    <User className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                     Profile
                   </Link>
                   <Link
                     to="/dashboard/notifications"
-                    className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                    className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                     onClick={onClose}
                   >
-                    <Bell className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                    <Bell className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                     Notifications
                   </Link>
                   <Link
                     to="/dashboard/settings"
-                    className="flex items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                    className="flex items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                     onClick={onClose}
                   >
-                    <Settings className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                    <Settings className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                     Settings
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="flex w-full items-center rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                    className="flex w-full items-center rounded-md px-3 py-2 text-base font-medium text-sidebar-foreground hover:bg-sidebar-accent"
                   >
-                    <LogOut className="mr-3 h-5 w-5 flex-shrink-0 text-gray-500" />
+                    <LogOut className="mr-3 h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
                     Logout
                   </button>
                 </div>

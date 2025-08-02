@@ -59,7 +59,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-background">
       <DashboardSidebar />
       <DashboardMobileNav 
         isMobileMenuOpen={isMobileMenuOpen}
@@ -70,7 +70,7 @@ const Dashboard = () => {
         onClose={() => setIsMobileMenuOpen(false)}
       />
       
-      <main className="flex-1 overflow-y-auto bg-gray-100 pt-16 md:pt-0 pl-4">
+      <main className="flex-1 overflow-y-auto bg-background pt-16 md:pt-0 pl-4">
         <DashboardRoutes />
       </main>
     </div>

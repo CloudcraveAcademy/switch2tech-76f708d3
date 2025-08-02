@@ -17,7 +17,7 @@ const DashboardMobileNav = ({
   const { user } = useAuth();
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-10 md:hidden bg-white border-b border-gray-200">
+    <div className="fixed top-0 left-0 right-0 z-10 md:hidden bg-background border-b border-border">
       <div className="flex items-center justify-between p-4">
         <Logo />
         
