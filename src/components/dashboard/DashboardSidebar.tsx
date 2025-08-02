@@ -20,7 +20,7 @@ const DashboardSidebar = () => {
   };
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200">
+    <aside className="hidden md:flex flex-col w-64 bg-sidebar-background border-r border-sidebar-border">
       <div className="p-4 border-b">
         <Logo />
       </div>
@@ -38,13 +38,13 @@ const DashboardSidebar = () => {
           </AvatarFallback>
         </Avatar>
         <div className="flex flex-col">
-          <span className="font-medium text-sm">{user?.name || "User"}</span>
-          <span className="text-xs text-gray-500 capitalize">{user?.role || "User"}</span>
+          <span className="font-medium text-sm text-sidebar-foreground">{user?.name || "User"}</span>
+          <span className="text-xs text-sidebar-foreground/70 capitalize">{user?.role || "User"}</span>
         </div>
       </div>
       
       <nav className="flex-1 pt-4 pb-4 overflow-y-auto">
-        <div className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <div className="px-4 mb-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
           Main
         </div>
         
@@ -67,7 +67,7 @@ const DashboardSidebar = () => {
           <AdminNavigation isActive={isActive} />
         )}
         
-        <div className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <div className="px-4 mt-6 mb-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
           Account
         </div>
         
