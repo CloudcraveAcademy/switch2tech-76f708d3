@@ -238,7 +238,7 @@ const Settings = () => {
 
   const handleDeleteAccount = async () => {
     try {
-      // Send deletion request email or mark for deletion
+      // Send deletion request email
       const { error } = await supabase.functions.invoke('send-account-deletion-email', {
         body: { userId: user?.id }
       });
@@ -246,15 +246,15 @@ const Settings = () => {
       if (error) throw error;
       
       toast({
-        title: "Account deletion requested",
-        description: "Please check your email to confirm account deletion. This process may take up to 30 days to complete.",
+        title: "Deletion confirmation email sent",
+        description: "Please check your email and click the confirmation link to permanently delete your account. The link expires in 24 hours.",
         variant: "destructive",
       });
     } catch (error) {
       console.error('Account deletion request failed:', error);
       toast({
         title: "Request failed",
-        description: "We couldn't process your deletion request. Please contact support for assistance.",
+        description: "We couldn't send the deletion confirmation email. Please try again or contact support.",
         variant: "destructive",
       });
     }

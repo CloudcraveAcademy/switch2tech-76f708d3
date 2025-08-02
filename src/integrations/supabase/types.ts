@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          deletion_token: string
+          email: string
+          expires_at: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          deletion_token: string
+          email: string
+          expires_at?: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          deletion_token?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       assignment_submissions: {
         Row: {
           assignment_id: string
