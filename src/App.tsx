@@ -29,8 +29,8 @@ const App = () => (
     <BrowserRouter>
       <TooltipProvider>
         <Sonner />
-        <ThemeProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <ThemeProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/courses" element={<Courses />} />
@@ -47,9 +47,9 @@ const App = () => (
             <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/verify-certificate" element={<VerifyCertificate />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
-          </AuthProvider>
-        </ThemeProvider>
+            </Routes>
+          </ThemeProvider>
+        </AuthProvider>
       </TooltipProvider>
     </BrowserRouter>
   </QueryClientProvider>
