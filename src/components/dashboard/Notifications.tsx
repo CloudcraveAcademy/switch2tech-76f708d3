@@ -344,74 +344,8 @@ const Notifications = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab Content for All */}
-        <TabsContent value="all">
-          <NotificationsList 
-            notifications={filteredNotifications}
-            markAsRead={markAsRead}
-            markAsReadMutation={markAsReadMutation}
-            getNotificationIcon={getNotificationIcon}
-            getNotificationColor={getNotificationColor}
-          />
-        </TabsContent>
-
-        {/* Tab Content for Unread */}
-        <TabsContent value="unread">
-          <NotificationsList 
-            notifications={filteredNotifications}
-            markAsRead={markAsRead}
-            markAsReadMutation={markAsReadMutation}
-            getNotificationIcon={getNotificationIcon}
-            getNotificationColor={getNotificationColor}
-          />
-        </TabsContent>
-
-        {/* Tab Content for Courses */}
-        <TabsContent value="course">
-          <NotificationsList 
-            notifications={filteredNotifications}
-            markAsRead={markAsRead}
-            markAsReadMutation={markAsReadMutation}
-            getNotificationIcon={getNotificationIcon}
-            getNotificationColor={getNotificationColor}
-          />
-        </TabsContent>
-
-        {/* Tab Content for Assignments */}
-        <TabsContent value="assignment">
-          <NotificationsList 
-            notifications={filteredNotifications}
-            markAsRead={markAsRead}
-            markAsReadMutation={markAsReadMutation}
-            getNotificationIcon={getNotificationIcon}
-            getNotificationColor={getNotificationColor}
-          />
-        </TabsContent>
-
-        {/* Tab Content for Announcements */}
-        <TabsContent value="announcement">
-          <NotificationsList 
-            notifications={filteredNotifications}
-            markAsRead={markAsRead}
-            markAsReadMutation={markAsReadMutation}
-            getNotificationIcon={getNotificationIcon}
-            getNotificationColor={getNotificationColor}
-          />
-        </TabsContent>
-
-        {/* Tab Content for Certificates */}
-        <TabsContent value="certificate">
-          <NotificationsList 
-            notifications={filteredNotifications}
-            markAsRead={markAsRead}
-            markAsReadMutation={markAsReadMutation}
-            getNotificationIcon={getNotificationIcon}
-            getNotificationColor={getNotificationColor}
-          />
-        </TabsContent>
-
-        {/* Tab Content for Payments */}
-        <TabsContent value="payment">
+        {/* Single Tab Content - shows filtered notifications based on active tab */}
+        <TabsContent value={activeTab}>
           <NotificationsList 
             notifications={filteredNotifications}
             markAsRead={markAsRead}
