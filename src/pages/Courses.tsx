@@ -265,7 +265,7 @@ const Courses = () => {
           </div>
 
           {/* Search and Filters */}
-          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+          <div className="bg-card rounded-lg shadow-sm border p-6 mb-8">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
