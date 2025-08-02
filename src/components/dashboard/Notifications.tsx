@@ -238,15 +238,15 @@ const Notifications = () => {
     switch (notification.type) {
       case "course":
       case "enrollment":
-        return notification.course_id ? `/course/${notification.course_id}` : "/dashboard/my-courses";
+        return notification.course_id ? `/dashboard/courses/${notification.course_id}` : "/dashboard/my-courses";
       case "assignment":
-        return notification.course_id ? `/course/${notification.course_id}/assignments` : "/dashboard/assignments";
+        return "/dashboard/assignments";
       case "announcement":
-        return notification.course_id ? `/course/${notification.course_id}` : "/dashboard";
+        return notification.course_id ? `/dashboard/courses/${notification.course_id}` : "/dashboard";
       case "certificate":
         return "/dashboard/certificates";
       case "payment":
-        return "/dashboard/revenue";
+        return "/dashboard/payouts";
       case "message":
         return "/dashboard/discussions";
       default:
