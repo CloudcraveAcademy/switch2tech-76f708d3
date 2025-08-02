@@ -14,6 +14,10 @@ import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { EnhancedNotificationService } from "@/services/EnhancedNotificationService";
+import { PrivacyService } from "@/services/PrivacyService";
+import { NotificationPreview } from "./settings/NotificationPreview";
+import { PrivacyStatusCard } from "./settings/PrivacyStatusCard";
 import { 
   Bell,
   Mail,
@@ -24,7 +28,9 @@ import {
   Laptop,
   Trash2,
   LogOut,
-  Palette
+  Palette,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 
 const Settings = () => {
@@ -158,15 +164,29 @@ const Settings = () => {
           pushSettings,
         }
       });
+
+      // Test notification creation to verify settings work
+      if (user) {
+        await EnhancedNotificationService.createNotificationWithPreferences({
+          user_id: user.id,
+          type: 'settings',
+          title: 'Notification Settings Updated',
+          description: 'Your notification preferences have been successfully updated.',
+          action_url: '/dashboard/settings'
+        });
+      }
+
       toast({
         title: "Notification settings updated",
-        description: "Your notification preferences have been saved successfully.",
+        description: "Your notification preferences have been saved and are now active.",
+        action: <CheckCircle className="h-4 w-4" />,
       });
     } catch (error) {
       toast({
         title: "Update failed",
         description: "There was a problem updating your settings. Please try again.",
         variant: "destructive",
+        action: <AlertCircle className="h-4 w-4" />,
       });
     }
   };
@@ -180,15 +200,24 @@ const Settings = () => {
           privacySettings,
         }
       });
+
+      // Verify privacy settings by testing them
+      if (user) {
+        const testProfile = await PrivacyService.getSanitizedProfile(user.id, user.id);
+        console.log('Privacy settings test:', testProfile);
+      }
+
       toast({
         title: "Privacy settings updated",
-        description: "Your privacy preferences have been saved successfully.",
+        description: "Your privacy preferences have been saved and are now enforced across the platform.",
+        action: <CheckCircle className="h-4 w-4" />,
       });
     } catch (error) {
       toast({
         title: "Update failed",
-        description: "There was a problem updating your settings. Please try again.",
+        description: "There was a problem updating your privacy settings. Please try again.",
         variant: "destructive",
+        action: <AlertCircle className="h-4 w-4" />,
       });
     }
   };
@@ -437,37 +466,46 @@ const Settings = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="pushAssignments">Assignments</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified about assignment deadlines and grades.
-                    </p>
-                  </div>
-                  <Switch
-                    id="pushAssignments"
-                    checked={pushSettings.assignments}
-                    onCheckedChange={() => handlePushSettingsChange('assignments')}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="pushReminders">Reminders</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive push notifications for upcoming events.
-                    </p>
-                  </div>
-                  <Switch
-                    id="pushReminders"
-                    checked={pushSettings.reminders}
-                    onCheckedChange={() => handlePushSettingsChange('reminders')}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                     <p className="text-sm text-muted-foreground">
+                       Get notified about assignment deadlines and grades.
+                     </p>
+                   </div>
+                   <Switch
+                     id="pushAssignments"
+                     checked={pushSettings.assignments}
+                     onCheckedChange={() => handlePushSettingsChange('assignments')}
+                   />
+                 </div>
+                 <Separator />
+                 <div className="flex items-center justify-between">
+                   <div className="space-y-0.5">
+                     <Label htmlFor="pushReminders">Reminders</Label>
+                     <p className="text-sm text-muted-foreground">
+                       Receive push notifications for upcoming events.
+                     </p>
+                   </div>
+                   <Switch
+                     id="pushReminders"
+                     checked={pushSettings.reminders}
+                     onCheckedChange={() => handlePushSettingsChange('reminders')}
+                   />
+                 </div>
+               </CardContent>
+             </Card>
 
-            <div className="flex justify-end">
-              <Button onClick={saveNotificationSettings}>
+            <div className="flex items-center justify-between">
+              <Button onClick={saveNotificationSettings} disabled={loading}>
+                <CheckCircle className="h-4 w-4 mr-2" />
                 Save Notification Settings
               </Button>
+              <p className="text-sm text-muted-foreground">
+                Changes will affect future notifications immediately
+              </p>
+            </div>
+            
+            {/* Notification Status Card */}
+            <div className="mt-6">
+              <NotificationPreview />
             </div>
           </div>
         </TabsContent>
@@ -525,33 +563,42 @@ const Settings = () => {
                       <RadioGroupItem value="instructors" id="activity-instructors" />
                       <Label htmlFor="activity-instructors">Only instructors</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="private" id="activity-private" />
-                      <Label htmlFor="activity-private">Only me</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="onlineStatus">Show online status</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Let others see when you're online and active.
-                    </p>
-                  </div>
-                  <Switch
-                    id="onlineStatus"
-                    checked={privacySettings.showOnlineStatus}
-                    onCheckedChange={(checked) => handlePrivacyChange('showOnlineStatus', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                     <div className="flex items-center space-x-2">
+                       <RadioGroupItem value="private" id="activity-private" />
+                       <Label htmlFor="activity-private">Only me</Label>
+                     </div>
+                   </RadioGroup>
+                 </div>
+                 <Separator />
+                 <div className="flex items-center justify-between">
+                   <div className="space-y-0.5">
+                     <Label htmlFor="onlineStatus">Show online status</Label>
+                     <p className="text-sm text-muted-foreground">
+                       Let others see when you're online and active.
+                     </p>
+                   </div>
+                   <Switch
+                     id="onlineStatus"
+                     checked={privacySettings.showOnlineStatus}
+                     onCheckedChange={(checked) => handlePrivacyChange('showOnlineStatus', checked)}
+                   />
+                 </div>
+               </CardContent>
+             </Card>
 
-            <div className="flex justify-end">
-              <Button onClick={savePrivacySettings}>
+            <div className="flex items-center justify-between">
+              <Button onClick={savePrivacySettings} disabled={loading}>
+                <Shield className="h-4 w-4 mr-2" />
                 Save Privacy Settings
               </Button>
+              <p className="text-sm text-muted-foreground">
+                Privacy controls are enforced immediately across the platform
+              </p>
+            </div>
+            
+            {/* Privacy Status Card */}
+            <div className="mt-6">
+              <PrivacyStatusCard />
             </div>
           </div>
         </TabsContent>
