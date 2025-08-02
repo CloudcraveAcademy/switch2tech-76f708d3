@@ -230,6 +230,30 @@ const Notifications = () => {
     }
   };
 
+  // Helper function to get correct link for notification type
+  const getNotificationLink = (notification: Notification) => {
+    if (notification.action_url) return notification.action_url;
+    
+    // Generate appropriate links based on notification type
+    switch (notification.type) {
+      case "course":
+      case "enrollment":
+        return notification.course_id ? `/course/${notification.course_id}` : "/dashboard/my-courses";
+      case "assignment":
+        return notification.course_id ? `/course/${notification.course_id}/assignments` : "/dashboard/assignments";
+      case "announcement":
+        return notification.course_id ? `/course/${notification.course_id}` : "/dashboard";
+      case "certificate":
+        return "/dashboard/certificates";
+      case "payment":
+        return "/dashboard/revenue";
+      case "message":
+        return "/dashboard/discussions";
+      default:
+        return "/dashboard";
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -352,6 +376,7 @@ const Notifications = () => {
             markAsReadMutation={markAsReadMutation}
             getNotificationIcon={getNotificationIcon}
             getNotificationColor={getNotificationColor}
+            getNotificationLink={getNotificationLink}
           />
         </TabsContent>
       </Tabs>
@@ -366,6 +391,7 @@ interface NotificationsListProps {
   markAsReadMutation: any;
   getNotificationIcon: (type: string) => JSX.Element;
   getNotificationColor: (type: string) => string;
+  getNotificationLink: (notification: Notification) => string;
 }
 
 const NotificationsList: React.FC<NotificationsListProps> = ({
@@ -374,6 +400,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
   markAsReadMutation,
   getNotificationIcon,
   getNotificationColor,
+  getNotificationLink,
 }) => {
   if (notifications.length === 0) {
     return (
@@ -452,7 +479,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
                   <div className="mt-3 flex items-center gap-2">
                     {notification.action_url && (
                       <Button variant="outline" size="sm" asChild>
-                        <Link to={notification.action_url || "/dashboard"}>View Details</Link>
+                        <Link to={getNotificationLink(notification)}>View Details</Link>
                       </Button>
                     )}
                     
