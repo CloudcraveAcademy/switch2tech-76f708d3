@@ -21,12 +21,12 @@ const DashboardSidebar = () => {
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-sidebar-background border-r border-sidebar-border">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b border-sidebar-border bg-sidebar-background">
         <Logo />
       </div>
       
       {/* User profile section */}
-      <div className="p-4 border-b flex items-center gap-3">
+      <div className="p-4 border-b border-sidebar-border bg-sidebar-background flex items-center gap-3">
         <Avatar className="h-10 w-10">
           <AvatarImage 
             src={user?.avatar || undefined} 
@@ -43,7 +43,7 @@ const DashboardSidebar = () => {
         </div>
       </div>
       
-      <nav className="flex-1 pt-4 pb-4 overflow-y-auto">
+      <nav className="flex-1 pt-4 pb-4 overflow-y-auto bg-sidebar-background">
         <div className="px-4 mb-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
           Main
         </div>
