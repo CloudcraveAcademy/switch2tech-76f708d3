@@ -12,9 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Menu, X, LogOut, User, Book, Home, GraduationCap } from "lucide-react";
+import { Menu, X, LogOut, User, Book, Home, GraduationCap, Sun, Moon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import NotificationBell from "@/components/common/NotificationBell";
+import { useTheme } from "next-themes";
 
 const Navbar = () => {
   const { user, loading, logout } = useAuth();
@@ -22,6 +23,7 @@ const Navbar = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   // Only show user data when not loading and user exists
   const userData = useMemo(() => {
@@ -146,9 +148,19 @@ const Navbar = () => {
                       <Button>Register</Button>
                     </Link>
                   </>
-                 ) : (
+                  ) : (
                    <div className="flex items-center gap-2">
                      <NotificationBell />
+                     <Button
+                       variant="ghost"
+                       size="icon"
+                       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                       className="rounded-full"
+                     >
+                       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                       <span className="sr-only">Toggle theme</span>
+                     </Button>
                      <DropdownMenu>
                        <DropdownMenuTrigger asChild>
                          <Button variant="ghost" className="relative rounded-full">
@@ -254,17 +266,25 @@ const Navbar = () => {
             
             {!loading && (
               <>
-                {!userData ? (
-                  <div className="mt-4 flex flex-col space-y-2 px-3">
-                    <Link to="/login" onClick={toggleMenu}>
-                      <Button variant="outline" className="w-full">
-                        Login
-                      </Button>
-                    </Link>
-                    <Link to="/register" onClick={toggleMenu}>
-                      <Button className="w-full">Register</Button>
-                    </Link>
-                  </div>
+                 {!userData ? (
+                   <div className="mt-4 flex flex-col space-y-2 px-3">
+                     <button
+                       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                       className="flex items-center px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+                     >
+                       <Sun className="h-5 w-5 mr-2 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                       <Moon className="absolute h-5 w-5 ml-2 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                       <span className="ml-7">Toggle theme</span>
+                     </button>
+                     <Link to="/login" onClick={toggleMenu}>
+                       <Button variant="outline" className="w-full">
+                         Login
+                       </Button>
+                     </Link>
+                     <Link to="/register" onClick={toggleMenu}>
+                       <Button className="w-full">Register</Button>
+                     </Link>
+                   </div>
                  ) : (
                    <div className="pt-4 pb-3 border-t border-border">
                      <div className="flex items-center px-4">
@@ -285,17 +305,27 @@ const Navbar = () => {
                          </div>
                        </div>
                      </div>
-                     <div className="mt-3 space-y-1 px-2">
-                       <Link
-                         to="/dashboard"
-                         className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent"
-                         onClick={toggleMenu}
-                       >
-                         <div className="flex items-center">
-                           <User className="w-5 h-5 mr-2" />
-                           Dashboard
-                         </div>
-                       </Link>
+                      <div className="mt-3 space-y-1 px-2">
+                        <button
+                          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                          className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent"
+                        >
+                          <div className="flex items-center">
+                            <Sun className="h-5 w-5 mr-2 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                            <Moon className="absolute h-5 w-5 ml-2 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                            <span className="ml-7">Toggle theme</span>
+                          </div>
+                        </button>
+                        <Link
+                          to="/dashboard"
+                          className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:bg-accent"
+                          onClick={toggleMenu}
+                        >
+                          <div className="flex items-center">
+                            <User className="w-5 h-5 mr-2" />
+                            Dashboard
+                          </div>
+                        </Link>
                        <button
                          onClick={() => {
                            handleLogout();
