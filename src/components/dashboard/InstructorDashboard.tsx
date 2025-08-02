@@ -339,7 +339,7 @@ const InstructorDashboard = () => {
   }));
 
   return (
-    <div className="p-6 bg-gray-50/50 dark:bg-gray-900/10 min-h-screen">
+    <div className="p-6 bg-background min-h-screen">
       {/* Header with Greeting & Quick Stats */}
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
