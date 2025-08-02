@@ -215,7 +215,7 @@ const Courses = () => {
   if (loading || categoriesLoading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-background">
           <div className="container mx-auto px-6 py-12">
             <div className="flex justify-center items-center py-20">
               <div className="flex flex-col items-center space-y-4">
@@ -232,7 +232,7 @@ const Courses = () => {
   if (error) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-background">
           <div className="container mx-auto px-6 py-12">
             <div className="flex justify-center items-center py-20">
               <div className="flex flex-col items-center space-y-4">
@@ -254,7 +254,7 @@ const Courses = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-6 py-12">
           {/* Header */}
           <div className="text-center mb-12">
