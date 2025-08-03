@@ -21,8 +21,10 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
   verificationCode = "ABCD1234EFGH"
 }) => {
   return (
-    <Card className="w-full max-w-4xl mx-auto bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 relative">
-      <CardContent className="p-12">
+    <Card className="w-full max-w-4xl mx-auto bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 relative overflow-hidden">
+      <CardContent className="p-8 relative max-w-full">
+        {/* Content container to prevent overflow */}
+        <div className="w-full max-w-full overflow-hidden">
         {/* Logo Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center items-center mb-4">
@@ -96,6 +98,7 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
         <div className="absolute top-4 right-4 w-8 h-8 border-r-4 border-t-4 border-blue-300"></div>
         <div className="absolute bottom-4 left-4 w-8 h-8 border-l-4 border-b-4 border-blue-300"></div>
         <div className="absolute bottom-4 right-4 w-8 h-8 border-r-4 border-b-4 border-blue-300"></div>
+        </div>
       </CardContent>
     </Card>
   );
