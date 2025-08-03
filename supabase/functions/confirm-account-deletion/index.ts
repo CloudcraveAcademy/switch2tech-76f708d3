@@ -79,24 +79,50 @@ const handler = async (req: Request): Promise<Response> => {
     await deleteUserData(supabaseClient, deletionRequest.user_id);
 
     return new Response(
-      `<html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px;">
-          <h1 style="color: #dc2626;">Account Deletion Confirmed</h1>
-          <p>Your account deletion has been confirmed and is being processed.</p>
-          <p><strong>What happens next:</strong></p>
-          <ul>
-            <li>Your account will be permanently deleted within 24 hours</li>
-            <li>All your personal data will be removed from our systems</li>
-            <li>You will no longer be able to access your account</li>
-          </ul>
-          <p style="color: #666; margin-top: 30px;">
-            If you change your mind, please contact our support team immediately at support@academy.com
-          </p>
+      `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Account Deletion Confirmed - Switch2Tech</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <img src="https://acmfhyqvqdhnmmnblrdh.supabase.co/storage/v1/object/public/avatars/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" 
+                 alt="Switch2Tech Academy" 
+                 style="height: 60px; width: auto;" />
+          </div>
+          
+          <div style="background-color: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h1 style="color: #dc2626; margin-top: 0; text-align: center;">Account Deletion Confirmed</h1>
+            <p style="font-size: 16px; line-height: 1.6;">Your account deletion has been confirmed and is being processed.</p>
+            
+            <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0;">
+              <p style="margin: 0; font-weight: bold; color: #991b1b;">What happens next:</p>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>Your account will be permanently deleted within 24 hours</li>
+                <li>All your personal data will be removed from our systems</li>
+                <li>You will no longer be able to access your account</li>
+              </ul>
+            </div>
+            
+            <p style="color: #666; margin-top: 30px; text-align: center; font-size: 14px;">
+              If you change your mind, please contact our support team immediately at 
+              <a href="mailto:support@switch2tech.net" style="color: #2563eb;">support@switch2tech.net</a>
+            </p>
+          </div>
+          
+          <footer style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px;">
+            <p>© 2024 Switch2Tech Academy. All rights reserved.</p>
+          </footer>
         </body>
       </html>`,
       {
         status: 200,
-        headers: { "Content-Type": "text/html", ...corsHeaders },
+        headers: { 
+          "Content-Type": "text/html; charset=utf-8", 
+          ...corsHeaders 
+        },
       }
     );
 
