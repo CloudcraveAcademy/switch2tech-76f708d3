@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Users, BookOpen, DollarSign, FileText, HeadphonesIcon, MessageSquare, Settings, Award, Star, ClipboardList, Brain, Monitor } from "lucide-react";
+import { Users, BookOpen, DollarSign, FileText, HeadphonesIcon, MessageSquare, Settings, Award, Star, ClipboardList, Brain, Monitor, UserCheck, MessageCircle, Calendar, FolderOpen } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface AdminNavigationProps {
@@ -99,6 +99,34 @@ const AdminNavigation: React.FC<AdminNavigationProps> = ({ isActive }) => {
         icon={MessageSquare}
         label="Discussions"
         isActive={isActive("/dashboard/discussions-overview")}
+      />
+      
+      <SidebarMenuItem
+        to="/dashboard/applications"
+        icon={UserCheck}
+        label="Applications"
+        isActive={isActive("/dashboard/applications")}
+      />
+      
+      <SidebarMenuItem
+        to="/dashboard/testimonials"
+        icon={MessageCircle}
+        label="Testimonials"
+        isActive={isActive("/dashboard/testimonials")}
+      />
+      
+      <SidebarMenuItem
+        to="/dashboard/programs"
+        icon={Calendar}
+        label="Programs"
+        isActive={isActive("/dashboard/programs")}
+      />
+      
+      <SidebarMenuItem
+        to="/dashboard/categories"
+        icon={FolderOpen}
+        label="Categories"
+        isActive={isActive("/dashboard/categories")}
       />
     </>
   );

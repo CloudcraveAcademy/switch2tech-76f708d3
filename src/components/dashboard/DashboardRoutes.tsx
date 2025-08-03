@@ -46,6 +46,12 @@ import AnnouncementsPage from "@/pages/admin/AnnouncementsPage";
 import SystemPage from "@/pages/admin/SystemPage";
 import RatingsPage from "@/pages/admin/RatingsPage";
 
+// Import new admin management components
+import ApplicationsManagement from "./admin/ApplicationsManagement";
+import TestimonialsManagement from "./admin/TestimonialsManagement";
+import ProgramsManagement from "./admin/ProgramsManagement";
+import { CategoryManager } from "./admin/CategoryManager";
+
 const DashboardRoutes = () => {
   const { user } = useAuth();
   
@@ -113,6 +119,10 @@ const DashboardRoutes = () => {
         <Route path="/assignments-overview" element={<AssignmentOverview />} />
         <Route path="/quizzes-overview" element={<QuizOverview />} />
         <Route path="/discussions-overview" element={<DiscussionOverview />} />
+        <Route path="/applications" element={<ApplicationsManagement />} />
+        <Route path="/testimonials" element={<TestimonialsManagement />} />
+        <Route path="/programs" element={<ProgramsManagement />} />
+        <Route path="/categories" element={<CategoryManager />} />
     </>
   ), []);
 
