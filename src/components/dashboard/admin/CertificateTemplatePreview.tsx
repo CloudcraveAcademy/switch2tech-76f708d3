@@ -44,7 +44,7 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
 
         {/* Main Content */}
         <div className="text-center mb-8">
-          <p className="text-lg text-gray-600 mb-3">This is to certify that</p>
+          <p className="text-lg text-gray-600 mb-1">This is to certify that</p>
           
           <h2 className="text-3xl font-bold text-blue-800 mb-6 border-b-2 border-blue-300 pb-2 inline-block">
             {studentName}
@@ -75,9 +75,16 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
           </div>
           
           <div className="text-right">
-            <Badge variant="outline" className="mb-2">
-              Certificate #{certificateNumber}
-            </Badge>
+            <div className="flex items-center justify-end mb-2">
+              <img 
+                src="/lovable-uploads/46f46751-2285-4ad6-9c49-da2565a6ffbd.png" 
+                alt="Switch2Tech" 
+                className="h-4 w-auto mr-2" 
+              />
+              <Badge variant="outline">
+                Certificate #{certificateNumber}
+              </Badge>
+            </div>
             <p className="text-xs text-gray-500">
               Verification: {verificationCode}
             </p>
