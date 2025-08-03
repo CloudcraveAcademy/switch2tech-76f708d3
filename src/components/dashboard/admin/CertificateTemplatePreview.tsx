@@ -44,7 +44,7 @@ const CertificateTemplatePreview: React.FC<CertificateTemplatePreviewProps> = ({
 
         {/* Main Content */}
         <div className="text-center mb-8">
-          <p className="text-lg text-gray-600 mb-6">This is to certify that</p>
+          <p className="text-lg text-gray-600 mb-3">This is to certify that</p>
           
           <h2 className="text-3xl font-bold text-blue-800 mb-6 border-b-2 border-blue-300 pb-2 inline-block">
             {studentName}
