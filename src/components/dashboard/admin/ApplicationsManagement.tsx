@@ -111,8 +111,8 @@ const ApplicationsManagement = () => {
         </div>
         <div>
           <h4 className="font-semibold">Professional Information</h4>
-          <p><strong>Current Role:</strong> {application.current_role || 'Not provided'}</p>
-          <p><strong>Company:</strong> {application.current_company || 'Not provided'}</p>
+          <p><strong>Current Role:</strong> {application.user_current_role || 'Not provided'}</p>
+          <p><strong>Company:</strong> {application.user_current_company || 'Not provided'}</p>
           <p><strong>Experience:</strong> {application.years_of_experience || 'Not provided'} years</p>
           <p><strong>Portfolio:</strong> {application.portfolio_url || 'Not provided'}</p>
         </div>
