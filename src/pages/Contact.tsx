@@ -62,7 +62,8 @@ const Contact = () => {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Email</h3>
-                <p>contact@cloudcraves.com</p>
+                <p>support@switch2tech.net</p>
+                 <p>contact@cloudcraves.com</p>
               </div>
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Phone</h3>
