@@ -72,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation email
     const emailResponse = await resend.emails.send({
-      from: "Academy <noreply@resend.dev>",
+      from: "Switch2Tech <noreply@resend.dev>",
       to: [authUser.user.email],
       subject: "Confirm Account Deletion - Action Required",
       html: `
