@@ -1,14 +1,21 @@
-import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useQuery } from "@tanstack/react-query";
+import { Users, DollarSign, BookOpen, UserPlus, Briefcase, Eye, EyeOff } from "lucide-react";
+import AvatarUploader from "./profile/AvatarUploader";
+import ApplicationFormModal from "./ApplicationFormModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
@@ -17,20 +24,13 @@ import {
   Settings, 
   Award, 
   Wallet, 
-  Briefcase,
   GraduationCap, 
-  UserPlus, 
-  ShieldCheck,
-  Users,
-  BookOpen 
+  ShieldCheck
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { useProfileData, ProfileData } from "@/hooks/useProfileData";
 import { Skeleton } from "@/components/ui/skeleton";
 import BankDetails from './profile/BankDetails';
-import { useQuery } from "@tanstack/react-query";
-import AvatarUploader from "./profile/AvatarUploader";
 
 // Admin Stats Component
 const AdminStatsDisplay = () => {
@@ -86,6 +86,8 @@ const AdminStatsDisplay = () => {
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [mentorshipModalOpen, setMentorshipModalOpen] = useState(false);
+  const [internshipModalOpen, setInternshipModalOpen] = useState(false);
   const { 
     profileData, 
     loading, 
@@ -323,123 +325,6 @@ const Profile = () => {
     }
   };
 
-  const handleMentorshipApply = async () => {
-    try {
-      // Check if user already has a pending application
-      const { data: existingApplication } = await supabase
-        .from('mentorship_applications')
-        .select('id, status')
-        .eq('student_id', user?.id)
-        .single();
-
-      if (existingApplication) {
-        toast({
-          title: "Application already exists",
-          description: `You already have a ${existingApplication.status} mentorship application.`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Get available mentorship programs
-      const { data: programs } = await supabase
-        .from('mentorship_programs')
-        .select('id')
-        .eq('status', 'active')
-        .limit(1);
-
-      if (!programs || programs.length === 0) {
-        toast({
-          title: "No programs available",
-          description: "There are currently no active mentorship programs.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Create application
-      const { error } = await supabase
-        .from('mentorship_applications')
-        .insert({
-          program_id: programs[0].id,
-          student_id: user?.id,
-          application_text: "I am interested in joining the mentorship program to advance my learning and career.",
-          status: 'pending'
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Application submitted",
-        description: "Your mentorship application has been received. We'll review it soon.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Application failed",
-        description: error.message || "Failed to submit mentorship application.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleInternshipApply = async () => {
-    try {
-      // Check if user already has a pending application
-      const { data: existingApplication } = await supabase
-        .from('internship_applications')
-        .select('id, status')
-        .eq('student_id', user?.id)
-        .single();
-
-      if (existingApplication) {
-        toast({
-          title: "Application already exists",
-          description: `You already have a ${existingApplication.status} internship application.`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Get available internship programs
-      const { data: programs } = await supabase
-        .from('internship_programs')
-        .select('id')
-        .eq('status', 'active')
-        .limit(1);
-
-      if (!programs || programs.length === 0) {
-        toast({
-          title: "No programs available",
-          description: "There are currently no active internship programs.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Create application
-      const { error } = await supabase
-        .from('internship_applications')
-        .insert({
-          program_id: programs[0].id,
-          student_id: user?.id,
-          application_text: "I am interested in joining the internship program to gain practical experience.",
-          status: 'pending'
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Application submitted",
-        description: "Your internship application has been received. We'll review it soon.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Application failed",
-        description: error.message || "Failed to submit internship application.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const isInstructor = user?.role === "instructor";
   const instructorId = user?.id;
@@ -699,7 +584,7 @@ const Profile = () => {
                     <p className="text-sm text-gray-600 my-2">
                       Get guidance from industry experts to accelerate your learning and career growth.
                     </p>
-                    <Button size="sm" onClick={handleMentorshipApply}>Apply Now</Button>
+                    <Button size="sm" onClick={() => setMentorshipModalOpen(true)}>Apply Now</Button>
                   </div>
 
                   <div className="rounded-lg border p-4">
@@ -710,8 +595,8 @@ const Profile = () => {
                     <p className="text-sm text-gray-600 my-2">
                       Gain practical experience with our partner companies after completing relevant courses.
                     </p>
-                    <Button size="sm" variant="outline" onClick={handleInternshipApply}>
-                      View Opportunities
+                    <Button size="sm" variant="outline" onClick={() => setInternshipModalOpen(true)}>
+                      Apply Now
                     </Button>
                   </div>
                 </div>
@@ -1142,6 +1027,19 @@ const Profile = () => {
           </Card>
         </div>
       </div>
+
+      {/* Application Modals */}
+      <ApplicationFormModal
+        isOpen={mentorshipModalOpen}
+        onClose={() => setMentorshipModalOpen(false)}
+        applicationType="mentorship"
+      />
+      
+      <ApplicationFormModal
+        isOpen={internshipModalOpen}
+        onClose={() => setInternshipModalOpen(false)}
+        applicationType="internship"
+      />
     </div>
   );
 };
