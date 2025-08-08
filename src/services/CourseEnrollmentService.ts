@@ -258,12 +258,15 @@ export const CourseEnrollmentService = {
 
       const newProgress = Math.round((completedLessons / totalLessons) * 100);
 
-      // Update progress and mark as completed if 100%
+      // Check if this should trigger course completion
+      const shouldComplete = await this.checkCourseCompletion(userId, courseId, newProgress);
+
+      // Update progress and mark as completed if requirements are met
       const updateData: { progress: number; completed?: boolean; completion_date?: string } = {
         progress: newProgress
       };
 
-      if (newProgress >= 100) {
+      if (shouldComplete) {
         updateData.completed = true;
         updateData.completion_date = new Date().toISOString();
       }
@@ -277,6 +280,79 @@ export const CourseEnrollmentService = {
     } catch (error) {
       console.error("Error in trackLessonProgress:", error);
       return false;
+    }
+  },
+
+  async checkCourseCompletion(userId: string, courseId: string, lessonProgress: number): Promise<boolean> {
+    try {
+      // Get course details to check the mode
+      const { data: course, error: courseError } = await supabase
+        .from("courses")
+        .select("mode")
+        .eq("id", courseId)
+        .maybeSingle();
+
+      if (courseError || !course) {
+        console.error("Error fetching course:", courseError);
+        return false;
+      }
+
+      // For self-paced courses, completion is based on lesson progress only (existing behavior)
+      if (course.mode === 'self-paced' || !course.mode) {
+        return lessonProgress >= 100;
+      }
+
+      // For virtual-live courses, check both lesson progress and attendance
+      if (course.mode === 'virtual-live') {
+        // Must complete all lessons
+        if (lessonProgress < 100) {
+          return false;
+        }
+
+        // Must meet attendance requirement (80% of live sessions)
+        const attendanceProgress = await this.calculateAttendanceProgress(userId, courseId);
+        return attendanceProgress >= 80; // 80% attendance requirement
+      }
+
+      // Default to lesson progress only for unknown modes
+      return lessonProgress >= 100;
+    } catch (error) {
+      console.error("Error checking course completion:", error);
+      return false;
+    }
+  },
+
+  async calculateAttendanceProgress(userId: string, courseId: string): Promise<number> {
+    try {
+      // Get total number of class sessions for this course
+      const { count: totalSessions } = await supabase
+        .from("class_sessions")
+        .select("*", { count: 'exact', head: true })
+        .eq("course_id", courseId)
+        .lte("start_time", new Date().toISOString()); // Only count past sessions
+
+      if (!totalSessions || totalSessions === 0) {
+        // If no sessions have occurred yet, return 100% (no attendance requirement)
+        return 100;
+      }
+
+      // Get number of sessions the student attended
+      const { count: attendedSessions } = await supabase
+        .from("class_attendance")
+        .select("*", { count: 'exact', head: true })
+        .eq("course_id", courseId)
+        .eq("student_id", userId)
+        .eq("attendance_status", "present");
+
+      if (attendedSessions === undefined) {
+        return 0;
+      }
+
+      // Calculate attendance percentage
+      return Math.round((attendedSessions / totalSessions) * 100);
+    } catch (error) {
+      console.error("Error calculating attendance progress:", error);
+      return 0;
     }
   },
 
