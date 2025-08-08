@@ -1671,6 +1671,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_attendance_progress: {
+        Args: { student_id_param: string; course_id_param: string }
+        Returns: number
+      }
+      check_course_completion_requirements: {
+        Args: { student_id_param: string; course_id_param: string }
+        Returns: boolean
+      }
+      check_virtual_live_completion: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_course_announcement: {
         Args: {
           course_id_param: string
