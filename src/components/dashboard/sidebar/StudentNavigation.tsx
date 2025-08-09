@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, GraduationCap, Calendar } from "lucide-react";
+import { BookOpen, GraduationCap, Calendar, MessageSquare } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface StudentNavigationProps {
@@ -27,6 +27,12 @@ const StudentNavigation = ({ isActive }: StudentNavigationProps) => {
         icon={GraduationCap}
         label="Certificates"
         isActive={isActive("/dashboard/certificates")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/messages"
+        icon={MessageSquare}
+        label="Messages"
+        isActive={isActive("/dashboard/messages")}
       />
     </>
   );

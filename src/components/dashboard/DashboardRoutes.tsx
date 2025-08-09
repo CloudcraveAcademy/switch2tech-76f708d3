@@ -11,6 +11,7 @@ import MyStudents from "./MyStudents";
 import MyRevenue from "./MyRevenue";
 import Settings from "./Settings";
 import Notifications from "./Notifications";
+import Messages from "./Messages";
 import CreateCourse from "./CreateCourse";
 import CourseEdit from "./CourseEdit";
 import CourseView from "@/components/CourseView";
@@ -131,6 +132,7 @@ const DashboardRoutes = () => {
       <Route path="/" element={dashboardComponent} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/notifications" element={<Notifications />} />
+      <Route path="/messages" element={<Messages />} />
       <Route path="/settings" element={<Settings />} />
       
       {/* Student and Instructor Routes */}

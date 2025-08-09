@@ -248,7 +248,7 @@ const Notifications = () => {
       case "payment":
         return "/dashboard/payouts";
       case "message":
-        return "/dashboard/discussions";
+        return "/dashboard/messages";
       default:
         return "/dashboard";
     }

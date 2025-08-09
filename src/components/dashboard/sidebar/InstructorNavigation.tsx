@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Book, Users, DollarSign, PlusCircle, Award, FileText, MessageSquare, ClipboardList, Monitor } from "lucide-react";
+import { Book, Users, DollarSign, PlusCircle, Award, FileText, MessageSquare, ClipboardList, Monitor, Mail } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface InstructorNavigationProps {
@@ -78,6 +78,13 @@ const InstructorNavigation: React.FC<InstructorNavigationProps> = ({ isActive })
         icon={MessageSquare}
         label="Discussions"
         isActive={isActive("/dashboard/discussions")}
+      />
+      
+      <SidebarMenuItem
+        to="/dashboard/messages"
+        icon={Mail}
+        label="Messages"
+        isActive={isActive("/dashboard/messages")}
       />
     </>
   );

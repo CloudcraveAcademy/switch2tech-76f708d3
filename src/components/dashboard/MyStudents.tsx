@@ -358,17 +358,46 @@ const MyStudents = () => {
 
   const handleMessageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedStudent || !user) return;
+
     try {
-      // Here you would integrate with your messaging system or email service
+      // Send message to database
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: user.id,
+          recipient_id: selectedStudent.id,
+          subject: messageForm.subject,
+          content: messageForm.message,
+        });
+
+      if (messageError) throw messageError;
+
+      // Create notification for the student
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: selectedStudent.id,
+          type: 'message',
+          title: `New message from your instructor`,
+          description: messageForm.subject,
+          action_url: '/dashboard/messages',
+          instructor_id: user.id,
+          metadata: { sender_name: `${user.user_metadata?.first_name} ${user.user_metadata?.last_name}` }
+        });
+
+      if (notificationError) throw notificationError;
+
       toast({
         variant: "default",
         title: "Message sent",
-        description: `Message sent to ${selectedStudent?.name}`,
+        description: `Message sent to ${selectedStudent.name}`,
       });
       setMessageForm({ subject: "", message: "" });
       setIsMessageDialogOpen(false);
       setSelectedStudent(null);
     } catch (error) {
+      console.error('Error sending message:', error);
       toast({
         variant: "destructive",
         title: "Error",
