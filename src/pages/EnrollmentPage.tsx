@@ -416,17 +416,71 @@ const EnrollmentPage = () => {
         console.log('✅ Found valid session, proceeding with enrollment');
         console.log('Session user:', session.user.id);
         
-        // Recalculate pricing with current course data to avoid stale values
-        const getCurrentEffectivePrice = () => {
-          if (!course) return 0;
+        // Debug: Check if course data is available
+        console.log('=== COURSE DATA DEBUG ===');
+        console.log('course object:', course);
+        console.log('course.price:', course?.price);
+        console.log('course.discounted_price:', course?.discounted_price);
+        
+        // If course data is not available, fetch it directly
+        let currentCourse = course;
+        if (!currentCourse) {
+          console.log('❌ No course data available, fetching directly...');
           
-          if (course.discounted_price !== undefined && 
-              course.discounted_price !== null && 
-              course.discounted_price > 0) {
-            return course.discounted_price;
+          const { data: courseData, error: courseError } = await supabase
+            .from("courses")
+            .select(`
+              *,
+              user_profiles (
+                id,
+                first_name,
+                last_name,
+                avatar_url
+              ),
+              course_categories (
+                id,
+                name
+              )
+            `)
+            .eq("id", courseId)
+            .eq("is_published", true)
+            .single();
+          
+          if (courseError) {
+            console.error('Failed to fetch course data:', courseError);
+            throw new Error('Failed to load course information');
           }
           
-          return course.price || 0;
+          // Add enrollment count for consistency with main query
+          const { count: enrollmentCount } = await supabase
+            .from("enrollments")
+            .select("*", { count: 'exact', head: true })
+            .eq("course_id", courseId);
+          
+          currentCourse = {
+            ...courseData,
+            enrolledStudents: enrollmentCount || 0
+          };
+          console.log('✅ Course data fetched directly:', currentCourse);
+        }
+        
+        // Recalculate pricing with current course data to avoid stale values
+        const getCurrentEffectivePrice = () => {
+          if (!currentCourse) {
+            console.log('❌ No course data available even after fetch!');
+            return 0;
+          }
+          
+          console.log('✅ Course data available, calculating price...');
+          if (currentCourse.discounted_price !== undefined && 
+              currentCourse.discounted_price !== null && 
+              currentCourse.discounted_price > 0) {
+            console.log('Using discounted price:', currentCourse.discounted_price);
+            return currentCourse.discounted_price;
+          }
+          
+          console.log('Using regular price:', currentCourse.price || 0);
+          return currentCourse.price || 0;
         };
         
         const currentBasePriceUSD = getCurrentEffectivePrice();
