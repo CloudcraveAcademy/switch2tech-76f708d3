@@ -56,39 +56,63 @@ const Messages = () => {
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["messages", user?.id],
     queryFn: async () => {
-        const { data, error } = await supabase
+      // First get the messages
+      const { data: messagesData, error } = await supabase
         .from("messages")
-        .select(`
-          *,
-          sender:user_profiles!messages_sender_id_fkey(first_name, last_name, avatar_url),
-          recipient:user_profiles!messages_recipient_id_fkey(first_name, last_name, avatar_url)
-        `)
+        .select("*")
         .or(`sender_id.eq.${user?.id},recipient_id.eq.${user?.id}`)
         .is('parent_message_id', null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Fetch replies for each message
+      if (!messagesData || messagesData.length === 0) {
+        return [];
+      }
+
+      // Get unique user IDs for sender and recipient
+      const userIds = [...new Set([
+        ...messagesData.map(msg => msg.sender_id),
+        ...messagesData.map(msg => msg.recipient_id)
+      ])];
+
+      // Fetch user profiles separately
+      const { data: profiles, error: profilesError } = await supabase
+        .from("user_profiles")
+        .select("id, first_name, last_name, avatar_url")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user profiles
+      const profileMap = (profiles || []).reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>);
+
+      // Fetch replies for each message and attach user profiles
       const messagesWithReplies = await Promise.all(
-        (data || []).map(async (message: any) => {
+        messagesData.map(async (message: any) => {
           const { data: replies, error: repliesError } = await supabase
             .from("messages")
-            .select(`
-              *,
-              sender:user_profiles!messages_sender_id_fkey(first_name, last_name, avatar_url),
-              recipient:user_profiles!messages_recipient_id_fkey(first_name, last_name, avatar_url)
-            `)
+            .select("*")
             .eq('parent_message_id', message.id)
             .order("created_at", { ascending: true });
 
           if (repliesError) throw repliesError;
+
+          // Add user profiles to replies
+          const repliesWithProfiles = (replies || []).map(reply => ({
+            ...reply,
+            sender: profileMap[reply.sender_id] || { first_name: 'Unknown', last_name: 'User', avatar_url: null },
+            recipient: profileMap[reply.recipient_id] || { first_name: 'Unknown', last_name: 'User', avatar_url: null }
+          }));
           
           return { 
             ...message, 
-            replies: replies || [],
-            sender: message.sender || { first_name: 'Unknown', last_name: 'User', avatar_url: null },
-            recipient: message.recipient || { first_name: 'Unknown', last_name: 'User', avatar_url: null }
+            replies: repliesWithProfiles,
+            sender: profileMap[message.sender_id] || { first_name: 'Unknown', last_name: 'User', avatar_url: null },
+            recipient: profileMap[message.recipient_id] || { first_name: 'Unknown', last_name: 'User', avatar_url: null }
           };
         })
       );
