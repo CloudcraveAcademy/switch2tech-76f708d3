@@ -279,10 +279,12 @@ const EnrollmentPage = () => {
       // Create payment transaction record if payment data is provided
       if (paymentData && paymentData.amount !== undefined) {
         console.log('Creating payment transaction record...');
+        const amountInCents = Math.round(Number(paymentData.amount) * 100);
         console.log('Payment data being inserted:', {
           user_id: userId,
           course_id: courseId,
-          amount: paymentData.amount,
+          amount: amountInCents, // Show actual cents amount being stored
+          amount_usd: paymentData.amount, // Show original USD amount for reference
           currency: paymentData.currency || 'USD',
           status: "successful",
           payment_method: paymentData.paymentMethod || 'card',
@@ -294,7 +296,7 @@ const EnrollmentPage = () => {
           .insert({
             user_id: userId,
             course_id: courseId,
-            amount: Math.round(Number(paymentData.amount) * 100), // Convert to cents
+            amount: amountInCents, // Use the calculated amount
             currency: paymentData.currency || 'USD',
             status: "completed",
             payment_method: 'flutterwave',
