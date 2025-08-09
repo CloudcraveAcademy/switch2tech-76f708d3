@@ -423,9 +423,16 @@ const EnrollmentPage = () => {
         console.log('displayPrice:', displayPrice);
         console.log('watchedCurrency:', watchedCurrency);
         
+        // Get the actual payment amount from Flutterwave instead of recalculating
+        // Since we're coming from a successful payment, use the course's effective price
+        const actualPaymentAmount = course?.discounted_price || course?.price || basePriceUSD;
+        console.log('actualPaymentAmount calculated:', actualPaymentAmount);
+        console.log('course.discounted_price:', course?.discounted_price);
+        console.log('course.price:', course?.price);
+        
         const paymentData = {
           transactionId: transactionId,
-          amount: Math.round(basePriceUSD * 100), // Store in base currency (USD) cents
+          amount: Math.round(actualPaymentAmount * 100), // Store in base currency (USD) cents
           currency: 'USD', // Always store as USD in database
           paymentMethod: 'flutterwave'
         };
