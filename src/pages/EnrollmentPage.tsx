@@ -416,24 +416,44 @@ const EnrollmentPage = () => {
         console.log('✅ Found valid session, proceeding with enrollment');
         console.log('Session user:', session.user.id);
         
+        // Recalculate pricing with current course data to avoid stale values
+        const getCurrentEffectivePrice = () => {
+          if (!course) return 0;
+          
+          if (course.discounted_price !== undefined && 
+              course.discounted_price !== null && 
+              course.discounted_price > 0) {
+            return course.discounted_price;
+          }
+          
+          return course.price || 0;
+        };
+        
+        const currentBasePriceUSD = getCurrentEffectivePrice();
+        const currentIsFree = currentBasePriceUSD === 0;
+        const currentWatchedCurrency = form.getValues('currency');
+        
+        const currentDisplayPrice = currentIsFree ? 0 : 
+          (currentWatchedCurrency === 'USD' ? currentBasePriceUSD : convertPrice(currentBasePriceUSD, currentWatchedCurrency));
+        
         // Pass payment data for transaction recording
         console.log('=== PAYMENT DATA DEBUG ===');
-        console.log('basePriceUSD:', basePriceUSD);
-        console.log('isFree:', isFree);
-        console.log('displayPrice:', displayPrice);
-        console.log('watchedCurrency:', watchedCurrency);
+        console.log('basePriceUSD:', currentBasePriceUSD);
+        console.log('isFree:', currentIsFree);
+        console.log('displayPrice:', currentDisplayPrice);
+        console.log('watchedCurrency:', currentWatchedCurrency);
         
         // Convert the display price back to USD since payment was made in the selected currency
         // The user paid displayPrice in watchedCurrency, so we need to convert back to USD
-        const actualPaymentAmountUSD = watchedCurrency === 'USD' ? displayPrice : displayPrice / EXCHANGE_RATES[watchedCurrency as keyof typeof EXCHANGE_RATES];
+        const actualPaymentAmountUSD = currentWatchedCurrency === 'USD' ? currentDisplayPrice : currentDisplayPrice / EXCHANGE_RATES[currentWatchedCurrency as keyof typeof EXCHANGE_RATES];
         console.log('actualPaymentAmountUSD calculated:', actualPaymentAmountUSD);
-        console.log('displayPrice paid:', displayPrice);
-        console.log('currency paid in:', watchedCurrency);
-        console.log('conversion rate used:', EXCHANGE_RATES[watchedCurrency as keyof typeof EXCHANGE_RATES]);
+        console.log('displayPrice paid:', currentDisplayPrice);
+        console.log('currency paid in:', currentWatchedCurrency);
+        console.log('conversion rate used:', EXCHANGE_RATES[currentWatchedCurrency as keyof typeof EXCHANGE_RATES]);
         
         const paymentData = {
           transactionId: transactionId,
-          amount: Math.round(actualPaymentAmountUSD * 100), // Store in base currency (USD) cents
+          amount: actualPaymentAmountUSD, // Store in base currency (USD) 
           currency: 'USD', // Always store as USD in database
           paymentMethod: 'flutterwave'
         };
