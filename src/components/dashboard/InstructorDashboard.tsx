@@ -318,6 +318,10 @@ const InstructorDashboard = () => {
   const totalRevenue = courseStats?.reduce((acc, curr) => acc + curr.revenue, 0) || 0;
   const averageRating = courseStats?.length ? 
     courseStats.reduce((acc, curr) => acc + curr.average_rating, 0) / courseStats.length : 0;
+
+  // Calculate monthly revenue change
+  const monthlyRevenueChange = revenueData?.length >= 2 ? 
+    revenueData[revenueData.length - 1].revenue - revenueData[revenueData.length - 2].revenue : 0;
   const totalCourses = courseStats?.length || 0;
   const publishedCourses = courseStats?.filter(c => c.is_published).length || 0;
 
@@ -431,9 +435,9 @@ const InstructorDashboard = () => {
                       Total Revenue
                     </p>
                     <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{formatAmount(totalRevenue)}</p>
-                    <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
-                      +{formatAmount(Math.floor(Math.random() * 10000) + 1000)} this month
-                    </p>
+                     <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
+                       {monthlyRevenueChange >= 0 ? '+' : ''}{formatAmount(monthlyRevenueChange)} this month
+                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                     <CircleDollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
