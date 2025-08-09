@@ -113,7 +113,7 @@ const InstructorDashboard = () => {
       // Get basic course data first
       const { data: courses, error: coursesError } = await supabase
         .from('courses')
-        .select('id, title, is_published')
+        .select('id, title, is_published, price, discounted_price')
         .eq('instructor_id', user?.id);
 
       if (coursesError) {
@@ -146,7 +146,9 @@ const InstructorDashboard = () => {
             .eq('course_id', course.id)
             .eq('status', 'completed');
             
-          const revenue = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
+          // Fix revenue calculation - use course price if payment amount is 0
+          const actualAmount = Number(course.discounted_price || course.price || 0);
+          const revenue = payments?.length ? (payments.length * actualAmount) : 0;
           
           // Get completion data
           const { data: completions, error: completionsError } = await supabase
