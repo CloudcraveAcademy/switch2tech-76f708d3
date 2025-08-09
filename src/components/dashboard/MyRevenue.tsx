@@ -178,16 +178,15 @@ const MyRevenue = () => {
         return acc;
       }, {} as Record<string, any>);
       
-      // Fix transaction amounts - use course price if transaction amount is 0
-      const fixedTransactions = transactions?.map(tx => {
-        const course = coursesMap[tx.course_id];
-        const actualAmount = Number(tx.amount) || Number(course?.discounted_price || course?.price || 0);
-        return { ...tx, amount: actualAmount };
-      }) || [];
+      // Use actual transaction amounts only - don't substitute zero amounts
+      const processedTransactions = transactions?.map(tx => ({
+        ...tx,
+        amount: Number(tx.amount) || 0
+      })) || [];
       
-      // Calculate total revenue with corrected amounts
-      const totalRevenue = fixedTransactions.reduce((sum, tx) => sum + tx.amount, 0);
-      const totalTransactions = fixedTransactions.length;
+      // Calculate total revenue with actual amounts only
+      const totalRevenue = processedTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+      const totalTransactions = processedTransactions.length;
       
       // Calculate revenue by month using corrected amounts
       const monthlyData = Array(12).fill(0);
@@ -197,7 +196,7 @@ const MyRevenue = () => {
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth();
       
-      fixedTransactions.forEach(tx => {
+      processedTransactions.forEach(tx => {
         const txDate = new Date(tx.created_at);
         const monthIndex = txDate.getMonth();
         monthlyData[monthIndex] += tx.amount;
@@ -216,7 +215,7 @@ const MyRevenue = () => {
       const revenueBySource: { name: string; value: number }[] = [];
       const paymentMethods: Record<string, number> = {};
       
-      fixedTransactions.forEach(tx => {
+      processedTransactions.forEach(tx => {
         const method = tx.payment_method || "Other";
         paymentMethods[method] = (paymentMethods[method] || 0) + tx.amount;
       });
@@ -225,8 +224,8 @@ const MyRevenue = () => {
         revenueBySource.push({ name: method, value: amount });
       });
       
-      // Get student and course information for recent transactions using corrected amounts
-      const recentTxs = fixedTransactions.slice(0, 10);
+      // Get student and course information for recent transactions
+      const recentTxs = processedTransactions.slice(0, 10);
       
       // Fetch user profiles for the transactions
       const userIds = [...new Set(recentTxs.map(tx => tx.user_id))];
