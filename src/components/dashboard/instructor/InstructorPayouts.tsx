@@ -51,9 +51,9 @@ const InstructorPayouts = () => {
 
       if (error) throw error;
 
-      // Calculate totals
+      // Calculate totals - convert from cents to dollars
       const grossRevenue = transactions?.reduce((sum, transaction) => 
-        sum + Number(transaction.amount), 0) || 0;
+        sum + (Number(transaction.amount) / 100), 0) || 0;
 
       const commissionPercentage = commissionData?.commission_percentage || 10;
       const commissionAmount = (grossRevenue * commissionPercentage) / 100;

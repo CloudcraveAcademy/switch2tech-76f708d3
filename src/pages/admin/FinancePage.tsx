@@ -77,14 +77,14 @@ const FinancePage = () => {
 
       if (error) throw error;
 
-      // Calculate total revenue
-      const totalRevenue = transactions?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+      // Calculate total revenue - convert from cents to dollars
+      const totalRevenue = transactions?.reduce((sum, tx) => sum + (Number(tx.amount) / 100), 0) || 0;
       
       // Calculate monthly revenue for current month
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthlyRevenue = transactions?.filter(tx => 
         new Date(tx.created_at) >= currentMonthStart
-      ).reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+      ).reduce((sum, tx) => sum + (Number(tx.amount) / 100), 0) || 0;
 
       // Calculate previous month revenue for comparison
       const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -96,7 +96,7 @@ const FinancePage = () => {
         .gte('created_at', prevMonthStart.toISOString())
         .lte('created_at', prevMonthEnd.toISOString());
       
-      const prevMonthRevenue = prevMonthTx?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+      const prevMonthRevenue = prevMonthTx?.reduce((sum, tx) => sum + (Number(tx.amount) / 100), 0) || 0;
       const monthlyGrowth = prevMonthRevenue > 0 ? ((monthlyRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : 0;
 
       // Calculate revenue by month for chart
@@ -108,7 +108,7 @@ const FinancePage = () => {
         const monthRevenue = transactions?.filter(tx => {
           const txDate = new Date(tx.created_at);
           return txDate >= monthDate && txDate < nextMonth;
-        }).reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
+        }).reduce((sum, tx) => sum + (Number(tx.amount) / 100), 0) || 0;
 
         monthlyData.push({
           name: monthDate.toLocaleDateString('en', { month: 'short' }),
@@ -121,7 +121,7 @@ const FinancePage = () => {
       transactions?.forEach(tx => {
         if (tx.courses?.title) {
           const current = courseRevenue.get(tx.courses.title) || 0;
-          courseRevenue.set(tx.courses.title, current + Number(tx.amount));
+          courseRevenue.set(tx.courses.title, current + (Number(tx.amount) / 100));
         }
       });
 
@@ -440,7 +440,7 @@ const FinancePage = () => {
                               <div>{payment.courses?.title || "N/A"}</div>
                             </td>
                             <td className="py-3 px-4 font-medium">
-                              {formatAmount(Number(payment.amount))}
+                              {formatAmount(Number(payment.amount) / 100)}
                             </td>
                             <td className="py-3 px-4 text-gray-600">
                               {new Date(payment.created_at).toLocaleDateString()}

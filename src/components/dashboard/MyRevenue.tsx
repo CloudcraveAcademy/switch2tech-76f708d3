@@ -178,10 +178,10 @@ const MyRevenue = () => {
         return acc;
       }, {} as Record<string, any>);
       
-      // Use actual transaction amounts only - don't substitute zero amounts
+      // Use actual transaction amounts and convert from cents to dollars
       const processedTransactions = transactions?.map(tx => ({
         ...tx,
-        amount: Number(tx.amount) || 0
+        amount: (Number(tx.amount) || 0) / 100 // Convert cents to dollars
       })) || [];
       
       // Calculate total revenue with actual amounts only
