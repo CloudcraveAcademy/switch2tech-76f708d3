@@ -423,16 +423,17 @@ const EnrollmentPage = () => {
         console.log('displayPrice:', displayPrice);
         console.log('watchedCurrency:', watchedCurrency);
         
-        // Get the actual payment amount from Flutterwave instead of recalculating
-        // Since we're coming from a successful payment, use the course's effective price
-        const actualPaymentAmount = course?.discounted_price || course?.price || basePriceUSD;
-        console.log('actualPaymentAmount calculated:', actualPaymentAmount);
-        console.log('course.discounted_price:', course?.discounted_price);
-        console.log('course.price:', course?.price);
+        // Convert the display price back to USD since payment was made in the selected currency
+        // The user paid displayPrice in watchedCurrency, so we need to convert back to USD
+        const actualPaymentAmountUSD = watchedCurrency === 'USD' ? displayPrice : displayPrice / EXCHANGE_RATES[watchedCurrency as keyof typeof EXCHANGE_RATES];
+        console.log('actualPaymentAmountUSD calculated:', actualPaymentAmountUSD);
+        console.log('displayPrice paid:', displayPrice);
+        console.log('currency paid in:', watchedCurrency);
+        console.log('conversion rate used:', EXCHANGE_RATES[watchedCurrency as keyof typeof EXCHANGE_RATES]);
         
         const paymentData = {
           transactionId: transactionId,
-          amount: Math.round(actualPaymentAmount * 100), // Store in base currency (USD) cents
+          amount: Math.round(actualPaymentAmountUSD * 100), // Store in base currency (USD) cents
           currency: 'USD', // Always store as USD in database
           paymentMethod: 'flutterwave'
         };
