@@ -324,6 +324,10 @@ const InstructorDashboard = () => {
   // Calculate monthly revenue change
   const monthlyRevenueChange = revenueData?.length >= 2 ? 
     revenueData[revenueData.length - 1].revenue - revenueData[revenueData.length - 2].revenue : 0;
+
+  // Calculate weekly student growth
+  const weeklyStudentGrowth = studentGrowthData?.length >= 2 ? 
+    studentGrowthData[studentGrowthData.length - 1].students - studentGrowthData[studentGrowthData.length - 8]?.students || 0 : 0;
   const totalCourses = courseStats?.length || 0;
   const publishedCourses = courseStats?.filter(c => c.is_published).length || 0;
 
@@ -418,9 +422,9 @@ const InstructorDashboard = () => {
                       Total Students
                     </p>
                     <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{totalStudents}</p>
-                    <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
-                      +{Math.floor(Math.random() * 10) + 1} this week
-                    </p>
+                     <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
+                       {weeklyStudentGrowth >= 0 ? '+' : ''}{weeklyStudentGrowth} this week
+                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                     <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
