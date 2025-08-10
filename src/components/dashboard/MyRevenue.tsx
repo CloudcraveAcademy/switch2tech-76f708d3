@@ -371,7 +371,7 @@ const MyRevenue = () => {
                 <p className="text-sm font-medium text-gray-500">
                   Total Revenue
                 </p>
-                <p className="text-3xl font-bold">
+                <p className="text-2xl font-bold">
                   {formatCurrency(revenueData?.totalRevenue || 0)}
                 </p>
               </div>
@@ -390,7 +390,7 @@ const MyRevenue = () => {
                   Monthly Change
                 </p>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-bold">
                     {percentageChange}%
                   </p>
                   {isPositiveChange ? (
@@ -414,8 +414,8 @@ const MyRevenue = () => {
                 <p className="text-sm font-medium text-gray-500">
                   Average Transaction
                 </p>
-                <p className="text-3xl font-bold">
-                  {revenueData?.totalTransactions 
+                <p className="text-2xl font-bold">
+                  {revenueData?.totalTransactions
                     ? formatCurrency(Math.round(revenueData.totalRevenue / revenueData.totalTransactions))
                     : formatCurrency(0)}
                 </p>
@@ -434,7 +434,7 @@ const MyRevenue = () => {
                 <p className="text-sm font-medium text-gray-500">
                   Total Transactions
                 </p>
-                <p className="text-3xl font-bold">
+                <p className="text-2xl font-bold">
                   {revenueData?.totalTransactions || 0}
                 </p>
               </div>

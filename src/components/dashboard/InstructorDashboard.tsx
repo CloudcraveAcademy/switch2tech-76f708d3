@@ -400,7 +400,7 @@ const InstructorDashboard = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Active Courses
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+                    <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                       {publishedCourses}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -421,7 +421,7 @@ const InstructorDashboard = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Total Students
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{totalStudents}</p>
+                    <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{totalStudents}</p>
                      <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
                        {weeklyStudentGrowth >= 0 ? '+' : ''}{weeklyStudentGrowth} this week
                      </p>
@@ -440,7 +440,7 @@ const InstructorDashboard = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Total Revenue
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{formatAmount(totalRevenue)}</p>
+                    <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{formatAmount(totalRevenue)}</p>
                      <p className="text-xs text-emerald-500 dark:text-emerald-400 mt-1">
                        {monthlyRevenueChange >= 0 ? '+' : ''}{formatAmount(monthlyRevenueChange)} this month
                      </p>
@@ -459,7 +459,7 @@ const InstructorDashboard = () => {
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Average Rating
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{averageRating.toFixed(1)}</p>
+                    <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{averageRating.toFixed(1)}</p>
                     <div className="flex items-center text-xs text-amber-500 dark:text-amber-400 mt-1">
                       <span>★★★★★</span>
                     </div>
@@ -779,7 +779,7 @@ const InstructorDashboard = () => {
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Total Revenue
                         </p>
-                        <p className="text-3xl font-bold">{formatAmount(totalRevenue)}</p>
+                        <p className="text-2xl font-bold">{formatAmount(totalRevenue)}</p>
                       </div>
                       <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                         <CircleDollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -795,7 +795,7 @@ const InstructorDashboard = () => {
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Monthly Revenue
                         </p>
-                        <p className="text-3xl font-bold">{formatAmount(totalRevenue / 12)}</p>
+                        <p className="text-2xl font-bold">{formatAmount(totalRevenue / 12)}</p>
                       </div>
                       <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                         <CalendarDays className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -811,7 +811,7 @@ const InstructorDashboard = () => {
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Revenue per Student
                         </p>
-                        <p className="text-3xl font-bold">
+                        <p className="text-2xl font-bold">
                           {totalStudents > 0 ? formatAmount(totalRevenue / totalStudents) : formatAmount(0)}
                         </p>
                       </div>

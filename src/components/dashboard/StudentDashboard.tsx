@@ -274,7 +274,7 @@ const StudentDashboard = () => {
                   <p className="text-sm font-medium text-gray-500">
                     {stat.title}
                   </p>
-                  <p className="text-3xl font-bold">{stat.value}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
                 </div>
                 <div className={`h-12 w-12 rounded-full ${stat.bgColor} flex items-center justify-center`}>
                   {stat.icon}

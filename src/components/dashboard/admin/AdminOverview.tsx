@@ -158,7 +158,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
               <p className="text-sm font-medium text-gray-500">
                 Total Users
               </p>
-              <p className="text-3xl font-bold">{data.totalUsers}</p>
+              <p className="text-2xl font-bold">{data.totalUsers}</p>
               <p className="text-xs mt-1">
                 <span className="text-green-600">+{data.newUsers} new</span> in this {periodFilter}
               </p>
@@ -177,7 +177,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
               <p className="text-sm font-medium text-gray-500">
                 Total Courses
               </p>
-              <p className="text-3xl font-bold">{data.totalCourses}</p>
+              <p className="text-2xl font-bold">{data.totalCourses}</p>
               <p className="text-xs mt-1">
                 <span className="text-green-600">+{data.newCourses} new</span> in this {periodFilter}
               </p>
@@ -196,7 +196,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
               <p className="text-sm font-medium text-gray-500">
                 Revenue
               </p>
-              <p className="text-3xl font-bold">{formatCurrency(data.revenue)}</p>
+              <p className="text-2xl font-bold">{formatCurrency(data.revenue)}</p>
               <p className="text-xs mt-1">
                 <span className="text-green-600">Current period</span> revenue
               </p>
@@ -215,7 +215,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
               <p className="text-sm font-medium text-gray-500">
                 Avg. Completion
               </p>
-              <p className="text-3xl font-bold">{data.completionRate}%</p>
+              <p className="text-2xl font-bold">{data.completionRate}%</p>
               <p className="text-xs mt-1">
                 <span className="text-green-600">Course completion</span> rate
               </p>
@@ -234,7 +234,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
               <p className="text-sm font-medium text-gray-500">
                 Enrollments
               </p>
-              <p className="text-3xl font-bold">{data.totalEnrollments}</p>
+              <p className="text-2xl font-bold">{data.totalEnrollments}</p>
               <p className="text-xs mt-1">
                 <span className="text-green-600">New enrollments</span> in this {periodFilter}
               </p>
@@ -253,7 +253,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
               <p className="text-sm font-medium text-gray-500">
                 Completed Courses
               </p>
-              <p className="text-3xl font-bold">{data.completedCourses}</p>
+              <p className="text-2xl font-bold">{data.completedCourses}</p>
               <p className="text-xs mt-1">
                 <span className="text-green-600">Total completed</span> courses
               </p>
