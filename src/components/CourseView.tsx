@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { QuizList, QuizTaker } from "@/components/quiz";
 import { AssignmentList } from "@/components/assignment";
-import { DiscussionBoard } from "@/components/discussion";
+import { DiscussionList } from "@/components/discussion";
 
 interface CourseData {
   id: string;
@@ -625,7 +625,7 @@ const CourseView = () => {
             
             {/* Discussion Tab */}
             <TabsContent value="discussion">
-              <DiscussionBoard courseId={courseId!} />
+              <DiscussionList courseId={courseId!} />
             </TabsContent>
           </Tabs>
         </div>
