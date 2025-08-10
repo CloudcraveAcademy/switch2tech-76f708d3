@@ -64,13 +64,13 @@ const AssignmentSubmission = ({ assignment, onSubmissionComplete }: AssignmentSu
           const fileName = `${user.id}/${assignment.id}/${Date.now()}.${fileExt}`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('Course Materials')
+            .from('course-materials')
             .upload(fileName, file);
 
           if (uploadError) throw uploadError;
 
           const { data: { publicUrl } } = supabase.storage
-            .from('Course Materials')
+            .from('course-materials')
             .getPublicUrl(fileName);
 
           fileUrls.push(publicUrl);
