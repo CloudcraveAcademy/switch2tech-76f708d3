@@ -530,6 +530,31 @@ const AssignmentManager = () => {
                     </div>
                   )}
                   
+                  {submission.file_urls && Array.isArray(submission.file_urls) && submission.file_urls.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-sm font-medium mb-1">Submitted Files:</p>
+                      <div className="space-y-2">
+                        {submission.file_urls.map((fileUrl: string, index: number) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <div className="flex items-center">
+                              <Eye className="h-4 w-4 mr-2 text-gray-400" />
+                              <span className="text-sm">File {index + 1}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(fileUrl, '_blank')}
+                              className="flex items-center"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {submission.feedback && (
                     <div className="mb-3">
                       <p className="text-sm font-medium mb-1">Feedback:</p>
