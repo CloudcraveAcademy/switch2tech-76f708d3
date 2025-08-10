@@ -157,13 +157,13 @@ const AssignmentManager = () => {
         const fileName = `assignment-${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('Course Materials')
+          .from('course-materials')
           .upload(fileName, assignmentForm.attachment_file);
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('Course Materials')
+          .from('course-materials')
           .getPublicUrl(fileName);
         
         attachmentUrl = urlData.publicUrl;
