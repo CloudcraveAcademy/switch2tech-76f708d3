@@ -173,6 +173,7 @@ const AssignmentManager = () => {
         title: assignmentForm.title,
         description: assignmentForm.description,
         course_id: assignmentForm.course_id,
+        lesson_id: null, // Set to null since we're not linking to specific lessons
         due_date: assignmentForm.due_date || null,
         max_score: assignmentForm.max_score,
         is_published: assignmentForm.is_published,
