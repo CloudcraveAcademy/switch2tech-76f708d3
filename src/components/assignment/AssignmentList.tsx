@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { FileText, Calendar, Clock, CheckCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import AssignmentSubmission from "./AssignmentSubmission";
+import AssignmentSubmissionView from "./AssignmentSubmissionView";
 
 interface Assignment {
   id: string;
@@ -24,6 +25,8 @@ interface AssignmentWithSubmission extends Assignment {
     submitted_at: string;
     score: number | null;
     feedback: string | null;
+    submission_text: string | null;
+    file_urls: string[] | null;
   };
 }
 
@@ -36,6 +39,7 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<AssignmentWithSubmission[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [viewingSubmission, setViewingSubmission] = useState<{assignment: Assignment, submission: any} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAssignments = async () => {
@@ -59,14 +63,17 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
           (assignmentsData || []).map(async (assignment) => {
             const { data: submissionData } = await supabase
               .from('assignment_submissions')
-              .select('id, submitted_at, score, feedback')
+              .select('id, submitted_at, score, feedback, submission_text, file_urls')
               .eq('assignment_id', assignment.id)
               .eq('student_id', user.id)
               .maybeSingle();
 
             return {
               ...assignment,
-              submission: submissionData || undefined,
+              submission: submissionData ? {
+                ...submissionData,
+                file_urls: Array.isArray(submissionData.file_urls) ? submissionData.file_urls as string[] : null
+              } : undefined,
             };
           })
         );
@@ -91,6 +98,17 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
     fetchAssignments();
   };
 
+  const handleViewSubmission = (assignment: AssignmentWithSubmission) => {
+    if (assignment.submission) {
+      setViewingSubmission({ assignment, submission: assignment.submission });
+    }
+  };
+
+  const handleBackToList = () => {
+    setSelectedAssignment(null);
+    setViewingSubmission(null);
+  };
+
   const getAssignmentStatus = (assignment: AssignmentWithSubmission) => {
     if (assignment.submission) {
       return assignment.submission.score !== null ? 'graded' : 'submitted';
@@ -113,12 +131,22 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
     }
   };
 
+  if (viewingSubmission) {
+    return (
+      <AssignmentSubmissionView
+        assignment={viewingSubmission.assignment}
+        submission={viewingSubmission.submission}
+        onBack={handleBackToList}
+      />
+    );
+  }
+
   if (selectedAssignment) {
     return (
       <div className="space-y-4">
         <Button 
           variant="outline" 
-          onClick={() => setSelectedAssignment(null)}
+          onClick={handleBackToList}
           className="mb-4"
         >
           ← Back to Assignments
@@ -219,7 +247,7 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => setSelectedAssignment(assignment)}
+                        onClick={() => handleViewSubmission(assignment)}
                       >
                         View Submission
                       </Button>
