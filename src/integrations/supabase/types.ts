@@ -1712,7 +1712,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      payment_gateways_safe: {
+        Row: {
+          configuration: Json | null
+          created_at: string | null
+          gateway_name: string | null
+          id: string | null
+          is_active: boolean | null
+          public_key: string | null
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string | null
+          gateway_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          public_key?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string | null
+          gateway_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          public_key?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_attendance_progress: {
@@ -1738,6 +1770,15 @@ export type Database = {
       delete_course_announcement: {
         Args: { announcement_id_param: string }
         Returns: boolean
+      }
+      get_admin_payment_gateway_config: {
+        Args: { gateway_name_param: string }
+        Returns: {
+          public_key: string
+          is_active: boolean
+          configuration: Json
+          gateway_name: string
+        }[]
       }
       get_auth_user_id: {
         Args: Record<PropertyKey, never>
@@ -1766,12 +1807,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
-      get_payment_gateway_config: {
+      get_public_payment_gateway_config: {
         Args: { gateway_name_param: string }
         Returns: {
           public_key: string
           is_active: boolean
-          configuration: Json
+          gateway_name: string
         }[]
       }
       get_user_emails: {
