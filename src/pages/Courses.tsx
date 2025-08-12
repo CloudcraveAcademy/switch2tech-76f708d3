@@ -77,7 +77,7 @@ const Courses = () => {
           .from("courses")
           .select(`
             *,
-            instructor:user_profiles!courses_instructor_id_fkey(
+            instructor:user_profiles_public!courses_instructor_id_fkey(
               id,
               first_name,
               last_name,
@@ -285,7 +285,7 @@ const Courses = () => {
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories?.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={category.name}>
                         {category.name}
                       </SelectItem>
                     ))}
