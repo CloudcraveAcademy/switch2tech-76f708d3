@@ -112,7 +112,7 @@ export const CourseEnrollmentService = {
       // Get course details for notification
       const { data: course } = await supabase
         .from("courses")
-        .select("title, instructor_id, instructor:user_profiles!instructor_id(first_name, last_name)")
+        .select("title, instructor_id, instructor:user_profiles_public!instructor_id(first_name, last_name)")
         .eq("id", courseId)
         .single();
 

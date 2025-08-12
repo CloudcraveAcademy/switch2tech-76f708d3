@@ -47,7 +47,7 @@ const MyCourses = () => {
             image_url,
             level,
             instructor_id,
-            instructor:user_profiles!instructor_id (
+            instructor:user_profiles_public!instructor_id (
               first_name,
               last_name
             )

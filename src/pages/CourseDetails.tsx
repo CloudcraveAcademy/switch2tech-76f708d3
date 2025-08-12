@@ -59,7 +59,7 @@ interface Course {
   class_days: string[];
   class_time: string;
   replay_access: boolean;
-  instructor: {
+  instructor?: {
     first_name: string;
     last_name: string;
     bio: string;
@@ -72,7 +72,7 @@ interface Course {
     twitter_url?: string;
     github_url?: string;
     country?: string;
-  };
+  } | null;
   lessons: Array<{
     id: string;
     title: string;
@@ -100,7 +100,7 @@ const CourseDetails = () => {
         .from('courses')
         .select(`
           *,
-          instructor:user_profiles!instructor_id (
+          instructor:user_profiles_public!instructor_id (
             first_name,
             last_name,
             bio,
@@ -111,8 +111,7 @@ const CourseDetails = () => {
             website,
             linkedin_url,
             twitter_url,
-            github_url,
-            country
+            github_url
           ),
           lessons (
             id,
@@ -136,7 +135,7 @@ const CourseDetails = () => {
       return {
         ...data,
         enrollments_count: count || 0
-      } as Course;
+      };
     },
     enabled: !!id,
   });
@@ -456,116 +455,112 @@ const CourseDetails = () => {
             <CourseRatingDisplay courseId={course.id} />
 
             {/* Instructor */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Instructor
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start gap-4">
-                  <img
-                    src={course.instructor.avatar_url || '/placeholder.svg'}
-                    alt={`${course.instructor.first_name} ${course.instructor.last_name}`}
-                    className="w-20 h-20 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="mb-3">
-                      <h3 className="font-semibold text-lg">
-                        {course.instructor.first_name} {course.instructor.last_name}
-                      </h3>
-                      {course.instructor.professional_title && (
-                        <p className="text-brand-600 font-medium">
-                          {course.instructor.professional_title}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                        {course.instructor.career_level && (
-                          <div className="flex items-center gap-1">
-                            <GraduationCap className="h-3 w-3" />
-                            {course.instructor.career_level}
-                          </div>
-                        )}
-                        {course.instructor.country && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {course.instructor.country}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {course.instructor.bio && (
-                      <p className="text-gray-600 mb-3 leading-relaxed">
-                        {course.instructor.bio}
-                      </p>
-                    )}
-
-                    {course.instructor.skills && (
+            {course.instructor && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Instructor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-4">
+                    <img
+                      src={course.instructor?.avatar_url || '/placeholder.svg'}
+                      alt={`${course.instructor?.first_name || ''} ${course.instructor?.last_name || ''}`}
+                      className="w-20 h-20 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
                       <div className="mb-3">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Skills & Expertise</p>
-                        <div className="flex flex-wrap gap-1">
-                          {course.instructor.skills.split(',').map((skill, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {skill.trim()}
-                            </Badge>
-                          ))}
+                        <h3 className="font-semibold text-lg">
+                          {course.instructor?.first_name} {course.instructor?.last_name}
+                        </h3>
+                        {course.instructor?.professional_title && (
+                          <p className="text-brand-600 font-medium">
+                            {course.instructor.professional_title}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                          {course.instructor?.career_level && (
+                            <div className="flex items-center gap-1">
+                              <GraduationCap className="h-3 w-3" />
+                              {course.instructor.career_level}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    )}
 
-                    {/* Social Links */}
-                    <div className="flex items-center gap-3">
-                      {course.instructor.website && (
-                        <a
-                          href={course.instructor.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          Website
-                        </a>
+                      {course.instructor?.bio && (
+                        <p className="text-gray-600 mb-3 leading-relaxed">
+                          {course.instructor.bio}
+                        </p>
                       )}
-                      {course.instructor.linkedin_url && (
-                        <a
-                          href={course.instructor.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                        >
-                          <Linkedin className="h-3 w-3" />
-                          LinkedIn
-                        </a>
+
+                      {course.instructor?.skills && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Skills & Expertise</p>
+                          <div className="flex flex-wrap gap-1">
+                            {course.instructor.skills.split(',').map((skill, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {skill.trim()}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       )}
-                      {course.instructor.github_url && (
-                        <a
-                          href={course.instructor.github_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
-                        >
-                          <Github className="h-3 w-3" />
-                          GitHub
-                        </a>
-                      )}
-                      {course.instructor.twitter_url && (
-                        <a
-                          href={course.instructor.twitter_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700"
-                        >
-                          <Twitter className="h-3 w-3" />
-                          Twitter
-                        </a>
-                      )}
+
+                      {/* Social Links */}
+                      <div className="flex items-center gap-3">
+                        {course.instructor?.website && (
+                          <a
+                            href={course.instructor.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Website
+                          </a>
+                        )}
+                        {course.instructor?.linkedin_url && (
+                          <a
+                            href={course.instructor.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                          >
+                            <Linkedin className="h-3 w-3" />
+                            LinkedIn
+                          </a>
+                        )}
+                        {course.instructor?.github_url && (
+                          <a
+                            href={course.instructor.github_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                          >
+                            <Github className="h-3 w-3" />
+                            GitHub
+                          </a>
+                        )}
+                        {course.instructor?.twitter_url && (
+                          <a
+                            href={course.instructor.twitter_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700"
+                          >
+                            <Twitter className="h-3 w-3" />
+                            Twitter
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -636,7 +631,7 @@ const CourseDetails = () => {
                       {course.enrollments_count} students enrolled
                     </span>
                   </div>
-                  {course.lifetime_access && (
+                  {(course as any).lifetime_access && (
                     <div className="flex items-center gap-3">
                       <Globe className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">

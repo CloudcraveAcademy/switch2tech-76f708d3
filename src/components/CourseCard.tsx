@@ -74,7 +74,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
           .from('courses')
           .select(`
             instructor_id,
-            user_profiles!instructor_id (
+            user_profiles_public!instructor_id (
               id,
               first_name,
               last_name,
@@ -86,8 +86,8 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
 
         if (courseError) {
           console.error('Error fetching course:', courseError);
-        } else if (courseData?.user_profiles) {
-          const profile = courseData.user_profiles as any;
+        } else if (courseData?.user_profiles_public) {
+          const profile = courseData.user_profiles_public as any;
           setInstructor({
             id: profile.id,
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown Instructor',

@@ -94,7 +94,7 @@ const CourseView = () => {
             duration_hours,
             instructor_id,
             course_materials,
-            instructor:user_profiles!instructor_id (
+            instructor:user_profiles_public!instructor_id (
               id,
               first_name,
               last_name,

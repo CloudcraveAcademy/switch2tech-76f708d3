@@ -60,7 +60,7 @@ const StudentDashboard = () => {
               level,
               mode,
               price,
-              instructor:user_profiles!instructor_id (
+              instructor:user_profiles_public!instructor_id (
                 first_name,
                 last_name
               )

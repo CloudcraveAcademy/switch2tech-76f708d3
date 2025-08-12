@@ -15,7 +15,7 @@ interface DiscussionBoard {
   courses: {
     title: string;
     instructor_id: string;
-    user_profiles: {
+    user_profiles_public: {
       first_name: string;
       last_name: string;
     };
@@ -50,7 +50,7 @@ const DiscussionOverview = () => {
           courses (
             title,
             instructor_id,
-            user_profiles!instructor_id (
+            user_profiles_public!instructor_id (
               first_name,
               last_name
             )
@@ -185,7 +185,7 @@ const DiscussionOverview = () => {
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     Course: {discussion.courses?.title} | 
-                    Instructor: {`${discussion.courses?.user_profiles?.first_name || ''} ${discussion.courses?.user_profiles?.last_name || ''}`.trim() || 'Unknown'}
+                    Instructor: {`${discussion.courses?.user_profiles_public?.first_name || ''} ${discussion.courses?.user_profiles_public?.last_name || ''}`.trim() || 'Unknown'}
                   </p>
                 </div>
                 <div className="flex gap-2">

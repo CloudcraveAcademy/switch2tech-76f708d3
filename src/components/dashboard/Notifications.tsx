@@ -66,7 +66,7 @@ const Notifications = () => {
         .select(`
           *,
           course:courses(title, image_url),
-          instructor:user_profiles!instructor_id(first_name, last_name, avatar_url)
+          instructor:user_profiles_public!instructor_id(first_name, last_name, avatar_url)
         `)
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
