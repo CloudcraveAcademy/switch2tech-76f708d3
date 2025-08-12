@@ -139,8 +139,12 @@ const Dashboard = () => {
         </div>
 
         <div className="col-span-1 md:col-span-2 space-y-6">
-          <EnrolledCourses />
-          <UpcomingLiveClasses />
+          <div className="w-full">
+            <EnrolledCourses />
+          </div>
+          <div className="w-full">
+            <UpcomingLiveClasses />
+          </div>
         </div>
 
         <div className="col-span-1 space-y-6">

@@ -132,7 +132,7 @@ const EnrollmentPage = () => {
     queryFn: async () => {
       console.log('Fetching Flutterwave configuration...');
       
-      const { data, error } = await supabase.rpc('get_payment_gateway_config', {
+      const { data, error } = await supabase.rpc('get_public_payment_gateway_config', {
         gateway_name_param: 'flutterwave'
       });
 
@@ -143,7 +143,7 @@ const EnrollmentPage = () => {
         throw error;
       }
 
-      if (!data || data.length === 0) {
+      if (!data || (Array.isArray(data) && data.length === 0)) {
         console.error('No Flutterwave configuration found');
         throw new Error('Flutterwave payment gateway not configured');
       }

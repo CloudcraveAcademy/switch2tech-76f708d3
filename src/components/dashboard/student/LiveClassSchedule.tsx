@@ -161,10 +161,10 @@ function LiveClassSchedule() {
         {upcomingClasses && upcomingClasses.length > 0 ? (
           <div className="space-y-4">
             {upcomingClasses.map((session) => (
-              <div key={session.id} className="border rounded-md p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium">{session.topic || "Class Session"}</h3>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
+              <div key={session.id} className="border rounded-md p-3 sm:p-4">
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <h3 className="font-medium text-sm sm:text-base flex-1 min-w-0">{session.topic || "Class Session"}</h3>
+                  <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
                     isSessionActive(session.start_time, session.end_time)
                       ? "bg-green-100 text-green-800"
                       : "bg-blue-100 text-blue-800"
@@ -177,35 +177,41 @@ function LiveClassSchedule() {
                   {session.course_title}
                 </p>
                 
-                <div className="flex items-center text-gray-500 text-xs mb-3">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  <span>{formatDate(session.start_time)}</span>
-                  <Clock className="w-4 h-4 ml-2 mr-1" />
-                  <span>
-                    {new Date(session.start_time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    -{" "}
-                    {new Date(session.end_time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center text-gray-500 text-xs mb-3 gap-1 sm:gap-0">
+                  <div className="flex items-center">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    <span className="text-xs">{formatDate(session.start_time)}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 sm:ml-2 mr-1" />
+                    <span className="text-xs">
+                      {new Date(session.start_time).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      -{" "}
+                      {new Date(session.end_time).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
                 </div>
                 
                 <Button
-                  className="w-full"
+                  className="w-full text-sm"
                   disabled={!isSessionActive(session.start_time, session.end_time) || recordAttendanceMutation.isPending}
                   onClick={() => handleJoinClass(session)}
                 >
-                  <Monitor className="mr-2 h-4 w-4" />
-                  {recordAttendanceMutation.isPending 
-                    ? "Joining..." 
-                    : isSessionActive(session.start_time, session.end_time) 
-                      ? "Join Class" 
-                      : "Class Not Active Yet"
-                  }
+                  <Monitor className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="truncate">
+                    {recordAttendanceMutation.isPending 
+                      ? "Joining..." 
+                      : isSessionActive(session.start_time, session.end_time) 
+                        ? "Join Class" 
+                        : "Not Active Yet"
+                    }
+                  </span>
                 </Button>
               </div>
             ))}
