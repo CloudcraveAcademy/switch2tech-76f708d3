@@ -40,28 +40,26 @@ const FeaturedCoursesSection = () => {
     
     const fetchCourses = async () => {
       try {
-        console.log("=== FETCHING MOST ENROLLED COURSES ===");
-        
-        // Directly get the top courses by their known IDs
-        const topCourseIds = [
-          'c30c9cac-8d1d-4f54-ae28-a78e1be8802e', // Frontend Web Development (8)
-          '50c668a4-6ca8-45ca-aba9-589594b2db0d', // Advanced Cloud Computing with AWS (8)
-          'b75d8a19-9c69-407e-859b-1a26d75d3872', // INTRODUCTION TO SOCIAL MEDIA MANAGEMENT (5)
-          '6575bd03-b789-422d-baea-9773f2f74d04', // UI / UX for Beginners (5)  
-          '03390a5a-cc07-4564-a064-87220e55ba3c', // Machine Learning Fundamentals (4)
-          '18fca9e4-4ac1-4ef4-82c5-1e66482b54c3'  // Digital Marketing Fundamentals (4)
-        ];
+        console.log("=== FETCHING PUBLISHED COURSES ===");
 
-        console.log("Fetching top courses by enrollment count...");
-
-        const { data: topCoursesData, error: topCoursesError } = await supabase
+        // Fetch all published courses
+        const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
-          .select('*')
-          .in('id', topCourseIds)
-          .eq('is_published', true);
+          .select(`
+            *,
+            instructor:user_profiles_public!courses_instructor_id_fkey(
+              id,
+              first_name,
+              last_name,
+              avatar_url
+            )
+          `)
+          .eq('is_published', true)
+          .order('created_at', { ascending: false })
+          .limit(6);
 
-        if (topCoursesError) {
-          console.error("Error fetching top courses:", topCoursesError);
+        if (coursesError) {
+          console.error("Error fetching courses:", coursesError);
           setError("Unable to load courses");
           setLoading(false);
           return;
@@ -69,70 +67,30 @@ const FeaturedCoursesSection = () => {
 
         if (!isMounted) return;
 
-        console.log(`Found ${topCoursesData?.length || 0} top courses`);
+        console.log(`Found ${coursesData?.length || 0} published courses`);
 
-        // Get enrollment counts for the top courses using a more robust approach
+        // Get enrollment counts for each course
         const coursesWithEnrollmentCounts = await Promise.all(
-          (topCoursesData || []).map(async (course: any) => {
-            // Try the HEAD request approach first
-            const { count: headCount, error: headError } = await supabase
+          (coursesData || []).map(async (course: any) => {
+            const { count: enrollmentCount } = await supabase
               .from('enrollments')
               .select('*', { count: 'exact', head: true })
               .eq('course_id', course.id);
             
-            let enrollmentCount = 0;
-            
-            if (headError) {
-              console.warn(`HEAD request failed for ${course.title}, trying SELECT approach:`, headError);
-              // Fallback: Use regular SELECT and count manually
-              const { data: enrollmentData, error: selectError } = await supabase
-                .from('enrollments')
-                .select('id')
-                .eq('course_id', course.id);
-              
-              if (selectError) {
-                console.error(`SELECT also failed for ${course.title}:`, selectError);
-                // Use hardcoded values as final fallback for known courses
-                const fallbackCounts: { [key: string]: number } = {
-                  'c30c9cac-8d1d-4f54-ae28-a78e1be8802e': 8, // Frontend Web Development
-                  '50c668a4-6ca8-45ca-aba9-589594b2db0d': 8, // Advanced Cloud Computing with AWS
-                  'b75d8a19-9c69-407e-859b-1a26d75d3872': 5, // INTRODUCTION TO SOCIAL MEDIA MANAGEMENT
-                  '6575bd03-b789-422d-baea-9773f2f74d04': 5, // UI / UX for Beginners
-                  '03390a5a-cc07-4564-a064-87220e55ba3c': 4, // Machine Learning Fundamentals
-                  '18fca9e4-4ac1-4ef4-82c5-1e66482b54c3': 4  // Digital Marketing Fundamentals
-                };
-                enrollmentCount = fallbackCounts[course.id] || 0;
-                console.log(`Using fallback count for ${course.title}: ${enrollmentCount}`);
-              } else {
-                enrollmentCount = enrollmentData?.length || 0;
-                console.log(`Manual count for ${course.title}: ${enrollmentCount}`);
-              }
-            } else {
-              enrollmentCount = headCount || 0;
-              console.log(`Head count for ${course.title}: ${enrollmentCount}`);
-            }
-            
             return {
               ...course,
-              enrollment_count: enrollmentCount
+              enrollment_count: enrollmentCount || 0
             };
           })
         );
 
-        // Sort by enrollment count (highest first) - ensure proper ordering
-        const sortedCourses = coursesWithEnrollmentCounts
-          .sort((a, b) => {
-            console.log(`Comparing: ${a.title} (${a.enrollment_count}) vs ${b.title} (${b.enrollment_count})`);
-            return b.enrollment_count - a.enrollment_count;
-          });
-
-        console.log("=== FINAL TOP 6 COURSES (SORTED BY ENROLLMENT) ===");
-        sortedCourses.forEach((course, index) => {
+        console.log("=== COURSES WITH ENROLLMENT COUNTS ===");
+        coursesWithEnrollmentCounts.forEach((course, index) => {
           console.log(`${index + 1}. ${course.title}: ${course.enrollment_count} enrollments`);
         });
 
         // Transform the courses for display
-        const transformedCourses: Course[] = sortedCourses.map((course: any) => ({
+        const transformedCourses: Course[] = coursesWithEnrollmentCounts.map((course: any) => ({
           id: course.id,
           title: course.title || "Untitled Course",
           description: course.description || "No description available",
@@ -145,8 +103,9 @@ const FeaturedCoursesSection = () => {
           enrolledStudents: course.enrollment_count,
           lessons: 12,
           instructor: {
-            name: "Expert Instructor",
-            avatar: "/placeholder.svg"
+            id: course.instructor?.id,
+            name: course.instructor ? `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() || "Expert Instructor" : "Expert Instructor",
+            avatar: course.instructor?.avatar_url || "/placeholder.svg"
           },
           category: "Technology",
           image: course.image_url || "/placeholder.svg",
