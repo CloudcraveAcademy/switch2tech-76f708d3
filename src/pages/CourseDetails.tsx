@@ -499,9 +499,9 @@ const CourseDetails = () => {
                       {course.instructor?.skills && (
                         <div className="mb-3">
                           <p className="text-sm font-medium text-gray-700 mb-2">Skills & Expertise</p>
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-wrap gap-2">
                             {course.instructor.skills.split(',').map((skill, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
+                              <Badge key={index} variant="secondary" className="text-sm">
                                 {skill.trim()}
                               </Badge>
                             ))}
