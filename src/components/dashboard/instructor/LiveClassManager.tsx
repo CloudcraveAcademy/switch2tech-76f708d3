@@ -13,7 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Edit, Trash2, Monitor, Users } from "lucide-react";
+import { CalendarIcon, Plus, Edit, Trash2, Monitor, Users, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClassSession {
@@ -191,6 +191,29 @@ const LiveClassManager = () => {
     onError: (error) => {
       toast.error("Failed to delete class session");
       console.error(error);
+    },
+  });
+
+  // Send reminder mutation
+  const sendReminderMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const { data, error } = await supabase.functions.invoke('send-live-class-reminder', {
+        body: {
+          classSessionId: sessionId,
+          instructorId: user?.id
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success("Reminder sent to all enrolled students!");
+      console.log('Reminder sent:', data);
+    },
+    onError: (error) => {
+      toast.error("Failed to send reminder");
+      console.error('Reminder error:', error);
     },
   });
 
@@ -390,6 +413,14 @@ const LiveClassManager = () => {
                     <p className="text-sm text-muted-foreground">{session.course_title}</p>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => sendReminderMutation.mutate(session.id)}
+                      disabled={sendReminderMutation.isPending}
+                    >
+                      <Bell className="h-4 w-4" />
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => handleEdit(session)}>
                       <Edit className="h-4 w-4" />
                     </Button>
