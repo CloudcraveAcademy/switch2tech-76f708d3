@@ -85,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Get student emails
     const studentIds = enrollments.map(e => e.student_id);
     const { data: studentEmails, error: emailError } = await supabase
-      .rpc('get_user_emails', { user_ids: studentIds });
+      .rpc('get_user_emails', { user_ids: studentIds, instructor_id: instructorId });
 
     if (emailError) {
       console.error('❌ Error fetching student emails:', emailError);

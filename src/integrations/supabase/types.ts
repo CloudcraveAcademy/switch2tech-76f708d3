@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1908,11 +1908,11 @@ export type Database = {
     }
     Functions: {
       calculate_attendance_progress: {
-        Args: { student_id_param: string; course_id_param: string }
+        Args: { course_id_param: string; student_id_param: string }
         Returns: number
       }
       check_course_completion_requirements: {
-        Args: { student_id_param: string; course_id_param: string }
+        Args: { course_id_param: string; student_id_param: string }
         Returns: boolean
       }
       check_virtual_live_completion: {
@@ -1921,9 +1921,9 @@ export type Database = {
       }
       create_course_announcement: {
         Args: {
+          content_param: string
           course_id_param: string
           title_param: string
-          content_param: string
         }
         Returns: string
       }
@@ -1934,10 +1934,10 @@ export type Database = {
       get_admin_payment_gateway_config: {
         Args: { gateway_name_param: string }
         Returns: {
-          public_key: string
-          is_active: boolean
           configuration: Json
           gateway_name: string
+          is_active: boolean
+          public_key: string
         }[]
       }
       get_auth_user_id: {
@@ -1959,8 +1959,8 @@ export type Database = {
         Args: { course_id_param: string }
         Returns: {
           average_rating: number
-          total_ratings: number
           rating_distribution: Json
+          total_ratings: number
         }[]
       }
       get_current_commission_percentage: {
@@ -1970,26 +1970,28 @@ export type Database = {
       get_public_payment_gateway_config: {
         Args: { gateway_name_param: string }
         Returns: {
-          public_key: string
-          is_active: boolean
           gateway_name: string
+          is_active: boolean
+          public_key: string
         }[]
       }
       get_user_basic_info: {
         Args: { user_id_param: string }
         Returns: {
-          id: string
-          first_name: string
-          last_name: string
           avatar_url: string
+          first_name: string
+          id: string
+          last_name: string
           professional_title: string
         }[]
       }
       get_user_emails: {
-        Args: { user_ids: string[] }
+        Args:
+          | { instructor_id?: string; user_ids: string[] }
+          | { user_ids: string[] }
         Returns: {
-          id: string
           email: string
+          id: string
         }[]
       }
       get_user_role: {
@@ -2019,8 +2021,8 @@ export type Database = {
       update_course_announcement: {
         Args: {
           announcement_id_param: string
-          title_param: string
           content_param: string
+          title_param: string
         }
         Returns: boolean
       }
@@ -2028,9 +2030,9 @@ export type Database = {
         Args: { cert_number: string }
         Returns: {
           certificate_id: string
-          student_name: string
           course_title: string
           issue_date: string
+          student_name: string
           verification_code: string
         }[]
       }
