@@ -155,20 +155,11 @@ const MyStudents = () => {
         const uniqueStudentIds = [...new Set(enrollments.map((enrollment) => enrollment.student_id))];
         console.log("👥 Unique student IDs:", uniqueStudentIds.length, uniqueStudentIds);
 
-        // Get student profiles and emails
-        const { data: profiles, error: profilesError } = await supabase
-          .from("user_profiles")
-          .select("id, first_name, last_name, avatar_url")
-          .in("id", uniqueStudentIds);
-
-        console.log("👤 Profiles found:", profiles?.length || 0, profiles);
-        if (profilesError) {
-          console.error("❌ Profiles error:", profilesError);
-          throw profilesError;
-        }
-
-        // Get actual email addresses from auth.users via RPC function
+        // Get user info (names, emails) via RPC functions
         const emailMap: Record<string, string> = {};
+        const nameMap: Record<string, string> = {};
+        const avatarMap: Record<string, string> = {};
+        
         try {
           console.log("📧 Attempting to fetch user emails...");
           const { data: userEmails, error: emailError } = await supabase.rpc('get_user_emails', {
@@ -185,8 +176,25 @@ const MyStudents = () => {
           } else if (emailError) {
             console.warn("⚠️ Email RPC error:", emailError);
           }
+
+          // Get user basic info for names and avatars
+          console.log("👤 Fetching user basic info for names...");
+          const userInfoPromises = uniqueStudentIds.map(userId => 
+            supabase.rpc('get_user_basic_info', { user_id_param: userId })
+          );
+          
+          const userInfoResults = await Promise.all(userInfoPromises);
+          userInfoResults.forEach((result, index) => {
+            if (result.data && result.data.length > 0) {
+              const userInfo = result.data[0];
+              const userId = uniqueStudentIds[index];
+              nameMap[userId] = `${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() || 'Unknown User';
+              avatarMap[userId] = userInfo.avatar_url;
+            }
+          });
+          
         } catch (error) {
-          console.warn("Could not fetch user emails:", error);
+          console.error("❌ RPC call failed:", error);
         }
 
         // Get last activity for each student
@@ -209,10 +217,6 @@ const MyStudents = () => {
             (enrollment) => enrollment.completed === true || (enrollment.progress && enrollment.progress >= 100)
           ).length;
 
-          const matchingProfile = profiles?.find(
-            (profile) => profile.id === studentId
-          ) || { first_name: "Unknown", last_name: "User", avatar_url: null };
-          
           const studentLastActivity = lessonProgress?.find(
             (progress) => progress.student_id === studentId
           )?.last_accessed || new Date().toISOString();
@@ -229,13 +233,13 @@ const MyStudents = () => {
           return {
             id: studentId,
             user_id: studentId,
-            name: `${matchingProfile.first_name || ""} ${matchingProfile.last_name || ""}`.trim() || "Unknown User",
+            name: nameMap[studentId] || 'Unknown User',
             email: emailMap[studentId] || "No email available",
             enrolled_courses: studentEnrollments.length,
             completed_courses: completedCourses,
             average_progress: averageProgress,
             last_active: studentLastActivity,
-            avatar_url: matchingProfile.avatar_url,
+            avatar_url: avatarMap[studentId],
           };
         });
 
