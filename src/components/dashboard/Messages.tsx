@@ -76,19 +76,46 @@ const Messages = () => {
         ...messagesData.map(msg => msg.recipient_id)
       ])];
 
-      // Fetch user profiles separately
-      const { data: profiles, error: profilesError } = await supabase
-        .from("user_profiles")
-        .select("id, first_name, last_name, avatar_url")
-        .in("id", userIds);
-
-      if (profilesError) throw profilesError;
-
-      // Create a map of user profiles
-      const profileMap = (profiles || []).reduce((acc, profile) => {
-        acc[profile.id] = profile;
-        return acc;
-      }, {} as Record<string, any>);
+      // Fetch user basic info using RPC function for better reliability
+      const profileMap: Record<string, any> = {};
+      
+      try {
+        const userInfoPromises = userIds.map(userId => 
+          supabase.rpc('get_user_basic_info', { user_id_param: userId })
+        );
+        
+        const userInfoResults = await Promise.all(userInfoPromises);
+        userInfoResults.forEach((result, index) => {
+          const userId = userIds[index];
+          if (result.data && result.data.length > 0) {
+            const userInfo = result.data[0];
+            profileMap[userId] = {
+              id: userId,
+              first_name: userInfo.first_name,
+              last_name: userInfo.last_name,
+              avatar_url: userInfo.avatar_url
+            };
+          } else {
+            profileMap[userId] = {
+              id: userId,
+              first_name: 'Unknown',
+              last_name: 'User',
+              avatar_url: null
+            };
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+        // Set default values for all users
+        userIds.forEach(userId => {
+          profileMap[userId] = {
+            id: userId,
+            first_name: 'Unknown',
+            last_name: 'User',
+            avatar_url: null
+          };
+        });
+      }
 
       // Fetch replies for each message and attach user profiles
       const messagesWithReplies = await Promise.all(

@@ -227,20 +227,37 @@ const MyRevenue = () => {
       // Get student and course information for recent transactions
       const recentTxs = processedTransactions.slice(0, 10);
       
-      // Fetch user profiles for the transactions
+      // Fetch user basic info for the transactions using RPC function
       const userIds = [...new Set(recentTxs.map(tx => tx.user_id))];
-      const { data: userProfiles } = await supabase
-        .from("user_profiles")
-        .select("id, first_name, last_name")
-        .in("id", userIds);
+      const userInfoMap: Record<string, string> = {};
+      
+      try {
+        const userInfoPromises = userIds.map(userId => 
+          supabase.rpc('get_user_basic_info', { user_id_param: userId })
+        );
+        
+        const userInfoResults = await Promise.all(userInfoPromises);
+        userInfoResults.forEach((result, index) => {
+          if (result.data && result.data.length > 0) {
+            const userInfo = result.data[0];
+            const userId = userIds[index];
+            userInfoMap[userId] = `${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() || 'Unknown Student';
+          } else {
+            userInfoMap[userIds[index]] = 'Unknown Student';
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+        // Set default values for all users
+        userIds.forEach(userId => {
+          userInfoMap[userId] = 'Unknown Student';
+        });
+      }
         
       // Create recent transactions with student and course names
       const recentTransactions: Transaction[] = recentTxs.map(tx => {
         const course = courses.find(c => c.id === tx.course_id);
-        const profile = userProfiles?.find(p => p.id === tx.user_id);
-        const studentName = profile 
-          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
-          : "Unknown Student";
+        const studentName = userInfoMap[tx.user_id] || "Unknown Student";
           
         return {
           id: tx.id,

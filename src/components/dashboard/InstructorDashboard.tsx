@@ -225,39 +225,54 @@ const InstructorDashboard = () => {
           throw error;
         }
 
-        // Get student profile data for each enrollment
-        const enrollmentsWithStudents = await Promise.all((data || []).map(async (enrollment) => {
-          try {
-            const { data: studentProfile, error: studentError } = await supabase
-              .from('user_profiles')
-              .select('first_name, last_name, avatar_url')
-              .eq('id', enrollment.student_id)
-              .maybeSingle();
-
-            if (studentError) {
-              console.error("Error fetching student profile:", studentError);
-              throw studentError;
+        // Get student profile data using RPC function for better reliability
+        const uniqueStudentIds = [...new Set(data?.map(enrollment => enrollment.student_id) || [])];
+        const studentInfoMap: Record<string, { first_name: string; last_name: string; avatar_url: string | null }> = {};
+        
+        // Fetch student info using the secure RPC function
+        try {
+          const userInfoPromises = uniqueStudentIds.map(userId => 
+            supabase.rpc('get_user_basic_info', { user_id_param: userId })
+          );
+          
+          const userInfoResults = await Promise.all(userInfoPromises);
+          userInfoResults.forEach((result, index) => {
+            if (result.data && result.data.length > 0) {
+              const userInfo = result.data[0];
+              const userId = uniqueStudentIds[index];
+              studentInfoMap[userId] = {
+                first_name: userInfo.first_name || 'Unknown',
+                last_name: userInfo.last_name || 'User',
+                avatar_url: userInfo.avatar_url
+              };
+            } else {
+              const userId = uniqueStudentIds[index];
+              studentInfoMap[userId] = {
+                first_name: "Unknown", 
+                last_name: "User", 
+                avatar_url: null 
+              };
             }
+          });
+        } catch (error) {
+          console.error("Error fetching student info:", error);
+          // Set default values for all students
+          uniqueStudentIds.forEach(userId => {
+            studentInfoMap[userId] = {
+              first_name: "Unknown", 
+              last_name: "User", 
+              avatar_url: null 
+            };
+          });
+        }
 
-            return {
-              ...enrollment,
-              student: studentProfile || { 
-                first_name: "Unknown", 
-                last_name: "Student", 
-                avatar_url: null 
-              }
-            };
-          } catch (error) {
-            console.error("Error processing student data:", error);
-            // Return the enrollment with a default student object to prevent type errors
-            return {
-              ...enrollment,
-              student: { 
-                first_name: "Unknown", 
-                last_name: "Student", 
-                avatar_url: null 
-              }
-            };
+        // Map enrollments with student data
+        const enrollmentsWithStudents = (data || []).map(enrollment => ({
+          ...enrollment,
+          student: studentInfoMap[enrollment.student_id] || { 
+            first_name: "Unknown", 
+            last_name: "User", 
+            avatar_url: null 
           }
         }));
 
