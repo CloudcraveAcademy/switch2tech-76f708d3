@@ -172,7 +172,8 @@ const MyStudents = () => {
         try {
           console.log("📧 Attempting to fetch user emails...");
           const { data: userEmails, error: emailError } = await supabase.rpc('get_user_emails', {
-            user_ids: uniqueStudentIds
+            user_ids: uniqueStudentIds,
+            instructor_id: user?.id
           });
 
           console.log("📧 Email RPC result:", { userEmails, emailError });
