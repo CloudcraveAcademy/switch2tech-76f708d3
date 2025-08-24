@@ -43,6 +43,7 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showCorrections, setShowCorrections] = useState(!!initialShowCorrections);
+  const [isRetaking, setIsRetaking] = useState(false);
 
   // Fetch quiz and questions
   const { data: quizData, isLoading } = useQuery({
@@ -112,6 +113,7 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
       }
     },
     onError: (error) => {
+      setIsRetaking(false);
       toast({
         title: "Error",
         description: "Failed to reset quiz. Please try again.",
@@ -227,11 +229,22 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
     submitQuizMutation.mutate(answers);
   };
 
+  const handleRetake = () => {
+    setIsRetaking(true);
+    setIsSubmitted(false);
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setShowCorrections(false);
+    if (quizData?.quiz.time_limit_minutes) {
+      setTimeLeft(quizData.quiz.time_limit_minutes * 60);
+    }
+    retakeQuizMutation.mutate();
+  };
   if (isLoading) {
     return <div>Loading quiz...</div>;
   }
 
-  if (existingSubmission) {
+  if (existingSubmission && !isRetaking) {
     return (
       <Card>
         <CardHeader>
@@ -257,7 +270,7 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
               {showCorrections ? "Hide Corrections" : "View Corrections"}
             </Button>
             <Button 
-              onClick={() => retakeQuizMutation.mutate()}
+              onClick={handleRetake}
               disabled={retakeQuizMutation.isPending}
               className="flex-1"
             >
@@ -314,7 +327,7 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
-  if (isSubmitted) {
+  if (isSubmitted && !isRetaking) {
     // Calculate results for immediate display
     let totalScore = 0;
     let maxScore = 0;
@@ -354,7 +367,7 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
               {showCorrections ? "Hide Corrections" : "View Corrections"}
             </Button>
             <Button 
-              onClick={() => retakeQuizMutation.mutate()}
+              onClick={handleRetake}
               disabled={retakeQuizMutation.isPending}
               className="flex-1"
             >
