@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { FileText, Calendar, Clock, CheckCircle } from "lucide-react";
+import { FileText, Calendar, Clock, CheckCircle, Download, Paperclip } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import AssignmentSubmission from "./AssignmentSubmission";
 import AssignmentSubmissionView from "./AssignmentSubmissionView";
@@ -17,6 +17,7 @@ interface Assignment {
   max_score: number;
   course_id: string;
   is_published: boolean;
+  attachment_url?: string;
 }
 
 interface AssignmentWithSubmission extends Assignment {
@@ -201,6 +202,20 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
                           Max Score: {assignment.max_score} points
                         </div>
                       </div>
+                      {assignment.attachment_url && (
+                        <div className="flex items-center mt-2 text-sm text-blue-600">
+                          <Paperclip className="h-4 w-4 mr-1" />
+                          <a 
+                            href={assignment.attachment_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:underline flex items-center"
+                          >
+                            View Attachment
+                            <Download className="h-3 w-3 ml-1" />
+                          </a>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       {getStatusBadge(status)}
