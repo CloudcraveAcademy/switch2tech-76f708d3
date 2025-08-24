@@ -41,6 +41,7 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(false);
 
   // Fetch quiz and questions
   const { data: quizData, isLoading } = useQuery({
@@ -214,9 +215,34 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
             </p>
           </div>
           
-          {/* Show quiz corrections */}
-          {existingSubmission.answers && quizData && (
-            <div className="space-y-3">
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setShowCorrections(!showCorrections)}
+              className="flex-1"
+            >
+              {showCorrections ? "Hide Corrections" : "View Corrections"}
+            </Button>
+            <Button 
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['quiz-submission', quizId, user?.id] });
+                setIsSubmitted(false);
+                setCurrentQuestionIndex(0);
+                setAnswers({});
+                setShowCorrections(false);
+                if (quizData?.quiz.time_limit_minutes) {
+                  setTimeLeft(quizData.quiz.time_limit_minutes * 60);
+                }
+              }} 
+              className="flex-1"
+            >
+              Retake Quiz
+            </Button>
+          </div>
+          
+          {/* Show quiz corrections when toggled */}
+          {showCorrections && existingSubmission.answers && quizData && (
+            <div className="space-y-3 mt-4">
               <h3 className="font-medium">Review Your Answers:</h3>
               {quizData.questions.map((question, index) => {
                 const userAnswer = existingSubmission.answers[question.id];
@@ -250,21 +276,6 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
               })}
             </div>
           )}
-          
-          <Button 
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['quiz-submission', quizId, user?.id] });
-              setIsSubmitted(false);
-              setCurrentQuestionIndex(0);
-              setAnswers({});
-              if (quizData?.quiz.time_limit_minutes) {
-                setTimeLeft(quizData.quiz.time_limit_minutes * 60);
-              }
-            }} 
-            className="w-full"
-          >
-            Retake Quiz
-          </Button>
         </CardContent>
       </Card>
     );
@@ -309,54 +320,66 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
             </p>
           </div>
           
-          {/* Show quiz corrections immediately after submission */}
-          <div className="space-y-3">
-            <h3 className="font-medium">Review Your Answers:</h3>
-            {questions.map((question, index) => {
-              const userAnswer = answers[question.id];
-              const isCorrect = userAnswer === question.correct_answer;
-              
-              return (
-                <div key={question.id} className="border rounded p-3 space-y-2">
-                  <p className="font-medium text-sm">
-                    Question {index + 1}: {question.question}
-                  </p>
-                  <div className="grid grid-cols-1 gap-1">
-                    {question.options.map((option, optionIndex) => (
-                      <div 
-                        key={optionIndex}
-                        className={`p-2 rounded text-sm ${
-                          option === question.correct_answer 
-                            ? 'bg-green-100 text-green-800 font-medium' 
-                            : option === userAnswer && !isCorrect
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-50'
-                        }`}
-                      >
-                        {option === question.correct_answer && '✓ '}
-                        {option === userAnswer && option !== question.correct_answer && '✗ '}
-                        {option}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setShowCorrections(!showCorrections)}
+              className="flex-1"
+            >
+              {showCorrections ? "Hide Corrections" : "View Corrections"}
+            </Button>
+            <Button 
+              onClick={() => {
+                setIsSubmitted(false);
+                setCurrentQuestionIndex(0);
+                setAnswers({});
+                setShowCorrections(false);
+                if (quiz.time_limit_minutes) {
+                  setTimeLeft(quiz.time_limit_minutes * 60);
+                }
+              }} 
+              className="flex-1"
+            >
+              Retake Quiz
+            </Button>
           </div>
           
-          <Button 
-            onClick={() => {
-              setIsSubmitted(false);
-              setCurrentQuestionIndex(0);
-              setAnswers({});
-              if (quiz.time_limit_minutes) {
-                setTimeLeft(quiz.time_limit_minutes * 60);
-              }
-            }} 
-            className="w-full"
-          >
-            Retake Quiz
-          </Button>
+          {/* Show quiz corrections when toggled */}
+          {showCorrections && (
+            <div className="space-y-3">
+              <h3 className="font-medium">Review Your Answers:</h3>
+              {questions.map((question, index) => {
+                const userAnswer = answers[question.id];
+                const isCorrect = userAnswer === question.correct_answer;
+                
+                return (
+                  <div key={question.id} className="border rounded p-3 space-y-2">
+                    <p className="font-medium text-sm">
+                      Question {index + 1}: {question.question}
+                    </p>
+                    <div className="grid grid-cols-1 gap-1">
+                      {question.options.map((option, optionIndex) => (
+                        <div 
+                          key={optionIndex}
+                          className={`p-2 rounded text-sm ${
+                            option === question.correct_answer 
+                              ? 'bg-green-100 text-green-800 font-medium' 
+                              : option === userAnswer && !isCorrect
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-50'
+                          }`}
+                        >
+                          {option === question.correct_answer && '✓ '}
+                          {option === userAnswer && option !== question.correct_answer && '✗ '}
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
