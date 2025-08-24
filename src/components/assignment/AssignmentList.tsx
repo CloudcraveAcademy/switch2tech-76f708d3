@@ -132,6 +132,31 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
     }
   };
 
+  const handleDownloadAttachment = async (url: string) => {
+    try {
+      const res = await fetch(url, { credentials: 'omit' });
+      if (!res.ok) throw new Error(`Download failed (${res.status})`);
+      const blob = await res.blob();
+      const filename = url.split('/').pop()?.split('?')[0] || 'attachment';
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      // Fallback: open in a new tab (may still be blocked by extensions)
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const onAttachmentClick = (e: React.MouseEvent, url: string) => {
+    e.preventDefault();
+    handleDownloadAttachment(url);
+  };
+
   if (viewingSubmission) {
     return (
       <AssignmentSubmissionView
@@ -206,7 +231,8 @@ const AssignmentList = ({ courseId, userRole }: AssignmentListProps) => {
                         <div className="flex items-center mt-2 text-sm text-blue-600">
                           <Paperclip className="h-4 w-4 mr-1" />
                           <a 
-                            href={assignment.attachment_url} 
+                            href={assignment.attachment_url}
+                            onClick={(e) => onAttachmentClick(e, assignment.attachment_url!)}
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="hover:underline flex items-center"
