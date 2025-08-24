@@ -88,6 +88,38 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
     enabled: !!quizId && !!user
   });
 
+  // Retake quiz mutation
+  const retakeQuizMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('No user found');
+      
+      const { error } = await supabase
+        .from('quiz_submissions')
+        .delete()
+        .eq('quiz_id', quizId)
+        .eq('student_id', user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz-submission', quizId, user?.id] });
+      setIsSubmitted(false);
+      setCurrentQuestionIndex(0);
+      setAnswers({});
+      setShowCorrections(false);
+      if (quizData?.quiz.time_limit_minutes) {
+        setTimeLeft(quizData.quiz.time_limit_minutes * 60);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to reset quiz. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Submit quiz mutation
   const submitQuizMutation = useMutation({
     mutationFn: async (finalAnswers: Record<string, string>) => {
@@ -225,19 +257,11 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
               {showCorrections ? "Hide Corrections" : "View Corrections"}
             </Button>
             <Button 
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['quiz-submission', quizId, user?.id] });
-                setIsSubmitted(false);
-                setCurrentQuestionIndex(0);
-                setAnswers({});
-                setShowCorrections(false);
-                if (quizData?.quiz.time_limit_minutes) {
-                  setTimeLeft(quizData.quiz.time_limit_minutes * 60);
-                }
-              }} 
+              onClick={() => retakeQuizMutation.mutate()}
+              disabled={retakeQuizMutation.isPending}
               className="flex-1"
             >
-              Retake Quiz
+              {retakeQuizMutation.isPending ? "Resetting..." : "Retake Quiz"}
             </Button>
           </div>
           
@@ -330,18 +354,11 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
               {showCorrections ? "Hide Corrections" : "View Corrections"}
             </Button>
             <Button 
-              onClick={() => {
-                setIsSubmitted(false);
-                setCurrentQuestionIndex(0);
-                setAnswers({});
-                setShowCorrections(false);
-                if (quiz.time_limit_minutes) {
-                  setTimeLeft(quiz.time_limit_minutes * 60);
-                }
-              }} 
+              onClick={() => retakeQuizMutation.mutate()}
+              disabled={retakeQuizMutation.isPending}
               className="flex-1"
             >
-              Retake Quiz
+              {retakeQuizMutation.isPending ? "Resetting..." : "Retake Quiz"}
             </Button>
           </div>
           
