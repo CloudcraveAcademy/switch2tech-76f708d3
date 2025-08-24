@@ -47,17 +47,10 @@ const AdminCertificates = () => {
         .from('certificates')
         .select(`
           *,
-          student:user_profiles!student_id (
-            first_name,
-            last_name
-          ),
           course:courses (
             title,
             level,
-            instructor:user_profiles_public!instructor_id (
-              first_name,
-              last_name
-            )
+            instructor_id
           )
         `)
         .order('issue_date', { ascending: false });
@@ -67,7 +60,31 @@ const AdminCertificates = () => {
         return [];
       }
 
-      return data as Certificate[];
+      // Fetch user profiles for students and instructors
+      const certificatesWithProfiles = await Promise.all(
+        (data || []).map(async (certificate: any) => {
+          // Fetch student profile
+          const { data: studentProfile, error: studentError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: certificate.student_id 
+          });
+          
+          // Fetch instructor profile
+          const { data: instructorProfile, error: instructorError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: certificate.course.instructor_id 
+          });
+          
+          return {
+            ...certificate,
+            student: studentProfile?.[0] || { first_name: 'Unknown', last_name: 'Student' },
+            course: {
+              ...certificate.course,
+              instructor: instructorProfile?.[0] || { first_name: 'Unknown', last_name: 'Instructor' }
+            }
+          };
+        })
+      );
+
+      return certificatesWithProfiles as Certificate[];
     },
   });
 

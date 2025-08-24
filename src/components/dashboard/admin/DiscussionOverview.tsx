@@ -49,17 +49,31 @@ const DiscussionOverview = () => {
           *,
           courses (
             title,
-            instructor_id,
-            user_profiles_public!instructor_id (
-              first_name,
-              last_name
-            )
+            instructor_id
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDiscussions(data || []);
+      
+      // Fetch instructor profiles for each discussion
+      const discussionsWithProfiles = await Promise.all(
+        (data || []).map(async (discussion: any) => {
+          const { data: instructorProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: discussion.courses?.instructor_id 
+          });
+          
+          return {
+            ...discussion,
+            courses: {
+              ...discussion.courses,
+              user_profiles_public: instructorProfile?.[0] || { first_name: 'Unknown', last_name: 'Instructor' }
+            }
+          };
+        })
+      );
+      
+      setDiscussions(discussionsWithProfiles);
     } catch (error) {
       console.error("Error fetching discussions:", error);
       toast({
@@ -77,17 +91,28 @@ const DiscussionOverview = () => {
       const { data, error } = await supabase
         .from('discussion_posts')
         .select(`
-          *,
-          user_profiles!user_id (
-            first_name,
-            last_name
-          )
+          *
         `)
         .eq('discussion_board_id', discussionId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPosts(data || []);
+      
+      // Fetch user profiles for each post
+      const postsWithProfiles = await Promise.all(
+        (data || []).map(async (post: any) => {
+          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: post.user_id 
+          });
+          
+          return {
+            ...post,
+            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User' }
+          };
+        })
+      );
+      
+      setPosts(postsWithProfiles);
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast({

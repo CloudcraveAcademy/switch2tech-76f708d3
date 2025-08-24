@@ -51,17 +51,31 @@ const QuizOverview = () => {
           *,
           courses (
             title,
-            instructor_id,
-            user_profiles_public!instructor_id (
-              first_name,
-              last_name
-            )
+            instructor_id
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setQuizzes(data || []);
+      
+      // Fetch instructor profiles for each quiz
+      const quizzesWithProfiles = await Promise.all(
+        (data || []).map(async (quiz: any) => {
+          const { data: instructorProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: quiz.courses?.instructor_id 
+          });
+          
+          return {
+            ...quiz,
+            courses: {
+              ...quiz.courses,
+              user_profiles_public: instructorProfile?.[0] || { first_name: 'Unknown', last_name: 'Instructor' }
+            }
+          };
+        })
+      );
+      
+      setQuizzes(quizzesWithProfiles);
     } catch (error) {
       console.error("Error fetching quizzes:", error);
       toast({
@@ -79,23 +93,30 @@ const QuizOverview = () => {
       const { data, error } = await supabase
         .from('quiz_submissions')
         .select(`
-          *,
-          user_profiles!student_id (
-            first_name,
-            last_name
-          )
+          *
         `)
         .eq('quiz_id', quizId)
         .order('submitted_at', { ascending: false });
 
       if (error) throw error;
       
-      const formattedSubmissions = data?.map(sub => ({
-        ...sub,
-        student_name: `${sub.user_profiles?.first_name || ''} ${sub.user_profiles?.last_name || ''}`.trim() || 'Unknown Student'
-      })) || [];
+      // Fetch user profiles for each submission
+      const submissionsWithProfiles = await Promise.all(
+        (data || []).map(async (sub: any) => {
+          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: sub.student_id 
+          });
+          
+          const student = userProfile?.[0] || { first_name: 'Unknown', last_name: 'Student' };
+          
+          return {
+            ...sub,
+            student_name: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown Student'
+          };
+        })
+      );
       
-      setSubmissions(formattedSubmissions);
+      setSubmissions(submissionsWithProfiles);
     } catch (error) {
       console.error("Error fetching submissions:", error);
       toast({

@@ -42,10 +42,7 @@ const LiveClassOverview = () => {
           *,
           courses:course_id (
             title,
-            user_profiles:instructor_id (
-              first_name,
-              last_name
-            )
+            instructor_id
           ),
           attendance_count:class_attendance(count)
         `)
@@ -53,14 +50,25 @@ const LiveClassOverview = () => {
         
       if (error) throw error;
       
-      return data?.map(session => ({
-        ...session,
-        course_title: session.courses?.title || 'Unknown Course',
-        instructor_name: session.courses?.user_profiles ? 
-          `${session.courses.user_profiles.first_name || ''} ${session.courses.user_profiles.last_name || ''}`.trim() || 'Unknown Instructor' :
-          'Unknown Instructor',
-        attendance_count: session.attendance_count?.[0]?.count || 0
-      })) || [];
+      // Fetch instructor profiles for each session
+      const sessionsWithProfiles = await Promise.all(
+        (data || []).map(async (session: any) => {
+          const { data: instructorProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: session.courses?.instructor_id 
+          });
+          
+          const instructor = instructorProfile?.[0] || { first_name: 'Unknown', last_name: 'Instructor' };
+          
+          return {
+            ...session,
+            course_title: session.courses?.title || 'Unknown Course',
+            instructor_name: `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() || 'Unknown Instructor',
+            attendance_count: session.attendance_count?.[0]?.count || 0
+          };
+        })
+      );
+      
+      return sessionsWithProfiles || [];
     },
   });
 

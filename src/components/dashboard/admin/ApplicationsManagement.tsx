@@ -36,13 +36,35 @@ const ApplicationsManagement = () => {
         .from("mentorship_applications")
         .select(`
           *,
-          mentorship_programs(name),
-          user_profiles(first_name, last_name, email)
+          mentorship_programs(name)
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      
+      // Fetch user profiles for each application
+      const applicationsWithProfiles = await Promise.all(
+        (data || []).map(async (application) => {
+          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: application.student_id 
+          });
+          
+          if (profileError) {
+            console.error('Error fetching user profile:', profileError);
+            return {
+              ...application,
+              user_profiles: { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
+            };
+          }
+          
+          return {
+            ...application,
+            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
+          };
+        })
+      );
+      
+      return applicationsWithProfiles;
     },
   });
 
@@ -54,13 +76,35 @@ const ApplicationsManagement = () => {
         .from("internship_applications")
         .select(`
           *,
-          internship_programs(name, company),
-          user_profiles(first_name, last_name, email)
+          internship_programs(name, company)
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      
+      // Fetch user profiles for each application
+      const applicationsWithProfiles = await Promise.all(
+        (data || []).map(async (application) => {
+          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: application.student_id 
+          });
+          
+          if (profileError) {
+            console.error('Error fetching user profile:', profileError);
+            return {
+              ...application,
+              user_profiles: { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
+            };
+          }
+          
+          return {
+            ...application,
+            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
+          };
+        })
+      );
+      
+      return applicationsWithProfiles;
     },
   });
 

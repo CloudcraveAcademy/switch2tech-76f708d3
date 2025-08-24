@@ -39,14 +39,18 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
 
       if (payoutsError) throw payoutsError;
 
-      // Get instructor profiles
+      // Get instructor profiles using RPC function
       const instructorIds = [...new Set(payoutsData?.map(p => p.instructor_id) || [])];
-      const { data: profiles, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select('id, first_name, last_name')
-        .in('id', instructorIds);
+      const profilePromises = instructorIds.map(async (id) => {
+        const { data, error } = await supabase.rpc('get_user_basic_info', { user_id_param: id });
+        if (error) {
+          console.error('Error fetching instructor profile:', error);
+          return { id, first_name: 'Unknown', last_name: 'Instructor' };
+        }
+        return data?.[0] || { id, first_name: 'Unknown', last_name: 'Instructor' };
+      });
 
-      if (profilesError) throw profilesError;
+      const profiles = await Promise.all(profilePromises);
 
       // Join the data
       const payoutsWithProfiles = payoutsData?.map(payout => ({
@@ -62,13 +66,25 @@ const AdminPayouts: React.FC<AdminPayoutsProps> = ({ currency }) => {
   const { data: instructorsWithRevenue } = useQuery({
     queryKey: ['instructors-revenue'],
     queryFn: async () => {
-      // Get all instructors
-      const { data: instructors, error: instructorsError } = await supabase
+      // Get all instructors from user_profiles first to get IDs
+      const { data: instructorIds, error: instructorsError } = await supabase
         .from('user_profiles')
-        .select('id, first_name, last_name')
+        .select('id')
         .eq('role', 'instructor');
 
       if (instructorsError) throw instructorsError;
+
+      // Get instructor profiles using RPC function
+      const instructorPromises = instructorIds?.map(async (instructor) => {
+        const { data, error } = await supabase.rpc('get_user_basic_info', { user_id_param: instructor.id });
+        if (error) {
+          console.error('Error fetching instructor profile:', error);
+          return { id: instructor.id, first_name: 'Unknown', last_name: 'Instructor' };
+        }
+        return data?.[0] || { id: instructor.id, first_name: 'Unknown', last_name: 'Instructor' };
+      }) || [];
+
+      const instructors = await Promise.all(instructorPromises);
 
       // Get revenue data for each instructor
       const instructorsWithData = await Promise.all(

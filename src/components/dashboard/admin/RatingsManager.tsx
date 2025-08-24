@@ -64,11 +64,6 @@ const RatingsManager: React.FC = () => {
           course:courses!course_id (
             title,
             id
-          ),
-          student:user_profiles!student_id (
-            first_name,
-            last_name,
-            id
           )
         `)
         .order('created_at', { ascending: false });
@@ -79,7 +74,22 @@ const RatingsManager: React.FC = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as Rating[];
+      
+      // Fetch student profiles for each rating
+      const ratingsWithProfiles = await Promise.all(
+        (data || []).map(async (rating: any) => {
+          const { data: studentProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+            user_id_param: rating.student_id 
+          });
+          
+          return {
+            ...rating,
+            student: studentProfile?.[0] || { first_name: 'Unknown', last_name: 'Student', id: rating.student_id }
+          };
+        })
+      );
+      
+      return ratingsWithProfiles as Rating[];
     },
     staleTime: 30000,
   });
