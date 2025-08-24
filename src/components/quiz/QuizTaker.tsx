@@ -279,16 +279,84 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   if (isSubmitted) {
+    // Calculate results for immediate display
+    let totalScore = 0;
+    let maxScore = 0;
+    
+    questions.forEach(question => {
+      maxScore += question.points;
+      if (answers[question.id] === question.correct_answer) {
+        totalScore += question.points;
+      }
+    });
+    
+    const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+    const isPassed = percentage >= (quiz.passing_score || 60);
+    
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
-            Quiz Submitted
+            Quiz Completed
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p>Thank you for completing the quiz! Your results have been recorded.</p>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-lg">Your score: {percentage.toFixed(1)}% ({totalScore}/{maxScore} points)</p>
+            <p className={`text-sm mt-1 ${isPassed ? 'text-green-600' : 'text-red-600'}`}>
+              Status: {isPassed ? "Passed" : "Failed"}
+            </p>
+          </div>
+          
+          {/* Show quiz corrections immediately after submission */}
+          <div className="space-y-3">
+            <h3 className="font-medium">Review Your Answers:</h3>
+            {questions.map((question, index) => {
+              const userAnswer = answers[question.id];
+              const isCorrect = userAnswer === question.correct_answer;
+              
+              return (
+                <div key={question.id} className="border rounded p-3 space-y-2">
+                  <p className="font-medium text-sm">
+                    Question {index + 1}: {question.question}
+                  </p>
+                  <div className="grid grid-cols-1 gap-1">
+                    {question.options.map((option, optionIndex) => (
+                      <div 
+                        key={optionIndex}
+                        className={`p-2 rounded text-sm ${
+                          option === question.correct_answer 
+                            ? 'bg-green-100 text-green-800 font-medium' 
+                            : option === userAnswer && !isCorrect
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-50'
+                        }`}
+                      >
+                        {option === question.correct_answer && '✓ '}
+                        {option === userAnswer && option !== question.correct_answer && '✗ '}
+                        {option}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          <Button 
+            onClick={() => {
+              setIsSubmitted(false);
+              setCurrentQuestionIndex(0);
+              setAnswers({});
+              if (quiz.time_limit_minutes) {
+                setTimeLeft(quiz.time_limit_minutes * 60);
+              }
+            }} 
+            className="w-full"
+          >
+            Retake Quiz
+          </Button>
         </CardContent>
       </Card>
     );
