@@ -92,29 +92,38 @@ const QuizOverview = () => {
     try {
       const { data, error } = await supabase
         .from('quiz_submissions')
-        .select(`
-          *
-        `)
+        .select(`*`)
         .eq('quiz_id', quizId)
         .order('submitted_at', { ascending: false });
 
       if (error) throw error;
       
-      // Fetch user profiles for each submission
-      const submissionsWithProfiles = await Promise.all(
-        (data || []).map(async (sub: any) => {
-          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
-            user_id_param: sub.student_id 
-          });
-          
-          const student = userProfile?.[0] || { first_name: 'Unknown', last_name: 'Student' };
-          
-          return {
-            ...sub,
-            student_name: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown Student'
-          };
-        })
+      const subs = data || [];
+      const studentIds = Array.from(new Set(subs.map((s: any) => s.student_id)));
+
+      // Emails (admin privileges)
+      const emailMap: Record<string, string> = {};
+      const { data: emailsData } = await supabase.rpc('get_user_emails', {
+        user_ids: studentIds
+      });
+      if (Array.isArray(emailsData)) emailsData.forEach((row: any) => (emailMap[row.id] = row.email));
+
+      // Names
+      const nameMap: Record<string, string> = {};
+      const userInfoResults = await Promise.all(
+        studentIds.map((uid) => supabase.rpc('get_user_basic_info', { user_id_param: uid }))
       );
+      userInfoResults.forEach((res, idx) => {
+        const uid = studentIds[idx];
+        const info = res.data?.[0];
+        nameMap[uid] = `${info?.first_name || ''} ${info?.last_name || ''}`.trim() || 'Unknown Student';
+      });
+
+      const submissionsWithProfiles = subs.map((sub: any) => ({
+        ...sub,
+        student_name: nameMap[sub.student_id] || 'Unknown Student',
+        student_email: emailMap[sub.student_id]
+      }));
       
       setSubmissions(submissionsWithProfiles);
     } catch (error) {
@@ -257,7 +266,10 @@ const QuizOverview = () => {
                 <CardContent className="pt-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium">{submission.student_name}</p>
+                      <p className="font-medium">{(submission as any).student_name}</p>
+                      {(submission as any).student_email && (
+                        <p className="text-xs text-muted-foreground">{(submission as any).student_email}</p>
+                      )}
                       <p className="text-sm text-muted-foreground">
                         Submitted: {new Date(submission.submitted_at).toLocaleString()}
                       </p>

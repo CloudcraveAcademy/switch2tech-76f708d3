@@ -90,28 +90,38 @@ const DiscussionOverview = () => {
     try {
       const { data, error } = await supabase
         .from('discussion_posts')
-        .select(`
-          *
-        `)
+        .select(`*`)
         .eq('discussion_board_id', discussionId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Fetch user profiles for each post
-      const postsWithProfiles = await Promise.all(
-        (data || []).map(async (post: any) => {
-          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
-            user_id_param: post.user_id 
-          });
-          
-          return {
-            ...post,
-            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User' }
-          };
-        })
+
+      const posts = data || [];
+      const userIds = Array.from(new Set(posts.map((p: any) => p.user_id)));
+
+      const emailMap: Record<string, string> = {};
+      const { data: emailsData } = await supabase.rpc('get_user_emails', { user_ids: userIds });
+      if (Array.isArray(emailsData)) emailsData.forEach((row: any) => (emailMap[row.id] = row.email));
+
+      const profileMap: Record<string, { first_name?: string; last_name?: string }> = {};
+      const results = await Promise.all(
+        userIds.map((uid) => supabase.rpc('get_user_basic_info', { user_id_param: uid }))
       );
-      
+      results.forEach((res, idx) => {
+        const uid = userIds[idx];
+        const info = res.data?.[0] || {};
+        profileMap[uid] = { first_name: info.first_name, last_name: info.last_name };
+      });
+
+      const postsWithProfiles = posts.map((post: any) => ({
+        ...post,
+        user_profiles: {
+          first_name: profileMap[post.user_id]?.first_name || 'Unknown',
+          last_name: profileMap[post.user_id]?.last_name || 'User',
+          email: emailMap[post.user_id]
+        }
+      }));
+
       setPosts(postsWithProfiles);
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -273,6 +283,9 @@ const DiscussionOverview = () => {
                       <p className="font-medium">{post.title}</p>
                       <p className="text-sm text-muted-foreground">
                         By: {`${post.user_profiles?.first_name || ''} ${post.user_profiles?.last_name || ''}`.trim() || 'Unknown User'}
+                        {post.user_profiles && (post.user_profiles as any).email && (
+                          <span className="block text-xs">{(post.user_profiles as any).email}</span>
+                        )}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Posted: {new Date(post.created_at).toLocaleString()}

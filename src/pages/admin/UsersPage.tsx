@@ -21,9 +21,16 @@ const UsersPage = () => {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*');
-      
       if (error) throw error;
-      return data || [];
+      const list = data || [];
+      // Fetch emails for all users (admin privileges)
+      const ids = list.map((u: any) => u.id);
+      const emailMap: Record<string, string> = {};
+      if (ids.length) {
+        const { data: emailsData } = await supabase.rpc('get_user_emails', { user_ids: ids });
+        if (Array.isArray(emailsData)) emailsData.forEach((row: any) => (emailMap[row.id] = row.email));
+      }
+      return list.map((u: any) => ({ ...u, email: emailMap[u.id] }));
     }
   });
 
@@ -177,7 +184,10 @@ const UsersPage = () => {
                             </div>
                             <div>
                               <p className="font-medium">{user.first_name} {user.last_name}</p>
-                              <p className="text-sm text-gray-500">{user.id}</p>
+                              {user.email && (
+                                <p className="text-sm text-gray-500">{user.email}</p>
+                              )}
+                              <p className="text-xs text-gray-400">{user.id}</p>
                             </div>
                           </div>
                         </td>

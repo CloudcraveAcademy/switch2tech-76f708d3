@@ -35,11 +35,13 @@ interface Message {
     first_name: string;
     last_name: string;
     avatar_url?: string;
+    email?: string;
   };
   recipient: {
     first_name: string;
     last_name: string;
     avatar_url?: string;
+    email?: string;
   };
   replies?: Message[];
 }
@@ -78,13 +80,26 @@ const Messages = () => {
 
       // Fetch user basic info using RPC function for better reliability
       const profileMap: Record<string, any> = {};
+      const emailMap: Record<string, string> = {};
       
       try {
+        // 1) Fetch basic profiles (names, avatar)
         const userInfoPromises = userIds.map(userId => 
           supabase.rpc('get_user_basic_info', { user_id_param: userId })
         );
-        
         const userInfoResults = await Promise.all(userInfoPromises);
+
+        // 2) Fetch emails in one RPC (requires instructor/admin; instructor_id param provided)
+        const { data: emailsData, error: emailsError } = await supabase.rpc('get_user_emails', {
+          user_ids: userIds,
+          instructor_id: user?.id
+        });
+        if (!emailsError && Array.isArray(emailsData)) {
+          emailsData.forEach((row: any) => {
+            if (row && row.id) emailMap[row.id] = row.email;
+          });
+        }
+        
         userInfoResults.forEach((result, index) => {
           const userId = userIds[index];
           if (result.data && result.data.length > 0) {
@@ -93,14 +108,16 @@ const Messages = () => {
               id: userId,
               first_name: userInfo.first_name,
               last_name: userInfo.last_name,
-              avatar_url: userInfo.avatar_url
+              avatar_url: userInfo.avatar_url,
+              email: emailMap[userId]
             };
           } else {
             profileMap[userId] = {
               id: userId,
               first_name: 'Unknown',
               last_name: 'User',
-              avatar_url: null
+              avatar_url: null,
+              email: emailMap[userId]
             };
           }
         });
@@ -112,7 +129,8 @@ const Messages = () => {
             id: userId,
             first_name: 'Unknown',
             last_name: 'User',
-            avatar_url: null
+            avatar_url: null,
+            email: emailMap[userId]
           };
         });
       }
@@ -293,23 +311,26 @@ const Messages = () => {
                           </AvatarFallback>
                         </Avatar>
                         
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <p className={`font-medium ${unread ? 'text-blue-900' : 'text-gray-900'}`}>
-                              {otherUser.first_name} {otherUser.last_name}
-                            </p>
-                            {unread && <Badge className="bg-blue-500 text-white">New</Badge>}
-                            {message.replies && message.replies.length > 0 && (
-                              <Badge variant="outline">{message.replies.length} replies</Badge>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <p className={`${unread ? 'text-blue-900' : 'text-gray-900'} font-medium`}>
+                                {otherUser.first_name} {otherUser.last_name}
+                              </p>
+                              {unread && <Badge className="bg-blue-500 text-white">New</Badge>}
+                              {message.replies && message.replies.length > 0 && (
+                                <Badge variant="outline">{message.replies.length} replies</Badge>
+                              )}
+                            </div>
+                            {otherUser.email && (
+                              <p className="text-xs text-gray-500 truncate">{otherUser.email}</p>
                             )}
+                            <p className={`text-sm mt-1 ${unread ? 'font-medium text-blue-800' : 'text-gray-600'}`}>
+                              {message.subject}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate mt-1">
+                              {message.content}
+                            </p>
                           </div>
-                          <p className={`text-sm mt-1 ${unread ? 'font-medium text-blue-800' : 'text-gray-600'}`}>
-                            {message.subject}
-                          </p>
-                          <p className="text-sm text-gray-500 truncate mt-1">
-                            {message.content}
-                          </p>
-                        </div>
                       </div>
                       
                       <div className="text-right">
@@ -362,6 +383,9 @@ const Messages = () => {
                   <p className="font-medium">
                     {selectedMessage.sender.first_name} {selectedMessage.sender.last_name}
                   </p>
+                  {selectedMessage.sender.email && (
+                    <p className="text-xs text-gray-500">{selectedMessage.sender.email}</p>
+                  )}
                   <p className="text-sm text-gray-500">
                     {formatDistanceToNow(new Date(selectedMessage.created_at), { addSuffix: true })}
                   </p>
@@ -389,6 +413,9 @@ const Messages = () => {
                   <p className="font-medium text-sm">
                     {reply.sender.first_name} {reply.sender.last_name}
                   </p>
+                  {reply.sender.email && (
+                    <p className="text-xs text-gray-500">{reply.sender.email}</p>
+                  )}
                   <p className="text-xs text-gray-500">
                     {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
                   </p>

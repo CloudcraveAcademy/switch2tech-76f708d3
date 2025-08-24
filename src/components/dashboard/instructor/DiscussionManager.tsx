@@ -103,18 +103,44 @@ const DiscussionManager = () => {
     try {
       const { data, error } = await supabase
         .from('discussion_posts')
-        .select(`
-          *,
-          user_profiles!user_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select(`*`)
         .eq('discussion_board_id', discussionId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPosts(data || []);
+
+      const posts = data || [];
+      const userIds = Array.from(new Set(posts.map((p: any) => p.user_id)));
+
+      // Emails (instructor privileges)
+      const emailMap: Record<string, string> = {};
+      const { data: emailsData } = await supabase.rpc('get_user_emails', {
+        user_ids: userIds,
+        instructor_id: user?.id
+      });
+      if (Array.isArray(emailsData)) emailsData.forEach((row: any) => (emailMap[row.id] = row.email));
+
+      // Names
+      const profileMap: Record<string, { first_name?: string; last_name?: string }> = {};
+      const results = await Promise.all(
+        userIds.map((uid) => supabase.rpc('get_user_basic_info', { user_id_param: uid }))
+      );
+      results.forEach((res, idx) => {
+        const uid = userIds[idx];
+        const info = res.data?.[0] || {};
+        profileMap[uid] = { first_name: info.first_name, last_name: info.last_name };
+      });
+
+      const postsWithProfiles = posts.map((post: any) => ({
+        ...post,
+        user_profiles: {
+          first_name: profileMap[post.user_id]?.first_name || 'Unknown',
+          last_name: profileMap[post.user_id]?.last_name || 'User',
+          email: emailMap[post.user_id]
+        }
+      }));
+
+      setPosts(postsWithProfiles);
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast({
@@ -390,6 +416,9 @@ const DiscussionManager = () => {
                       <p className="text-sm text-muted-foreground">
                         By: {`${post.user_profiles?.first_name || ''} ${post.user_profiles?.last_name || ''}`.trim() || 'Unknown User'}
                       </p>
+                      {(post.user_profiles as any)?.email && (
+                        <p className="text-xs text-muted-foreground">{(post.user_profiles as any).email}</p>
+                      )}
                       <p className="text-sm text-muted-foreground">
                         Posted: {new Date(post.created_at).toLocaleString()}
                       </p>

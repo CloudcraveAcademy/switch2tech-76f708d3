@@ -38,6 +38,7 @@ interface Submission {
   submitted_at: string;
   graded_at: string;
   student_name: string;
+  student_email?: string;
 }
 
 const AssignmentManager = () => {
@@ -110,23 +111,42 @@ const AssignmentManager = () => {
     try {
       const { data, error } = await supabase
         .from('assignment_submissions')
-        .select(`
-          *,
-          user_profiles!student_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select(`*`)
         .eq('assignment_id', assignmentId)
         .order('submitted_at', { ascending: false });
 
       if (error) throw error;
-      
-      const formattedSubmissions = data?.map(sub => ({
+
+      const subs = data || [];
+      const studentIds = Array.from(new Set(subs.map((s: any) => s.student_id)));
+
+      // Fetch emails (as instructor)
+      const emailMap: Record<string, string> = {};
+      const { data: emailsData } = await supabase.rpc('get_user_emails', {
+        user_ids: studentIds,
+        instructor_id: user?.id
+      });
+      if (Array.isArray(emailsData)) {
+        emailsData.forEach((row: any) => (emailMap[row.id] = row.email));
+      }
+
+      // Fetch names via RPC to avoid RLS issues
+      const nameMap: Record<string, string> = {};
+      const userInfoResults = await Promise.all(
+        studentIds.map((uid) => supabase.rpc('get_user_basic_info', { user_id_param: uid }))
+      );
+      userInfoResults.forEach((res, idx) => {
+        const uid = studentIds[idx];
+        const info = res.data?.[0];
+        nameMap[uid] = `${info?.first_name || ''} ${info?.last_name || ''}`.trim() || 'Unknown Student';
+      });
+
+      const formattedSubmissions: Submission[] = subs.map((sub: any) => ({
         ...sub,
-        student_name: `${sub.user_profiles?.first_name || ''} ${sub.user_profiles?.last_name || ''}`.trim() || 'Unknown Student'
-      })) || [];
-      
+        student_name: nameMap[sub.student_id] || 'Unknown Student',
+        student_email: emailMap[sub.student_id]
+      }));
+
       setSubmissions(formattedSubmissions);
     } catch (error) {
       console.error("Error fetching submissions:", error);
@@ -512,6 +532,9 @@ const AssignmentManager = () => {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-medium">{submission.student_name}</p>
+                      {submission.student_email && (
+                        <p className="text-xs text-muted-foreground">{submission.student_email}</p>
+                      )}
                       <p className="text-sm text-muted-foreground">
                         Submitted: {new Date(submission.submitted_at).toLocaleString()}
                       </p>
