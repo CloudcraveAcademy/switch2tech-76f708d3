@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface QuizListProps {
   courseId: string;
-  onTakeQuiz: (quizId: string) => void;
+  onTakeQuiz: (quizId: string, options?: { review?: boolean }) => void;
 }
 
 interface Quiz {
@@ -123,7 +123,7 @@ export function QuizList({ courseId, onTakeQuiz }: QuizListProps) {
               )}
               
               {isCompleted ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <p className="font-medium">
                     Your Score: {submission.percentage}% 
                     <span className={`ml-2 ${submission.is_passed ? 'text-green-600' : 'text-red-600'}`}>
@@ -133,6 +133,11 @@ export function QuizList({ courseId, onTakeQuiz }: QuizListProps) {
                   <p className="text-sm text-muted-foreground">
                     Completed on {new Date(submission.submitted_at).toLocaleDateString()}
                   </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => onTakeQuiz(quiz.id, { review: true })}>
+                      View Corrections
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <Button onClick={() => onTakeQuiz(quiz.id)}>

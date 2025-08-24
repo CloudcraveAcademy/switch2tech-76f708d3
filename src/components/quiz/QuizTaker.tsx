@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 interface QuizTakerProps {
   quizId: string;
   onComplete?: (score: number) => void;
+  initialShowCorrections?: boolean;
 }
 
 interface QuizQuestion {
@@ -32,7 +33,7 @@ interface Quiz {
   passing_score: number;
 }
 
-export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
+export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTakerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -41,7 +42,7 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [showCorrections, setShowCorrections] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(!!initialShowCorrections);
 
   // Fetch quiz and questions
   const { data: quizData, isLoading } = useQuery({

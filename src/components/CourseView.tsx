@@ -73,6 +73,7 @@ const CourseView = () => {
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [lessonProgress, setLessonProgress] = useState<Record<string, boolean>>({});
   const [activeQuiz, setActiveQuiz] = useState<string | null>(null);
+  const [reviewMode, setReviewMode] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<'student' | 'instructor' | 'admin'>('student');
 
   // Fetch course data from Supabase
@@ -602,15 +603,17 @@ const CourseView = () => {
                 <div>
                   <Button 
                     variant="outline" 
-                    onClick={() => setActiveQuiz(null)}
+                    onClick={() => { setActiveQuiz(null); setReviewMode(false); }}
                     className="mb-4"
                   >
                     ← Back to Quiz List
                   </Button>
                   <QuizTaker 
                     quizId={activeQuiz} 
+                    initialShowCorrections={reviewMode}
                     onComplete={() => {
                       setActiveQuiz(null);
+                      setReviewMode(false);
                       refetch(); // Refresh course data to update progress
                     }} 
                   />
@@ -618,7 +621,10 @@ const CourseView = () => {
               ) : (
                 <QuizList 
                   courseId={courseId!} 
-                  onTakeQuiz={setActiveQuiz} 
+                  onTakeQuiz={(quizId, options) => {
+                    setActiveQuiz(quizId);
+                    setReviewMode(!!options?.review);
+                  }} 
                 />
               )}
             </TabsContent>
