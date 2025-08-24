@@ -92,15 +92,8 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
   // Retake quiz mutation
   const retakeQuizMutation = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error('No user found');
-      
-      const { error } = await supabase
-        .from('quiz_submissions')
-        .delete()
-        .eq('quiz_id', quizId)
-        .eq('student_id', user.id);
-      
-      if (error) throw error;
+      // No server-side delete needed; upsert on submit will overwrite existing submission
+      return;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quiz-submission', quizId, user?.id] });
@@ -141,18 +134,13 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
       const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
       const isPassed = percentage >= (quiz.passing_score || 60);
 
-      // Delete previous submission if exists to allow retakes
-      if (existingSubmission) {
-        await supabase
-          .from('quiz_submissions')
-          .delete()
-          .eq('quiz_id', quizId)
-          .eq('student_id', user.id);
-      }
+      // Use upsert to handle retakes without needing delete (RLS may block DELETE)
+      // Keeping previous submission (if any) will be overwritten by upsert below.
+
 
       const { error } = await supabase
         .from('quiz_submissions')
-        .insert({
+        .upsert({
           quiz_id: quizId,
           student_id: user.id,
           score: totalScore,
@@ -161,7 +149,7 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
           answers: finalAnswers,
           is_passed: isPassed,
           time_taken_minutes: quiz.time_limit_minutes ? quiz.time_limit_minutes - Math.floor(timeLeft / 60) : null
-        });
+        }, { onConflict: 'quiz_id,student_id' });
 
       if (error) throw error;
 
@@ -175,11 +163,12 @@ export function QuizTaker({ quizId, onComplete, initialShowCorrections }: QuizTa
       });
       onComplete?.(result.percentage);
       queryClient.invalidateQueries({ queryKey: ['student-detailed-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz-submission', quizId, user?.id] });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to submit quiz. Please try again.",
+        description: (error instanceof Error ? error.message : "Failed to submit quiz. Please try again."),
         variant: "destructive"
       });
     }
