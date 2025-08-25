@@ -127,8 +127,11 @@ const DiscussionManager = () => {
       );
       results.forEach((res, idx) => {
         const uid = userIds[idx];
-        const info = res.data?.[0] || {};
-        profileMap[uid] = { first_name: info.first_name, last_name: info.last_name };
+        const info = res.data?.[0];
+        profileMap[uid] = { 
+          first_name: info?.first_name || 'Unknown', 
+          last_name: info?.last_name || 'User' 
+        };
       });
 
       const postsWithProfiles = posts.map((post: any) => ({
