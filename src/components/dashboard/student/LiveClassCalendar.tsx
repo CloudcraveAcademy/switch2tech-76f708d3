@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { format, isSameDay } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Monitor, MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 interface ClassSession {
   id: string;
@@ -22,6 +23,7 @@ interface ClassSession {
 
 const LiveClassCalendar = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
@@ -90,6 +92,59 @@ const LiveClassCalendar = () => {
       case 'completed': return 'bg-blue-100 text-blue-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  // Record attendance mutation
+  const recordAttendanceMutation = useMutation({
+    mutationFn: async (session: ClassSession) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Check if attendance already recorded
+      const { data: existing } = await supabase
+        .from('class_attendance')
+        .select('id')
+        .eq('class_session_id', session.id)
+        .eq('student_id', user.id)
+        .single();
+
+      if (existing) {
+        return existing;
+      }
+
+      // Record new attendance
+      const { data, error } = await supabase
+        .from('class_attendance')
+        .insert({
+          class_session_id: session.id,
+          student_id: user.id,
+          course_id: session.course_id,
+          attended_at: new Date().toISOString(),
+          attendance_status: 'present'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Attendance recorded successfully!");
+      queryClient.invalidateQueries({ queryKey: ['calendar-classes'] });
+    },
+    onError: (error) => {
+      console.error('Error recording attendance:', error);
+      toast.error("Failed to record attendance");
+    },
+  });
+
+  const handleJoinClass = (session: ClassSession) => {
+    // Record attendance first
+    recordAttendanceMutation.mutate(session);
+    
+    // Open meeting link
+    if (session.meeting_link) {
+      window.open(session.meeting_link, '_blank');
     }
   };
 
@@ -171,15 +226,6 @@ const LiveClassCalendar = () => {
                             </span>
                           </div>
                           
-                          {session.meeting_link && (
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              <span className="text-blue-600 underline cursor-pointer"
-                                    onClick={() => window.open(session.meeting_link, '_blank')}>
-                                Meeting Link
-                              </span>
-                            </div>
-                          )}
                         </div>
                         
                         {session.meeting_link && (
@@ -187,7 +233,7 @@ const LiveClassCalendar = () => {
                             size="sm" 
                             className="w-full mt-3"
                             disabled={!isSessionActive(session.start_time)}
-                            onClick={() => window.open(session.meeting_link, '_blank')}
+                            onClick={() => handleJoinClass(session)}
                           >
                             <Monitor className="mr-2 h-4 w-4" />
                             {isSessionActive(session.start_time) ? "Join Class" : "Class Not Active Yet"}
