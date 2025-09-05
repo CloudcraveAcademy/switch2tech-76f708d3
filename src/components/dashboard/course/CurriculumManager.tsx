@@ -127,13 +127,24 @@ const CurriculumManager: React.FC<CurriculumManagerProps> = ({ courseId, onLesso
 
     setIsDeleting(true);
     try {
-      const { error } = await supabase
+      // First delete all related student progress records
+      const { error: progressError } = await supabase
+        .from('student_lesson_progress')
+        .delete()
+        .eq('lesson_id', lessonToDelete.id);
+
+      if (progressError) {
+        throw progressError;
+      }
+
+      // Then delete the lesson itself
+      const { error: lessonError } = await supabase
         .from('lessons')
         .delete()
         .eq('id', lessonToDelete.id);
 
-      if (error) {
-        throw error;
+      if (lessonError) {
+        throw lessonError;
       }
 
       toast({
