@@ -51,6 +51,7 @@ const AssignmentManager = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmissionsDialogOpen, setIsSubmissionsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
 
   const [assignmentForm, setAssignmentForm] = useState({
     title: "",
@@ -200,38 +201,79 @@ const AssignmentManager = () => {
         attachment_url: attachmentUrl
       };
 
-      const { data, error } = await supabase
-        .from('assignments')
-        .insert([assignmentData])
-        .select()
-        .single();
+      if (editingAssignment) {
+        // Update existing assignment
+        const { error } = await supabase
+          .from('assignments')
+          .update(assignmentData)
+          .eq('id', editingAssignment.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Assignment created successfully",
-      });
+        toast({
+          title: "Success",
+          description: "Assignment updated successfully",
+        });
+      } else {
+        // Create new assignment
+        const { data, error } = await supabase
+          .from('assignments')
+          .insert([assignmentData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Assignment created successfully",
+        });
+      }
 
       setIsCreateDialogOpen(false);
-      setAssignmentForm({
-        title: "",
-        description: "",
-        course_id: "",
-        due_date: "",
-        max_score: 100,
-        is_published: false,
-        attachment_file: null
-      });
+      setEditingAssignment(null);
+      resetForm();
       fetchAssignments();
     } catch (error) {
-      console.error("Error creating assignment:", error);
+      console.error("Error saving assignment:", error);
       toast({
         title: "Error",
-        description: "Failed to create assignment",
+        description: `Failed to ${editingAssignment ? 'update' : 'create'} assignment`,
         variant: "destructive",
       });
     }
+  };
+
+  const resetForm = () => {
+    setAssignmentForm({
+      title: "",
+      description: "",
+      course_id: "",
+      due_date: "",
+      max_score: 100,
+      is_published: false,
+      attachment_file: null
+    });
+  };
+
+  const handleEditAssignment = (assignment: Assignment) => {
+    setEditingAssignment(assignment);
+    setAssignmentForm({
+      title: assignment.title,
+      description: assignment.description,
+      course_id: assignment.course_id,
+      due_date: assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : "",
+      max_score: assignment.max_score,
+      is_published: assignment.is_published,
+      attachment_file: null
+    });
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleCreateNew = () => {
+    setEditingAssignment(null);
+    resetForm();
+    setIsCreateDialogOpen(true);
   };
 
   const toggleAssignmentPublish = async (assignment: Assignment) => {
@@ -331,16 +373,24 @@ const AssignmentManager = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Assignment Management</h1>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) {
+            setEditingAssignment(null);
+            resetForm();
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={handleCreateNew}>
               <Plus className="h-4 w-4 mr-2" />
               Create Assignment
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Assignment</DialogTitle>
+              <DialogTitle>
+                {editingAssignment ? 'Edit Assignment' : 'Create New Assignment'}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -426,7 +476,9 @@ const AssignmentManager = () => {
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={createAssignment}>Create Assignment</Button>
+                <Button onClick={createAssignment}>
+                  {editingAssignment ? 'Update Assignment' : 'Create Assignment'}
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -473,6 +525,14 @@ const AssignmentManager = () => {
                     >
                       <Users className="h-4 w-4 mr-1" />
                       Submissions
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditAssignment(assignment)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
                     </Button>
                     <Button
                       variant="outline"
