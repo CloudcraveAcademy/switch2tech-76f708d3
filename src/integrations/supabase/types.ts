@@ -1007,6 +1007,7 @@ export type Database = {
           order_number: number
           title: string
           updated_at: string | null
+          video_source_type: string | null
           video_url: string | null
         }
         Insert: {
@@ -1018,6 +1019,7 @@ export type Database = {
           order_number: number
           title: string
           updated_at?: string | null
+          video_source_type?: string | null
           video_url?: string | null
         }
         Update: {
@@ -1029,6 +1031,7 @@ export type Database = {
           order_number?: number
           title?: string
           updated_at?: string | null
+          video_source_type?: string | null
           video_url?: string | null
         }
         Relationships: [

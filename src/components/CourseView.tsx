@@ -27,6 +27,7 @@ import {
 import { QuizList, QuizTaker } from "@/components/quiz";
 import { AssignmentList } from "@/components/assignment";
 import { DiscussionList } from "@/components/discussion";
+import VideoPlayer, { VideoSourceType } from "@/components/media/VideoPlayer";
 
 interface CourseData {
   id: string;
@@ -48,6 +49,7 @@ interface CourseData {
     duration_minutes: number;
     order_number: number;
     video_url: string;
+    video_source_type: VideoSourceType;
     content: string;
     completed: boolean;
   }[];
@@ -110,7 +112,7 @@ const CourseView = () => {
         // Fetch lessons
         const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
-          .select('*')
+          .select('*, video_source_type')
           .eq('course_id', courseId)
           .order('order_number', { ascending: true });
 
@@ -165,6 +167,7 @@ const CourseView = () => {
             duration_minutes: lesson.duration_minutes || 30,
             order_number: lesson.order_number,
             video_url: lesson.video_url || '',
+            video_source_type: (lesson.video_source_type as VideoSourceType) || 'youtube',
             content: lesson.content || '',
             completed: false // Will be updated from state
           })),
@@ -496,23 +499,12 @@ const CourseView = () => {
                 <div>
                   {course.lessons.filter(l => l.id === activeLesson).map(lesson => (
                     <div key={lesson.id} className="space-y-4">
-                      <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                        {lesson.video_url ? (
-                          <iframe 
-                            src={lesson.video_url.includes('youtube.com') || lesson.video_url.includes('youtu.be') ? 
-                              lesson.video_url.replace('watch?v=', 'embed/') : lesson.video_url}
-                            className="w-full h-full rounded-lg" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen
-                            title={lesson.title}
-                          />
-                        ) : (
-                          <div className="text-center">
-                            <PlayCircle className="h-16 w-16 text-gray-400 mx-auto" />
-                            <p className="mt-2 text-gray-500">Video Player: {lesson.title}</p>
-                          </div>
-                        )}
-                      </div>
+                      <VideoPlayer
+                        videoUrl={lesson.video_url}
+                        videoSourceType={lesson.video_source_type}
+                        title={lesson.title}
+                        className="w-full"
+                      />
                       
                       <div>
                         <h2 className="text-xl font-bold">{lesson.title}</h2>

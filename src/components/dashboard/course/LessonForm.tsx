@@ -9,22 +9,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Clock } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { VideoSourceType } from '@/components/media/VideoPlayer';
+import { VIDEO_SOURCE_OPTIONS, validateVideoUrl, getVideoSourceInstructions } from '@/utils/videoUtils';
 
 // Define the form schema
 const lessonFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().optional(),
-  video_url: z.string().url("Please enter a valid URL").optional().or(z.literal('')),
+  video_url: z.string().optional().or(z.literal('')),
+  video_source_type: z.enum(['youtube', 'google_drive', 'google_meet', 'zoom', 'teams']),
   duration_minutes: z.string().refine(
     (val) => !val || (Number(val) > 0 && Number(val) <= 1440),
     { message: "Duration must be between 1 and 1440 minutes" }
   ),
   order_number: z.string().optional(),
+}).refine((data) => {
+  if (data.video_url && data.video_url.trim()) {
+    const validation = validateVideoUrl(data.video_url, data.video_source_type);
+    return validation.isValid;
+  }
+  return true;
+}, {
+  message: "Please enter a valid video URL for the selected source type",
+  path: ["video_url"],
 });
 
 type LessonFormValues = z.infer<typeof lessonFormSchema>;
@@ -47,6 +60,7 @@ const LessonForm: React.FC = () => {
       title: '',
       content: '',
       video_url: '',
+      video_source_type: 'youtube' as VideoSourceType,
       duration_minutes: '',
       order_number: '1',
     },
@@ -104,6 +118,7 @@ const LessonForm: React.FC = () => {
               title: lessonData.title || '',
               content: lessonData.content || '',
               video_url: lessonData.video_url || '',
+              video_source_type: (lessonData.video_source_type as VideoSourceType) || 'youtube',
               duration_minutes: lessonData.duration_minutes?.toString() || '',
               order_number: lessonData.order_number?.toString() || '1',
             });
@@ -197,6 +212,7 @@ const LessonForm: React.FC = () => {
         title: data.title,
         content: data.content || null,
         video_url: data.video_url || null,
+        video_source_type: data.video_source_type,
         duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
         order_number: parseInt(data.order_number || nextOrderNumber.toString()),
         course_id: courseId,
@@ -304,26 +320,58 @@ const LessonForm: React.FC = () => {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="video_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Video URL</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/video" 
-                        type="url"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter a URL to YouTube, Vimeo, or other video platform
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="video_source_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Video Source</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Select video source" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-background border shadow-lg z-50">
+                          {VIDEO_SOURCE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-xs text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="video_url"
+                  render={({ field }) => {
+                    const sourceType = form.watch('video_source_type');
+                    return (
+                      <FormItem>
+                        <FormLabel>Video URL</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder={getVideoSourceInstructions(sourceType).split('.')[0]}
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          {getVideoSourceInstructions(sourceType)}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
