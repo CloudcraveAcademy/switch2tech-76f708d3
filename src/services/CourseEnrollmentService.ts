@@ -276,6 +276,15 @@ export const CourseEnrollmentService = {
         .update(updateData)
         .eq("id", enrollment.id);
 
+      if (shouldComplete) {
+        // Attempt to issue certificate if eligible
+        try {
+          await this.issueCertificate(userId, courseId);
+        } catch (e) {
+          console.error("Error issuing certificate:", e);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error("Error in trackLessonProgress:", error);
@@ -402,6 +411,61 @@ export const CourseEnrollmentService = {
       return true;
     } catch (error) {
       console.error("Exception recording attendance:", error);
+      return false;
+    }
+  },
+
+  async issueCertificate(userId: string, courseId: string): Promise<boolean> {
+    try {
+      // Check if course has certificates enabled
+      const { data: course, error: courseError } = await supabase
+        .from('courses')
+        .select('certificate_enabled')
+        .eq('id', courseId)
+        .maybeSingle();
+
+      if (courseError) {
+        console.error('Error fetching course for certificate check:', courseError);
+        return false;
+      }
+
+      if (!course?.certificate_enabled) {
+        return false;
+      }
+
+      // Avoid duplicate certificates
+      const { data: existing } = await supabase
+        .from('certificates')
+        .select('id')
+        .eq('student_id', userId)
+        .eq('course_id', courseId)
+        .maybeSingle();
+
+      if (existing) return true;
+
+      const { data: newCert, error: insertError } = await supabase
+        .from('certificates')
+        .insert({ student_id: userId, course_id: courseId })
+        .select()
+        .single();
+
+      if (insertError || !newCert) {
+        console.error('Error creating certificate:', insertError);
+        return false;
+      }
+
+      // Try generating PDF/URL (non-blocking)
+      try {
+        await supabase.functions.invoke('generate-certificate-pdf', {
+          body: { certificateId: newCert.id },
+        });
+      } catch (genErr) {
+        console.warn('Certificate created without PDF URL:', genErr);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Exception issuing certificate:', err);
       return false;
     }
   }
