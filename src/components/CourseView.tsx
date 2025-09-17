@@ -569,9 +569,12 @@ const CourseView = () => {
                           </div>
                         ) : (
                           <Button
-                            onClick={() => {
-                              markLessonComplete(lesson.id);
-                              navigate('/dashboard/my-courses');
+                            onClick={async () => {
+                              await markLessonComplete(lesson.id);
+                              // Wait a moment for the state to update
+                              setTimeout(() => {
+                                navigate('/dashboard/my-courses');
+                              }, 1000);
                             }}
                           >
                             Complete Course
