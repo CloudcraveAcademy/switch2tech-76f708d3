@@ -271,19 +271,17 @@ export const CourseEnrollmentService = {
         updateData.completion_date = new Date().toISOString();
       }
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("enrollments")
         .update(updateData)
         .eq("id", enrollment.id);
 
-      if (shouldComplete) {
-        // Attempt to issue certificate if eligible
-        try {
-          await this.issueCertificate(userId, courseId);
-        } catch (e) {
-          console.error("Error issuing certificate:", e);
-        }
+      if (updateError) {
+        console.error("Error updating enrollment:", updateError);
+        return false;
       }
+
+      // The database trigger will automatically handle certificate issuance
 
       return true;
     } catch (error) {
