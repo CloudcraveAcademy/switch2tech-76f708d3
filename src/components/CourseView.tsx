@@ -568,17 +568,34 @@ const CourseView = () => {
                             </Button>
                           </div>
                         ) : (
-                          <Button
-                            onClick={async () => {
-                              await markLessonComplete(lesson.id);
-                              // Wait a moment for the state to update
-                              setTimeout(() => {
-                                navigate('/dashboard/my-courses');
-                              }, 1000);
-                            }}
-                          >
-                            Complete Course
-                          </Button>
+                          <div className="flex gap-2">
+                            {!lessonProgress[lesson.id] && (
+                              <Button
+                                variant="outline"
+                                onClick={() => markLessonComplete(lesson.id)}
+                              >
+                                Mark as Complete
+                              </Button>
+                            )}
+                            <Button
+                              onClick={async () => {
+                                // Mark lesson complete if not already
+                                if (!lessonProgress[lesson.id]) {
+                                  await markLessonComplete(lesson.id);
+                                }
+                                
+                                // Wait for progress update and refetch
+                                await refetch();
+                                
+                                // Navigate after a short delay to ensure completion is processed
+                                setTimeout(() => {
+                                  navigate('/dashboard/certificates');
+                                }, 500);
+                              }}
+                            >
+                              Complete Course
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
