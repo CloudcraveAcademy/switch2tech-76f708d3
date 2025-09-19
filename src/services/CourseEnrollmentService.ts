@@ -210,6 +210,8 @@ export const CourseEnrollmentService = {
 
   async trackLessonProgress(userId: string, courseId: string, lessonId: string): Promise<boolean> {
     try {
+      console.log("CourseEnrollmentService: trackLessonProgress called", { userId, courseId, lessonId });
+      
       const { data: enrollment, error: enrollmentError } = await supabase
         .from("enrollments")
         .select("id, progress")
@@ -222,13 +224,17 @@ export const CourseEnrollmentService = {
         return false;
       }
 
+      console.log("Found enrollment:", enrollment);
+
       const { count: totalLessons } = await supabase
         .from("lessons")
         .select("*", { count: 'exact', head: true })
         .eq("course_id", courseId);
 
+      console.log("Total lessons:", totalLessons);
       if (!totalLessons) return false;
 
+      console.log("Upserting lesson progress for lesson:", lessonId);
       const { error } = await supabase
         .from("student_lesson_progress")
         .upsert(
@@ -247,6 +253,8 @@ export const CourseEnrollmentService = {
         return false;
       }
 
+      console.log("Lesson progress upserted successfully");
+
       const { count: completedLessons } = await supabase
         .from("student_lesson_progress")
         .select("*", { count: 'exact', head: true })
@@ -256,10 +264,13 @@ export const CourseEnrollmentService = {
 
       if (completedLessons === undefined) return false;
 
+      console.log("Completed lessons:", completedLessons);
       const newProgress = Math.round((completedLessons / totalLessons) * 100);
+      console.log("New progress:", newProgress);
 
       // Check if this should trigger course completion
       const shouldComplete = await this.checkCourseCompletion(userId, courseId, newProgress);
+      console.log("Should complete course:", shouldComplete);
 
       // Update progress and mark as completed if requirements are met
       const updateData: { progress: number; completed?: boolean; completion_date?: string } = {
@@ -269,8 +280,10 @@ export const CourseEnrollmentService = {
       if (shouldComplete) {
         updateData.completed = true;
         updateData.completion_date = new Date().toISOString();
+        console.log("Marking course as completed");
       }
 
+      console.log("Updating enrollment with data:", updateData);
       const { error: updateError } = await supabase
         .from("enrollments")
         .update(updateData)
@@ -281,7 +294,7 @@ export const CourseEnrollmentService = {
         return false;
       }
 
-      // The database trigger will automatically handle certificate issuance
+      console.log("Enrollment updated successfully. Certificate trigger should now fire automatically");
 
       return true;
     } catch (error) {
