@@ -219,9 +219,56 @@ export const CourseEnrollmentService = {
         .eq("student_id", userId)
         .maybeSingle();
 
-      if (enrollmentError || !enrollment) {
-        console.error("No enrollment found or error:", enrollmentError);
-        return false;
+      let enrollmentId = enrollment?.id;
+
+      if (enrollmentError) {
+        console.error("Error checking enrollment:", enrollmentError);
+      }
+
+      if (!enrollmentId) {
+        // Attempt automatic enrollment for free courses
+        const { data: coursePricing, error: coursePricingError } = await supabase
+          .from("courses")
+          .select("price, discounted_price")
+          .eq("id", courseId)
+          .maybeSingle();
+
+        if (coursePricingError) {
+          console.error("Error fetching course pricing:", coursePricingError);
+          return false;
+        }
+
+        const effectivePrice = coursePricing?.discounted_price || coursePricing?.price || 0;
+        const isFree = effectivePrice === 0;
+
+        if (isFree) {
+          const { data: newEnrollment, error: createEnrollError } = await supabase
+            .from("enrollments")
+            .insert({
+              course_id: courseId,
+              student_id: userId,
+              progress: 0,
+              enrollment_date: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+
+          if (createEnrollError || !newEnrollment) {
+            console.error("Failed to auto-enroll in free course:", createEnrollError);
+            return false;
+          }
+
+          console.log("Auto-enrolled user in free course");
+          enrollmentId = newEnrollment.id;
+        } else {
+          console.error("No enrollment found and course requires payment");
+          toast?.({
+            title: "Enrollment required",
+            description: "Please enroll to save your progress.",
+            variant: "destructive",
+          });
+          return false;
+        }
       }
 
       console.log("Found enrollment:", enrollment);
@@ -287,15 +334,22 @@ export const CourseEnrollmentService = {
       const { error: updateError } = await supabase
         .from("enrollments")
         .update(updateData)
-        .eq("id", enrollment.id);
+        .eq("id", enrollmentId);
 
       if (updateError) {
         console.error("Error updating enrollment:", updateError);
         return false;
       }
 
-      console.log("Enrollment updated successfully. Certificate trigger should now fire automatically");
-
+      console.log("Enrollment updated successfully.");
+      if (shouldComplete) {
+        try {
+          await this.issueCertificate(userId, courseId);
+          console.log("Certificate issuance attempted after completion");
+        } catch (e) {
+          console.warn("Certificate issuance attempt failed:", e);
+        }
+      }
       return true;
     } catch (error) {
       console.error("Error in trackLessonProgress:", error);
