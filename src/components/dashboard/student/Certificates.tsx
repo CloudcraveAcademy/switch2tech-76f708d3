@@ -18,10 +18,12 @@ interface Certificate {
   verification_code: string;
   issue_date: string;
   pdf_url?: string;
+  student_name?: string;
   course?: {
     id: string;
     title: string;
     level: string;
+    instructor_name?: string;
     instructor?: {
       id: string;
       first_name: string;
@@ -56,6 +58,10 @@ export default function Certificates() {
               first_name,
               last_name
             )
+          ),
+          student:user_profiles!student_id (
+            first_name,
+            last_name
           )
         `)
         .eq("student_id", user.id)
@@ -70,8 +76,14 @@ export default function Certificates() {
         ...cert,
         course: cert.course ? {
           ...cert.course,
+          instructor_name: cert.course.instructor ? 
+            `${cert.course.instructor.first_name || ''} ${cert.course.instructor.last_name || ''}`.trim() : 
+            'Unknown Instructor',
           instructor: cert.course.instructor || { id: 'unknown', first_name: 'Unknown', last_name: 'Instructor' }
-        } : undefined
+        } : undefined,
+        student_name: cert.student ? 
+          `${cert.student.first_name || ''} ${cert.student.last_name || ''}`.trim() : 
+          'Unknown Student'
       })) || [];
     },
     enabled: !!user?.id,
@@ -231,18 +243,21 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
       }
 
       // Transform certificate data to match CertificateTemplate expectations
+      const studentNames = certificate.student_name?.split(' ') || ['Unknown', 'Student'];
+      const instructorNames = certificate.course?.instructor_name?.split(' ') || ['Unknown', 'Instructor'];
+      
       const certificateData = {
         ...certificate,
         student: {
-          first_name: 'Student', // We don't need student data for viewing
-          last_name: ''
+          first_name: studentNames[0] || 'Unknown',
+          last_name: studentNames.slice(1).join(' ') || 'Student'
         },
         course: {
           ...certificate.course,
           title: certificate.course?.title || 'Course',
           instructor: {
-            first_name: certificate.course?.instructor?.first_name || 'Unknown',
-            last_name: certificate.course?.instructor?.last_name || 'Instructor'
+            first_name: instructorNames[0] || 'Unknown',
+            last_name: instructorNames.slice(1).join(' ') || 'Instructor'
           }
         }
       };
@@ -301,7 +316,7 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
             {certificate.course?.title || 'Course Title'}
           </h3>
           <p className="text-sm opacity-90">
-            {certificate.course?.instructor?.first_name || 'Unknown'} {certificate.course?.instructor?.last_name || 'Instructor'}
+            {certificate.course?.instructor_name || 'Unknown Instructor'}
           </p>
         </div>
       </div>

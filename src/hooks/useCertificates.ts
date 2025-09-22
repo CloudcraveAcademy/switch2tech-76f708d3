@@ -10,6 +10,7 @@ export interface Certificate {
   certificate_number: string;
   verification_code: string;
   pdf_url?: string;
+  student_name?: string;
   course?: {
     title: string;
     instructor_name: string;
@@ -36,6 +37,10 @@ export const useCertificates = () => {
               first_name,
               last_name
             )
+          ),
+          student:user_profiles!student_id (
+            first_name,
+            last_name
           )
         `)
         .eq('student_id', user.id)
@@ -54,7 +59,10 @@ export const useCertificates = () => {
             `${cert.course.instructor.first_name || ''} ${cert.course.instructor.last_name || ''}`.trim() : 
             'Unknown Instructor',
           image_url: cert.course.image_url
-        } : undefined
+        } : undefined,
+        student_name: cert.student ? 
+          `${cert.student.first_name || ''} ${cert.student.last_name || ''}`.trim() : 
+          'Unknown Student'
       })) || [];
     },
     enabled: !!user,
