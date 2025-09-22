@@ -32,7 +32,7 @@ export const useCertificates = () => {
           course:courses (
             title,
             image_url,
-            instructor:user_profiles_public!instructor_id (
+            instructor:user_profiles!instructor_id (
               first_name,
               last_name
             )
@@ -50,7 +50,9 @@ export const useCertificates = () => {
         ...cert,
         course: cert.course ? {
           title: cert.course.title,
-          instructor_name: `${cert.course.instructor?.first_name || ''} ${cert.course.instructor?.last_name || ''}`.trim(),
+          instructor_name: cert.course.instructor ? 
+            `${cert.course.instructor.first_name || ''} ${cert.course.instructor.last_name || ''}`.trim() : 
+            'Unknown Instructor',
           image_url: cert.course.image_url
         } : undefined
       })) || [];

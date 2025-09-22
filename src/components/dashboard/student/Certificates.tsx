@@ -18,16 +18,11 @@ interface Certificate {
   verification_code: string;
   issue_date: string;
   pdf_url?: string;
-  student: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-  course: {
+  course?: {
     id: string;
     title: string;
     level: string;
-    instructor: {
+    instructor?: {
       id: string;
       first_name: string;
       last_name: string;
@@ -52,27 +47,40 @@ export default function Certificates() {
         .from("certificates")
         .select(`
           *,
-          student:student_id(id, first_name, last_name),
-          course:course_id(
+          course:courses (
             id,
             title,
             level,
-            instructor:instructor_id(id, first_name, last_name)
+            instructor:user_profiles!instructor_id (
+              id,
+              first_name,
+              last_name
+            )
           )
         `)
         .eq("student_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as Certificate[];
+      if (error) {
+        console.error('Error fetching certificates:', error);
+        return [];
+      }
+      
+      return data?.map(cert => ({
+        ...cert,
+        course: cert.course ? {
+          ...cert.course,
+          instructor: cert.course.instructor || { id: 'unknown', first_name: 'Unknown', last_name: 'Instructor' }
+        } : undefined
+      })) || [];
     },
     enabled: !!user?.id,
   });
 
   // Filter certificates based on search
   const filteredCertificates = certificates?.filter(cert => 
-    cert.course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cert.certificate_number.toLowerCase().includes(searchQuery.toLowerCase())
+    cert.course?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cert.certificate_number?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
   const formatDate = (dateString: string) => {
@@ -184,8 +192,8 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Certificate - ${certificate.course.title}`,
-          text: `Check out my certificate for completing ${certificate.course.title}!`,
+          title: `Certificate - ${certificate.course?.title || 'Course'}`,
+          text: `Check out my certificate for completing ${certificate.course?.title || 'this course'}!`,
           url: shareUrl,
         });
       } catch (error) {
@@ -222,7 +230,24 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
         throw new Error('Unable to open certificate window');
       }
 
-      const html = generateCertificateHTML(certificate);
+      // Transform certificate data to match CertificateTemplate expectations
+      const certificateData = {
+        ...certificate,
+        student: {
+          first_name: 'Student', // We don't need student data for viewing
+          last_name: ''
+        },
+        course: {
+          ...certificate.course,
+          title: certificate.course?.title || 'Course',
+          instructor: {
+            first_name: certificate.course?.instructor?.first_name || 'Unknown',
+            last_name: certificate.course?.instructor?.last_name || 'Instructor'
+          }
+        }
+      };
+
+      const html = generateCertificateHTML(certificateData);
       
       certificateWindow.document.write(html);
       certificateWindow.document.close();
@@ -273,10 +298,10 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
         </div>
         <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
           <h3 className="font-bold text-lg truncate">
-            {certificate.course.title}
+            {certificate.course?.title || 'Course Title'}
           </h3>
           <p className="text-sm opacity-90">
-            {certificate.course.instructor.first_name} {certificate.course.instructor.last_name}
+            {certificate.course?.instructor?.first_name || 'Unknown'} {certificate.course?.instructor?.last_name || 'Instructor'}
           </p>
         </div>
       </div>
@@ -310,8 +335,8 @@ const CertificateCard = ({ certificate, toast, queryClient }: CertificateCardPro
           
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-500">Level:</span>
-            <span className={`text-xs px-2 py-1 rounded-full ${getLevelBadgeColor(certificate.course.level)}`}>
-              {certificate.course.level}
+            <span className={`text-xs px-2 py-1 rounded-full ${getLevelBadgeColor(certificate.course?.level || 'beginner')}`}>
+              {certificate.course?.level || 'Beginner'}
             </span>
           </div>
         </div>
