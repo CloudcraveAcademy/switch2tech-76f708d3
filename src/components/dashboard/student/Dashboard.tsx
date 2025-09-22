@@ -2,15 +2,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Award } from "lucide-react";
 
 import { DashboardStats } from "./dashboard/DashboardStats";
 import EnrolledCourses from "./dashboard/EnrolledCourses";
+import { useCertificates } from "@/hooks/useCertificates";
 import UpcomingLiveClasses from "./dashboard/UpcomingLiveClasses";
 import { Announcements } from "./dashboard/Announcements";
 import StudentStatistics from "./dashboard/StudentStatistics";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { certificateCount } = useCertificates();
 
   const { data: stats } = useQuery({
     queryKey: ['student-stats', user?.id],
@@ -139,6 +142,24 @@ const Dashboard = () => {
         </div>
 
         <div className="col-span-1 md:col-span-2 space-y-6">
+          {/* Certificate Achievement Badge */}
+          {certificateCount > 0 && (
+            <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg p-4 text-white mb-6">
+              <div className="flex items-center gap-3">
+                <Award className="h-8 w-8" />
+                <div>
+                  <h3 className="font-bold text-lg">🎉 Congratulations!</h3>
+                  <p className="text-amber-100">
+                    You've earned {certificateCount} certificate{certificateCount > 1 ? 's' : ''}! 
+                    <span className="ml-2 underline cursor-pointer" onClick={() => window.location.href = '/dashboard/certificates'}>
+                      View all certificates →
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="w-full">
             <EnrolledCourses />
           </div>

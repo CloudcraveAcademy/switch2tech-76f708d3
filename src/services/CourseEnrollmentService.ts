@@ -342,13 +342,18 @@ export const CourseEnrollmentService = {
       }
 
       console.log("Enrollment updated successfully.");
+      
+      // For completed courses, the database trigger will handle certificate issuance automatically
       if (shouldComplete) {
-        try {
-          await this.issueCertificate(userId, courseId);
-          console.log("Certificate issuance attempted after completion");
-        } catch (e) {
-          console.warn("Certificate issuance attempt failed:", e);
-        }
+        console.log("Course marked as completed - certificate trigger will handle issuance");
+        
+        // Optional: Show immediate feedback to user
+        setTimeout(() => {
+          toast?.({
+            title: "🎉 Course Completed!",
+            description: "Congratulations! Your certificate is being generated.",
+          });
+        }, 1000);
       }
       return true;
     } catch (error) {
