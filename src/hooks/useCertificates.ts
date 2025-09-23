@@ -31,12 +31,10 @@ export const useCertificates = () => {
         .select(`
           *,
           course:courses (
+            id,
             title,
             image_url,
-            instructor:user_profiles!instructor_id (
-              first_name,
-              last_name
-            )
+            instructor_id
           ),
           student:user_profiles!student_id (
             first_name,
@@ -51,19 +49,43 @@ export const useCertificates = () => {
         return [];
       }
       
-      return data?.map(cert => ({
-        ...cert,
-        course: cert.course ? {
-          title: cert.course.title,
-          instructor_name: cert.course.instructor ? 
-            `${cert.course.instructor.first_name || ''} ${cert.course.instructor.last_name || ''}`.trim() : 
-            'Unknown Instructor',
-          image_url: cert.course.image_url
-        } : undefined,
-        student_name: cert.student ? 
-          `${cert.student.first_name || ''} ${cert.student.last_name || ''}`.trim() : 
-          'Unknown Student'
-      })) || [];
+      // Fetch instructor profiles separately  
+      const courseIds = data?.map(cert => cert.course?.id).filter(Boolean) || [];
+      let instructors: any[] = [];
+      
+      if (courseIds.length > 0) {
+        const { data: coursesWithInstructors } = await supabase
+          .from('courses')
+          .select(`
+            id,
+            instructor_id,
+            instructor:user_profiles!instructor_id (
+              first_name,
+              last_name
+            )
+          `)
+          .in('id', courseIds);
+          
+        instructors = coursesWithInstructors || [];
+      }
+
+      return data?.map(cert => {
+        const courseInstructor = instructors.find(inst => inst.id === cert.course?.id);
+        
+        return {
+          ...cert,
+          course: cert.course ? {
+            title: cert.course.title,
+            instructor_name: courseInstructor?.instructor ? 
+              `${courseInstructor.instructor.first_name || ''} ${courseInstructor.instructor.last_name || ''}`.trim() : 
+              'Unknown Instructor',
+            image_url: cert.course.image_url
+          } : undefined,
+          student_name: cert.student ? 
+            `${cert.student.first_name || ''} ${cert.student.last_name || ''}`.trim() : 
+            'Unknown Student'
+        };
+      }) || [];
     },
     enabled: !!user,
   });
