@@ -67,7 +67,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
       const { data: transactions } = await supabase
         .from('payment_transactions')
         .select('amount, created_at, course_id, courses:course_id(price)')
-        .in('status', ['completed', 'success'])
+        .in('status', ['completed', 'successful'])
         .gte('created_at', startDate.toISOString());
 
       // Calculate revenue (use course price if transaction amount is 0)

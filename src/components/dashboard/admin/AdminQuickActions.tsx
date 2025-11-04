@@ -2,6 +2,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, 
   BookOpen, 
@@ -14,6 +16,56 @@ import {
 } from "lucide-react";
 
 const AdminQuickActions = () => {
+  // Fetch pending courses count
+  const { data: pendingCoursesCount = 0 } = useQuery({
+    queryKey: ['admin-pending-courses-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('courses')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_published', false);
+      return count || 0;
+    }
+  });
+
+  // Fetch open support tickets count
+  const { data: openTicketsCount = 0 } = useQuery({
+    queryKey: ['admin-open-tickets-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('support_tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'open');
+      return count || 0;
+    }
+  });
+
+  // Fetch pending payouts count
+  const { data: pendingPayoutsCount = 0 } = useQuery({
+    queryKey: ['admin-pending-payouts-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('instructor_payouts')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      return count || 0;
+    }
+  });
+
+  // Fetch pending instructor verifications count
+  const { data: pendingVerificationsCount = 0 } = useQuery({
+    queryKey: ['admin-pending-verifications-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'instructor')
+        .eq('bank_verification_status', 'pending')
+        .not('bank_name', 'is', null)
+        .not('account_number', 'is', null);
+      return count || 0;
+    }
+  });
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold">Quick Actions</h2>
@@ -67,7 +119,7 @@ const AdminQuickActions = () => {
             </Link>
             <Link to="/dashboard/course-approvals">
               <Button variant="outline" size="sm" className="w-full">
-                Review Pending (8)
+                Review Pending ({pendingCoursesCount})
               </Button>
             </Link>
             <Link to="/dashboard/categories">
@@ -127,7 +179,7 @@ const AdminQuickActions = () => {
             </Link>
             <Link to="/dashboard/support-tickets">
               <Button variant="outline" size="sm" className="w-full">
-                Support Tickets (12)
+                Support Tickets ({openTicketsCount})
               </Button>
             </Link>
             <Link to="/dashboard/email-templates">
@@ -158,7 +210,7 @@ const AdminQuickActions = () => {
                   </div>
                   <div>
                     <p className="font-medium">Course Review Requests</p>
-                    <p className="text-xs text-gray-500">8 pending approvals</p>
+                    <p className="text-xs text-gray-500">{pendingCoursesCount} pending approvals</p>
                   </div>
                 </div>
                 <Link to="/dashboard/course-approvals">
@@ -172,7 +224,7 @@ const AdminQuickActions = () => {
                   </div>
                   <div>
                     <p className="font-medium">Support Tickets</p>
-                    <p className="text-xs text-gray-500">12 open tickets</p>
+                    <p className="text-xs text-gray-500">{openTicketsCount} open tickets</p>
                   </div>
                 </div>
                 <Link to="/dashboard/support-tickets">
@@ -186,7 +238,7 @@ const AdminQuickActions = () => {
                   </div>
                   <div>
                     <p className="font-medium">Instructor Payouts</p>
-                    <p className="text-xs text-gray-500">5 pending payouts</p>
+                    <p className="text-xs text-gray-500">{pendingPayoutsCount} pending payouts</p>
                   </div>
                 </div>
                 <Link to="/dashboard/payouts">
@@ -200,7 +252,7 @@ const AdminQuickActions = () => {
                   </div>
                   <div>
                     <p className="font-medium">Instructor Verifications</p>
-                    <p className="text-xs text-gray-500">3 pending verifications</p>
+                    <p className="text-xs text-gray-500">{pendingVerificationsCount} pending verifications</p>
                   </div>
                 </div>
                 <Link to="/dashboard/users/verification">

@@ -69,7 +69,7 @@ const AdminRevenueChart = ({ periodFilter, currency = 'NGN' }: AdminRevenueChart
       const { data: transactions } = await supabase
         .from('payment_transactions')
         .select('amount, created_at, course_id, courses:course_id(price)')
-        .in('status', ['completed', 'success'])
+        .in('status', ['completed', 'successful'])
         .gte('created_at', startDate.toISOString());
 
       // Group transactions by intervals

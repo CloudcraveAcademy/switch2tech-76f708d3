@@ -1,158 +1,224 @@
 
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Clock, CreditCard, Download, UserPlus, UserX, AlertCircle, CheckCircle, FileText } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
 
 interface AdminActivityFeedProps {
   limit?: number;
 }
 
 const AdminActivityFeed = ({ limit }: AdminActivityFeedProps) => {
-  // Mock activity data - in a real app, this would come from the backend
-  const activityData = [
-    {
-      id: 1,
-      type: "course-created",
-      title: "New Course Created",
-      detail: "Advanced React Patterns",
-      user: {
-        name: "John Smith",
-        role: "Instructor",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=instructor1"
-      },
-      time: "Today, 10:30 AM",
-      status: "pending-review",
-      statusText: "Pending Review"
-    },
-    {
-      id: 2,
-      type: "user-registration",
-      title: "New User Registration",
-      detail: "Student account created",
-      user: {
-        name: "Amina Mohammed",
-        role: "Student",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=student42"
-      },
-      time: "Today, 9:15 AM",
-      status: "completed",
-      statusText: "Completed"
-    },
-    {
-      id: 3,
-      type: "payment",
-      title: "New Payment Received",
-      detail: "₦45,000 - DevOps for Beginners",
-      user: {
-        name: "David Okonkwo",
-        role: "Student",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=student24"
-      },
-      time: "Yesterday, 2:45 PM",
-      status: "successful",
-      statusText: "Successful"
-    },
-    {
-      id: 4,
-      type: "course-update",
-      title: "Course Update",
-      detail: "Web Security Fundamentals - Added new module",
-      user: {
-        name: "Sarah Johnson",
-        role: "Instructor",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=instructor8"
-      },
-      time: "Yesterday, 11:20 AM",
-      status: "published",
-      statusText: "Published"
-    },
-    {
-      id: 5,
-      type: "enrollment",
-      title: "New Course Enrollment",
-      detail: "Fundamentals of UX Design",
-      user: {
-        name: "Michael Chen",
-        role: "Student",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=student18"
-      },
-      time: "Yesterday, 10:05 AM",
-      status: "completed",
-      statusText: "Completed"
-    },
-    {
-      id: 6,
-      type: "certificate",
-      title: "Certificate Issued",
-      detail: "Python for Data Science",
-      user: {
-        name: "Emma Okafor",
-        role: "Student",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=student33"
-      },
-      time: "May 15, 3:30 PM",
-      status: "issued",
-      statusText: "Issued"
-    },
-    {
-      id: 7,
-      type: "user-deleted",
-      title: "User Account Deleted",
-      detail: "User requested account deletion",
-      user: {
-        name: "Robert James",
-        role: "Student",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=student99"
-      },
-      time: "May 15, 11:45 AM",
-      status: "deleted",
-      statusText: "Deleted"
-    },
-    {
-      id: 8,
-      type: "support-ticket",
-      title: "Support Ticket Opened",
-      detail: "Payment issue with course checkout",
-      user: {
-        name: "Jennifer Adams",
-        role: "Student",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=student55"
-      },
-      time: "May 14, 4:15 PM",
-      status: "open",
-      statusText: "Open"
-    },
-    {
-      id: 9,
-      type: "support-ticket",
-      title: "Support Ticket Resolved",
-      detail: "Video playback issue resolved",
-      user: {
-        name: "Chidi Obi",
-        role: "Student",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=student66"
-      },
-      time: "May 14, 2:30 PM",
-      status: "resolved",
-      statusText: "Resolved"
-    },
-    {
-      id: 10,
-      type: "payout",
-      title: "Instructor Payout Processed",
-      detail: "₦280,000 for April earnings",
-      user: {
-        name: "Daniel Adeyemi",
-        role: "Instructor",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=instructor5"
-      },
-      time: "May 13, 10:00 AM",
-      status: "completed",
-      statusText: "Completed"
-    }
-  ];
+  // Fetch real activity data from multiple sources
+  const { data: activityData = [], isLoading } = useQuery({
+    queryKey: ['admin-activity-feed', limit],
+    queryFn: async () => {
+      const activities: any[] = [];
 
-  // Limit the number of activities to show if specified
-  const activitiesToShow = limit ? activityData.slice(0, limit) : activityData;
+      // Fetch recent enrollments
+      const { data: enrollments } = await supabase
+        .from('enrollments')
+        .select(`
+          id,
+          enrollment_date,
+          student_id,
+          course_id,
+          courses (title),
+          user_profiles!enrollments_student_id_fkey (first_name, last_name, avatar_url)
+        `)
+        .order('enrollment_date', { ascending: false })
+        .limit(5);
+
+      if (enrollments) {
+        enrollments.forEach((enrollment: any) => {
+          activities.push({
+            id: `enrollment-${enrollment.id}`,
+            type: "enrollment",
+            title: "New Course Enrollment",
+            detail: enrollment.courses?.title || "Course",
+            user: {
+              name: enrollment.user_profiles ? 
+                `${enrollment.user_profiles.first_name || ''} ${enrollment.user_profiles.last_name || ''}`.trim() || 'Unknown Student' : 
+                'Unknown Student',
+              role: "Student",
+              avatar: enrollment.user_profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${enrollment.student_id}`
+            },
+            time: formatDistanceToNow(new Date(enrollment.enrollment_date), { addSuffix: true }),
+            status: "completed",
+            statusText: "Completed",
+            timestamp: new Date(enrollment.enrollment_date).getTime()
+          });
+        });
+      }
+
+      // Fetch recent certificates
+      const { data: certificates } = await supabase
+        .from('certificates')
+        .select(`
+          id,
+          issue_date,
+          student_id,
+          course_id,
+          courses (title),
+          user_profiles!certificates_student_id_fkey (first_name, last_name, avatar_url)
+        `)
+        .order('issue_date', { ascending: false })
+        .limit(5);
+
+      if (certificates) {
+        certificates.forEach((cert: any) => {
+          activities.push({
+            id: `certificate-${cert.id}`,
+            type: "certificate",
+            title: "Certificate Issued",
+            detail: cert.courses?.title || "Course",
+            user: {
+              name: cert.user_profiles ? 
+                `${cert.user_profiles.first_name || ''} ${cert.user_profiles.last_name || ''}`.trim() || 'Unknown Student' : 
+                'Unknown Student',
+              role: "Student",
+              avatar: cert.user_profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cert.student_id}`
+            },
+            time: formatDistanceToNow(new Date(cert.issue_date), { addSuffix: true }),
+            status: "issued",
+            statusText: "Issued",
+            timestamp: new Date(cert.issue_date).getTime()
+          });
+        });
+      }
+
+      // Fetch recent courses
+      const { data: courses } = await supabase
+        .from('courses')
+        .select(`
+          id,
+          created_at,
+          title,
+          is_published,
+          instructor_id,
+          user_profiles!courses_instructor_id_fkey (first_name, last_name, avatar_url)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (courses) {
+        courses.forEach((course: any) => {
+          activities.push({
+            id: `course-${course.id}`,
+            type: "course-created",
+            title: "New Course Created",
+            detail: course.title,
+            user: {
+              name: course.user_profiles ? 
+                `${course.user_profiles.first_name || ''} ${course.user_profiles.last_name || ''}`.trim() || 'Unknown Instructor' : 
+                'Unknown Instructor',
+              role: "Instructor",
+              avatar: course.user_profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor_id}`
+            },
+            time: formatDistanceToNow(new Date(course.created_at), { addSuffix: true }),
+            status: course.is_published ? "published" : "pending-review",
+            statusText: course.is_published ? "Published" : "Pending Review",
+            timestamp: new Date(course.created_at).getTime()
+          });
+        });
+      }
+
+      // Fetch recent transactions
+      const { data: transactions } = await supabase
+        .from('payment_transactions')
+        .select(`
+          id,
+          created_at,
+          amount,
+          currency,
+          status,
+          user_id,
+          course_id,
+          courses (title),
+          user_profiles!payment_transactions_user_id_fkey (first_name, last_name, avatar_url)
+        `)
+        .eq('status', 'successful')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (transactions) {
+        transactions.forEach((transaction: any) => {
+          const currencySymbol = transaction.currency === 'NGN' ? '₦' : transaction.currency === 'USD' ? '$' : '€';
+          activities.push({
+            id: `payment-${transaction.id}`,
+            type: "payment",
+            title: "New Payment Received",
+            detail: `${currencySymbol}${transaction.amount?.toLocaleString()} - ${transaction.courses?.title || 'Course'}`,
+            user: {
+              name: transaction.user_profiles ? 
+                `${transaction.user_profiles.first_name || ''} ${transaction.user_profiles.last_name || ''}`.trim() || 'Unknown Student' : 
+                'Unknown Student',
+              role: "Student",
+              avatar: transaction.user_profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${transaction.user_id}`
+            },
+            time: formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true }),
+            status: "successful",
+            statusText: "Successful",
+            timestamp: new Date(transaction.created_at).getTime()
+          });
+        });
+      }
+
+      // Fetch recent user registrations
+      const { data: newUsers } = await supabase
+        .from('user_profiles')
+        .select('id, created_at, first_name, last_name, role, avatar_url')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (newUsers) {
+        newUsers.forEach((user: any) => {
+          activities.push({
+            id: `user-${user.id}`,
+            type: "user-registration",
+            title: "New User Registration",
+            detail: `${user.role || 'Student'} account created`,
+            user: {
+              name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'New User',
+              role: user.role || 'Student',
+              avatar: user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`
+            },
+            time: formatDistanceToNow(new Date(user.created_at), { addSuffix: true }),
+            status: "completed",
+            statusText: "Completed",
+            timestamp: new Date(user.created_at).getTime()
+          });
+        });
+      }
+
+      // Sort all activities by timestamp (most recent first)
+      activities.sort((a, b) => b.timestamp - a.timestamp);
+
+      // Return limited or full list
+      return limit ? activities.slice(0, limit) : activities;
+    }
+  });
+
+  if (isLoading) {
+    return (
+      <div className="w-full p-6">
+        <div className="space-y-4">
+          {[...Array(limit || 5)].map((_, i) => (
+            <div key={i} className="flex items-start gap-3 animate-pulse">
+              <div className="h-9 w-9 rounded-full bg-gray-200"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const activitiesToShow = activityData;
 
   // Function to get the appropriate icon based on activity type
   const getActivityIcon = (type: string) => {
