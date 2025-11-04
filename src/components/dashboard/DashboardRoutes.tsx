@@ -47,6 +47,7 @@ import AnnouncementsPage from "@/pages/admin/AnnouncementsPage";
 import SystemPage from "@/pages/admin/SystemPage";
 import RatingsPage from "@/pages/admin/RatingsPage";
 import ActivityPage from "@/pages/admin/ActivityPage";
+import UserDetailPage from "@/pages/admin/UserDetailPage";
 
 // Import new admin management components
 import ApplicationsManagement from "./admin/ApplicationsManagement";
@@ -109,6 +110,7 @@ const DashboardRoutes = () => {
   const adminRoutesFragment = useMemo(() => (
     <>
       <Route path="/users" element={<UsersPage />} />
+      <Route path="/users/:userId" element={<UserDetailPage />} />
       <Route path="/courses" element={<CoursesPage />} />
       <Route path="/live-classes-overview" element={<LiveClassOverview />} />
       <Route path="/certificates" element={<AdminCertificates />} />

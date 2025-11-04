@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { User, Pencil, Trash2, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const UsersPage = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
 
@@ -213,10 +215,8 @@ const UsersPage = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="icon" asChild>
-                              <a href={`/dashboard/users/${user.id}`}>
-                                <Pencil className="h-4 w-4" />
-                              </a>
+                            <Button variant="outline" size="icon" onClick={() => navigate(`/dashboard/users/${user.id}`)}>
+                              <Pencil className="h-4 w-4" />
                             </Button>
                             <Button 
                               variant="outline" 
