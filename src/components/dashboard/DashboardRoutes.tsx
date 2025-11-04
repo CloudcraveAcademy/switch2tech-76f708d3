@@ -46,6 +46,7 @@ import SupportTicketsPage from "@/pages/admin/SupportTicketsPage";
 import AnnouncementsPage from "@/pages/admin/AnnouncementsPage";
 import SystemPage from "@/pages/admin/SystemPage";
 import RatingsPage from "@/pages/admin/RatingsPage";
+import ActivityPage from "@/pages/admin/ActivityPage";
 
 // Import new admin management components
 import ApplicationsManagement from "./admin/ApplicationsManagement";
@@ -117,6 +118,7 @@ const DashboardRoutes = () => {
       <Route path="/announcements" element={<AnnouncementsPage />} />
       <Route path="/system" element={<SystemPage />} />
       <Route path="/ratings" element={<RatingsPage />} />
+      <Route path="/activity" element={<ActivityPage />} />
         <Route path="/assignments-overview" element={<AssignmentOverview />} />
         <Route path="/quizzes-overview" element={<QuizOverview />} />
         <Route path="/discussions-overview" element={<DiscussionOverview />} />
