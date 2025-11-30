@@ -7,7 +7,7 @@ const TermsOfService = () => {
       <div className="container mx-auto py-12 px-4">
         <h1 className="text-4xl font-bold mb-8">TERMS OF USE (Switch2Tech)</h1>
         <div className="prose max-w-none">
-          <p className="text-lg mb-6">Last updated: [Insert date]</p>
+          <p className="text-lg mb-6">Last updated: 1st July 2025</p>
           
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
