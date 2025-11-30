@@ -20,9 +20,14 @@ const HeroSection = () => {
           <h1 className="text-6xl font-bold mb-6 text-white">
             Unlock Your Potential with Expert-Led Courses
           </h1>
+          <p className="text-2xl font-black text-white mb-4">
+            Empowering the Next Generation of Tech Talent.
+          </p>
           <p className="text-xl text-white/80 mb-8 leading-relaxed">
-            Access high-quality courses, mentorship programs, and internship opportunities 
-            to accelerate your career growth.
+            Join a community dedicated to mentorship, innovation, and skills development. 
+            We equip you with the tools, guidance, mentorship programs and confidence to 
+            excel in modern technology roles and contribute meaningfully to fast-growing 
+            digital industries worldwide.
           </p>
           <div className="flex gap-4 items-center">
             <Link to="/courses">
