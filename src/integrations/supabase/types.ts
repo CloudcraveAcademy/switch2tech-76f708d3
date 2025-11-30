@@ -1918,10 +1918,7 @@ export type Database = {
         Args: { course_id_param: string; student_id_param: string }
         Returns: boolean
       }
-      check_virtual_live_completion: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      check_virtual_live_completion: { Args: never; Returns: undefined }
       create_course_announcement: {
         Args: {
           content_param: string
@@ -1943,10 +1940,7 @@ export type Database = {
           public_key: string
         }[]
       }
-      get_auth_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_auth_user_id: { Args: never; Returns: string }
       get_course_announcements: {
         Args: { course_id_param: string }
         Returns: {
@@ -1957,6 +1951,12 @@ export type Database = {
           title: string
           updated_at: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "course_announcements"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_course_rating_stats: {
         Args: { course_id_param: string }
@@ -1966,10 +1966,7 @@ export type Database = {
           total_ratings: number
         }[]
       }
-      get_current_commission_percentage: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      get_current_commission_percentage: { Args: never; Returns: number }
       get_public_payment_gateway_config: {
         Args: { gateway_name_param: string }
         Returns: {
@@ -1988,39 +1985,30 @@ export type Database = {
           professional_title: string
         }[]
       }
-      get_user_emails: {
-        Args:
-          | { instructor_id?: string; user_ids: string[] }
-          | { user_ids: string[] }
-        Returns: {
-          email: string
-          id: string
-        }[]
-      }
-      get_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      has_role: {
-        Args: { role: string }
-        Returns: boolean
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_user_emails:
+        | {
+            Args: { user_ids: string[] }
+            Returns: {
+              email: string
+              id: string
+            }[]
+          }
+        | {
+            Args: { instructor_id?: string; user_ids: string[] }
+            Returns: {
+              email: string
+              id: string
+            }[]
+          }
+      get_user_role: { Args: never; Returns: string }
+      has_role: { Args: { role: string }; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       is_course_instructor_for_lessons: {
         Args: { course_id: string }
         Returns: boolean
       }
-      is_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      issue_missing_certificates: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      is_user_admin: { Args: never; Returns: boolean }
+      issue_missing_certificates: { Args: never; Returns: undefined }
       update_course_announcement: {
         Args: {
           announcement_id_param: string
