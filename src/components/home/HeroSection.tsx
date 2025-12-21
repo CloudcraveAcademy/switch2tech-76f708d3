@@ -1,25 +1,18 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-
 const HeroSection = () => {
-  return (
-    <div className="relative min-h-[600px] flex items-center bg-brand-dark w-full overflow-hidden">
+  return <div className="relative min-h-[600px] flex items-center bg-brand-dark w-full overflow-hidden">
       {/* Background image with overlay */}
-      <div 
-        className="absolute inset-0 w-full bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80')] 
-        bg-cover bg-center bg-no-repeat opacity-10"
-      />
+      <div className="absolute inset-0 w-full bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80')] 
+        bg-cover bg-center bg-no-repeat opacity-10" />
       
       {/* Grid pattern overlay */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-20" />
       
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-2xl">
-          <h1 className="text-6xl font-bold mb-6 text-white">
-            Unlock Your Potential with Expert-Led Courses
-          </h1>
+          <h1 className="text-6xl font-bold mb-6 text-white">Unlock Your Potential with Expert-Led Courses</h1>
           <p className="text-2xl font-black text-white mb-4">
             Empowering the Next Generation of Tech Talent.
           </p>
@@ -44,8 +37,6 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default HeroSection;
