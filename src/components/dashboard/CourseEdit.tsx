@@ -133,8 +133,9 @@ const CourseEdit = () => {
         throw new Error("Course not found");
       }
       
-      // Check if user is the instructor for this course
-      if (data.instructor_id !== user.id) {
+      // Check if user is the instructor or an admin
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+      if (data.instructor_id !== user.id && !isAdmin) {
         throw new Error("You don't have permission to edit this course");
       }
       
@@ -242,11 +243,17 @@ const CourseEdit = () => {
 
       console.log('CourseEdit: Updating course with data:', updateData);
 
-      const { error } = await supabase
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+      const query = supabase
         .from("courses")
         .update(updateData)
-        .eq("id", courseId)
-        .eq("instructor_id", user.id);
+        .eq("id", courseId);
+      
+      if (!isAdmin) {
+        query.eq("instructor_id", user.id);
+      }
+
+      const { error } = await query;
 
       if (error) {
         console.error('CourseEdit: Error updating course:', error);
@@ -279,11 +286,17 @@ const CourseEdit = () => {
       
       if (!courseId || !user) throw new Error("Course ID or user not available");
       
-      const { error } = await supabase
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+      const query = supabase
         .from("courses")
         .update({ is_published: published })
-        .eq("id", courseId)
-        .eq("instructor_id", user.id);
+        .eq("id", courseId);
+      
+      if (!isAdmin) {
+        query.eq("instructor_id", user.id);
+      }
+
+      const { error } = await query;
 
       if (error) {
         console.error('CourseEdit: Error toggling publish status:', error);
