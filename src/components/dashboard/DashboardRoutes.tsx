@@ -127,7 +127,8 @@ const DashboardRoutes = () => {
         <Route path="/applications" element={<ApplicationsManagement />} />
         <Route path="/testimonials" element={<TestimonialsManagement />} />
         <Route path="/programs" element={<ProgramsManagement />} />
-        <Route path="/categories" element={<CategoryManager />} />
+      <Route path="/categories" element={<CategoryManager />} />
+        <Route path="/courses/:courseId/edit" element={<CourseEdit />} />
     </>
   ), []);
 
