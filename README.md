@@ -57,7 +57,7 @@ Switch2Tech is structurally, financially, and philosophically distinct from any 
 | Notifications | Sonner |
 | Hosting | Vercel |
 
-The platform was initially built in PHP and subsequently migrated to this modern TypeScript stack — a deliberate architectural decision based on scalability requirements, real-time mentorship coordination needs, type safety at scale, and long-term maintainability.
+The platform was initially built in PHP and subsequently migrated to this modern TypeScript stack, a deliberate architectural decision based on scalability requirements, real-time mentorship coordination needs, type safety at scale, and long-term maintainability.
 
 ---
 
