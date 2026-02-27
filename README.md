@@ -1,6 +1,6 @@
 # Switch2Tech
 
-**Free technology mentorship for career changers — built and founded by [Issa Ajao](https://www.linkedin.com/in/issa-ajao-9b955715/)**
+**Free technology mentorship for career changers, built and founded by [Issa Ajao](https://www.linkedin.com/in/issa-ajao-9b955715/)**
 
 [![Live Platform](https://img.shields.io/badge/Live%20Platform-switch2tech.net-brightgreen)](https://switch2tech.net)
 [![Learners](https://img.shields.io/badge/Active%20Learners-700%2B-blue)]()
@@ -13,7 +13,7 @@
 
 Switch2Tech is a free, community-driven technology mentorship ecosystem serving over **700 active learners** across Africa, the United Kingdom, Canada, and the United States.
 
-The platform provides structured curriculum delivery, mentor assignment and tracking, hands-on project coordination, progress monitoring, and job placement management — entirely free of charge. It has never charged its learners a single fee.
+The platform provides structured curriculum delivery, mentor assignment and tracking, hands-on project coordination, progress monitoring, and job placement management, entirely free of charge. It has never charged its learners a single fee.
 
 Switch2Tech operates on a **train-the-trainer model**: learners who complete the programme return as mentors, creating a self-sustaining knowledge community designed into the system architecture from the start.
 
@@ -23,7 +23,7 @@ Switch2Tech operates on a **train-the-trainer model**: learners who complete the
 
 Switch2Tech was founded in **January 2024** by Issa Ajao following CloudCrave Solutions' acquisition of Staunch Technologies Limited in late 2023.
 
-Staunch had operated a commercial technology training programme. Rather than abruptly closing that operation, Issa personally funded the transition of former instructors — paying them while they reoriented from commercial instruction into software development. Once that transition was complete, those same instructors co-founded Switch2Tech as a free community mentorship initiative.
+Staunch had operated a commercial technology training programme. Rather than abruptly closing that operation, Issa personally funded the transition of former instructors, paying them while they reoriented from commercial instruction into software development. Once that transition was complete, those same instructors co-founded Switch2Tech as a free community mentorship initiative.
 
 Switch2Tech is structurally, financially, and philosophically distinct from any commercial training operation. It exists entirely to serve learners, not to generate revenue.
 
