@@ -35,6 +35,7 @@ const ProgramsManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [programType, setProgramType] = useState<'mentorship' | 'internship'>('mentorship');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch mentorship programs
   const { data: mentorshipPrograms, isLoading: loadingMentorship } = useQuery({
