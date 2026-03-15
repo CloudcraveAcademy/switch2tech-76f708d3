@@ -906,33 +906,63 @@ export type Database = {
       internship_applications: {
         Row: {
           application_text: string | null
+          career_goals: string | null
           created_at: string | null
+          github_profile: string | null
           id: string
+          linkedin_profile: string | null
+          phone_number: string | null
+          portfolio_url: string | null
           program_id: string
           resume_url: string | null
           status: string | null
           student_id: string
+          testimonial_consent: boolean | null
+          testimonial_text: string | null
           updated_at: string | null
+          user_current_company: string | null
+          user_current_role: string | null
+          years_of_experience: number | null
         }
         Insert: {
           application_text?: string | null
+          career_goals?: string | null
           created_at?: string | null
+          github_profile?: string | null
           id?: string
+          linkedin_profile?: string | null
+          phone_number?: string | null
+          portfolio_url?: string | null
           program_id: string
           resume_url?: string | null
           status?: string | null
           student_id: string
+          testimonial_consent?: boolean | null
+          testimonial_text?: string | null
           updated_at?: string | null
+          user_current_company?: string | null
+          user_current_role?: string | null
+          years_of_experience?: number | null
         }
         Update: {
           application_text?: string | null
+          career_goals?: string | null
           created_at?: string | null
+          github_profile?: string | null
           id?: string
+          linkedin_profile?: string | null
+          phone_number?: string | null
+          portfolio_url?: string | null
           program_id?: string
           resume_url?: string | null
           status?: string | null
           student_id?: string
+          testimonial_consent?: boolean | null
+          testimonial_text?: string | null
           updated_at?: string | null
+          user_current_company?: string | null
+          user_current_role?: string | null
+          years_of_experience?: number | null
         }
         Relationships: [
           {
@@ -1047,33 +1077,63 @@ export type Database = {
       mentorship_applications: {
         Row: {
           application_text: string | null
+          career_goals: string | null
           created_at: string | null
+          github_profile: string | null
           id: string
+          linkedin_profile: string | null
           mentor_id: string | null
+          phone_number: string | null
+          portfolio_url: string | null
           program_id: string
           status: string | null
           student_id: string
+          testimonial_consent: boolean | null
+          testimonial_text: string | null
           updated_at: string | null
+          user_current_company: string | null
+          user_current_role: string | null
+          years_of_experience: number | null
         }
         Insert: {
           application_text?: string | null
+          career_goals?: string | null
           created_at?: string | null
+          github_profile?: string | null
           id?: string
+          linkedin_profile?: string | null
           mentor_id?: string | null
+          phone_number?: string | null
+          portfolio_url?: string | null
           program_id: string
           status?: string | null
           student_id: string
+          testimonial_consent?: boolean | null
+          testimonial_text?: string | null
           updated_at?: string | null
+          user_current_company?: string | null
+          user_current_role?: string | null
+          years_of_experience?: number | null
         }
         Update: {
           application_text?: string | null
+          career_goals?: string | null
           created_at?: string | null
+          github_profile?: string | null
           id?: string
+          linkedin_profile?: string | null
           mentor_id?: string | null
+          phone_number?: string | null
+          portfolio_url?: string | null
           program_id?: string
           status?: string | null
           student_id?: string
+          testimonial_consent?: boolean | null
+          testimonial_text?: string | null
           updated_at?: string | null
+          user_current_company?: string | null
+          user_current_role?: string | null
+          years_of_experience?: number | null
         }
         Relationships: [
           {

@@ -21,11 +21,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Eye, CheckCircle, XCircle, User, Calendar, Award, Briefcase } from "lucide-react";
+import { Eye, CheckCircle, XCircle, User, Calendar, Briefcase } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const ApplicationsManagement = () => {
-  const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const queryClient = useQueryClient();
 
   // Fetch mentorship applications
@@ -42,24 +41,15 @@ const ApplicationsManagement = () => {
 
       if (error) throw error;
       
-      // Fetch user profiles for each application
       const applicationsWithProfiles = await Promise.all(
         (data || []).map(async (application) => {
-          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+          const { data: userProfile } = await supabase.rpc('get_user_basic_info', { 
             user_id_param: application.student_id 
           });
           
-          if (profileError) {
-            console.error('Error fetching user profile:', profileError);
-            return {
-              ...application,
-              user_profiles: { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
-            };
-          }
-          
           return {
             ...application,
-            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
+            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User' }
           };
         })
       );
@@ -82,24 +72,15 @@ const ApplicationsManagement = () => {
 
       if (error) throw error;
       
-      // Fetch user profiles for each application
       const applicationsWithProfiles = await Promise.all(
         (data || []).map(async (application) => {
-          const { data: userProfile, error: profileError } = await supabase.rpc('get_user_basic_info', { 
+          const { data: userProfile } = await supabase.rpc('get_user_basic_info', { 
             user_id_param: application.student_id 
           });
           
-          if (profileError) {
-            console.error('Error fetching user profile:', profileError);
-            return {
-              ...application,
-              user_profiles: { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
-            };
-          }
-          
           return {
             ...application,
-            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User', email: 'unknown@example.com' }
+            user_profiles: userProfile?.[0] || { first_name: 'Unknown', last_name: 'User' }
           };
         })
       );
@@ -144,44 +125,43 @@ const ApplicationsManagement = () => {
 
   const ApplicationDetails = ({ application, type }: { application: any; type: 'mentorship' | 'internship' }) => (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <h4 className="font-semibold">Personal Information</h4>
-          <p><strong>Name:</strong> {application.user_profiles?.first_name} {application.user_profiles?.last_name}</p>
-          <p><strong>Email:</strong> {application.user_profiles?.email}</p>
-          <p><strong>Phone:</strong> {application.phone_number || 'Not provided'}</p>
-          <p><strong>LinkedIn:</strong> {application.linkedin_profile || 'Not provided'}</p>
-          <p><strong>GitHub:</strong> {application.github_profile || 'Not provided'}</p>
+          <h4 className="font-semibold text-foreground">Applicant Information</h4>
+          <p className="text-sm"><strong>Name:</strong> {application.user_profiles?.first_name} {application.user_profiles?.last_name}</p>
+          <p className="text-sm"><strong>Phone:</strong> {application.phone_number || 'Not provided'}</p>
+          <p className="text-sm"><strong>LinkedIn:</strong> {application.linkedin_profile || 'Not provided'}</p>
+          <p className="text-sm"><strong>GitHub:</strong> {application.github_profile || 'Not provided'}</p>
+          <p className="text-sm"><strong>Portfolio:</strong> {application.portfolio_url || 'Not provided'}</p>
         </div>
         <div>
-          <h4 className="font-semibold">Professional Information</h4>
-          <p><strong>Current Role:</strong> {application.user_current_role || 'Not provided'}</p>
-          <p><strong>Company:</strong> {application.user_current_company || 'Not provided'}</p>
-          <p><strong>Experience:</strong> {application.years_of_experience || 'Not provided'} years</p>
-          <p><strong>Portfolio:</strong> {application.portfolio_url || 'Not provided'}</p>
+          <h4 className="font-semibold text-foreground">Professional Information</h4>
+          <p className="text-sm"><strong>Current Role:</strong> {application.user_current_role || 'Not provided'}</p>
+          <p className="text-sm"><strong>Company:</strong> {application.user_current_company || 'Not provided'}</p>
+          <p className="text-sm"><strong>Experience:</strong> {application.years_of_experience != null ? `${application.years_of_experience} years` : 'Not provided'}</p>
         </div>
       </div>
       
       <div>
-        <h4 className="font-semibold">Application Details</h4>
-        <p><strong>Program:</strong> {type === 'mentorship' ? application.mentorship_programs?.name : application.internship_programs?.name}</p>
-        {type === 'internship' && <p><strong>Company:</strong> {application.internship_programs?.company}</p>}
-        <p><strong>Career Goals:</strong> {application.career_goals}</p>
-        <p><strong>Application Text:</strong> {application.application_text}</p>
+        <h4 className="font-semibold text-foreground">Application Details</h4>
+        <p className="text-sm"><strong>Program:</strong> {type === 'mentorship' ? application.mentorship_programs?.name : application.internship_programs?.name}</p>
+        {type === 'internship' && <p className="text-sm"><strong>Company:</strong> {application.internship_programs?.company}</p>}
+        {application.career_goals && <p className="text-sm"><strong>Career Goals:</strong> {application.career_goals}</p>}
+        <p className="text-sm"><strong>Application Text:</strong> {application.application_text || 'No text provided'}</p>
       </div>
 
       {application.testimonial_text && (
         <div>
-          <h4 className="font-semibold">Testimonial</h4>
-          <p>{application.testimonial_text}</p>
-          <p><strong>Consent for sharing:</strong> {application.testimonial_consent ? 'Yes' : 'No'}</p>
+          <h4 className="font-semibold text-foreground">Testimonial</h4>
+          <p className="text-sm">{application.testimonial_text}</p>
+          <p className="text-sm"><strong>Consent for sharing:</strong> {application.testimonial_consent ? 'Yes' : 'No'}</p>
         </div>
       )}
 
       <div className="flex gap-2 pt-4">
         <Button
           onClick={() => updateApplicationStatus.mutate({ id: application.id, status: 'approved', type })}
-          disabled={updateApplicationStatus.isPending}
+          disabled={updateApplicationStatus.isPending || application.status === 'approved'}
           className="flex items-center gap-2"
         >
           <CheckCircle className="h-4 w-4" />
@@ -190,7 +170,7 @@ const ApplicationsManagement = () => {
         <Button
           variant="destructive"
           onClick={() => updateApplicationStatus.mutate({ id: application.id, status: 'rejected', type })}
-          disabled={updateApplicationStatus.isPending}
+          disabled={updateApplicationStatus.isPending || application.status === 'rejected'}
           className="flex items-center gap-2"
         >
           <XCircle className="h-4 w-4" />
@@ -218,7 +198,7 @@ const ApplicationsManagement = () => {
           </TableRow>
         ) : applications?.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center">No applications found</TableCell>
+            <TableCell colSpan={5} className="text-center text-muted-foreground">No applications found</TableCell>
           </TableRow>
         ) : (
           applications?.map((application) => (
@@ -238,11 +218,7 @@ const ApplicationsManagement = () => {
               <TableCell>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedApplication(application)}
-                    >
+                    <Button variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-1" />
                       View
                     </Button>
@@ -268,7 +244,7 @@ const ApplicationsManagement = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold">Applications Management</h2>
       </div>
@@ -276,7 +252,7 @@ const ApplicationsManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Mentorship Applications</CardTitle>
+            <CardTitle className="text-sm font-medium">Mentorship Applications</CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -286,7 +262,7 @@ const ApplicationsManagement = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Internship Applications</CardTitle>
+            <CardTitle className="text-sm font-medium">Internship Applications</CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -301,7 +277,7 @@ const ApplicationsManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {[...mentorshipApplications || [], ...internshipApplications || []]
+              {[...(mentorshipApplications || []), ...(internshipApplications || [])]
                 .filter(app => app.status === 'pending').length}
             </div>
           </CardContent>

@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, Edit, Plus, Calendar, Users, Building } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 const ProgramsManagement = () => {
@@ -34,6 +35,7 @@ const ProgramsManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [programType, setProgramType] = useState<'mentorship' | 'internship'>('mentorship');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch mentorship programs
   const { data: mentorshipPrograms, isLoading: loadingMentorship } = useQuery({
@@ -299,6 +301,11 @@ const ProgramsManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold">Programs Management</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/dashboard/applications')} className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            View Applications
+          </Button>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
@@ -330,6 +337,7 @@ const ProgramsManagement = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
