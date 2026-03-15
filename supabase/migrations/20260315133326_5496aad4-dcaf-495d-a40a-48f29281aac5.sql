@@ -1,0 +1,3 @@
+
+ALTER TABLE public.internship_applications DROP CONSTRAINT IF EXISTS internship_applications_status_check;
+ALTER TABLE public.mentorship_applications DROP CONSTRAINT IF EXISTS mentorship_applications_status_check;
