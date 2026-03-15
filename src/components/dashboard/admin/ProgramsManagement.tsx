@@ -301,6 +301,11 @@ const ProgramsManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold">Programs Management</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/dashboard/applications')} className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            View Applications
+          </Button>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
