@@ -10,6 +10,7 @@ import { useCertificates } from "@/hooks/useCertificates";
 import UpcomingLiveClasses from "./dashboard/UpcomingLiveClasses";
 import { Announcements } from "./dashboard/Announcements";
 import StudentStatistics from "./dashboard/StudentStatistics";
+import MyApplications from "./dashboard/MyApplications";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -169,6 +170,7 @@ const Dashboard = () => {
         </div>
 
         <div className="col-span-1 space-y-6">
+          <MyApplications />
           <Announcements />
         </div>
       </div>
