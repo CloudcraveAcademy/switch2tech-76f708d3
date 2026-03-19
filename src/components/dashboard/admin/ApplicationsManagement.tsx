@@ -184,7 +184,7 @@ const ApplicationsManagement = () => {
 
       <div className="flex gap-2 pt-4">
         <Button
-          onClick={() => updateApplicationStatus.mutate({ id: application.id, status: 'approved', type })}
+          onClick={() => updateApplicationStatus.mutate({ id: application.id, status: 'approved', type, studentId: application.student_id, programName: type === 'mentorship' ? application.mentorship_programs?.name : application.internship_programs?.name })}
           disabled={updateApplicationStatus.isPending || application.status === 'approved'}
           className="flex items-center gap-2"
         >
@@ -193,7 +193,7 @@ const ApplicationsManagement = () => {
         </Button>
         <Button
           variant="destructive"
-          onClick={() => updateApplicationStatus.mutate({ id: application.id, status: 'rejected', type })}
+          onClick={() => updateApplicationStatus.mutate({ id: application.id, status: 'rejected', type, studentId: application.student_id, programName: type === 'mentorship' ? application.mentorship_programs?.name : application.internship_programs?.name })}
           disabled={updateApplicationStatus.isPending || application.status === 'rejected'}
           className="flex items-center gap-2"
         >
