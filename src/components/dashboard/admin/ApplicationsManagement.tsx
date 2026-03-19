@@ -91,7 +91,7 @@ const ApplicationsManagement = () => {
 
   // Update application status
   const updateApplicationStatus = useMutation({
-    mutationFn: async ({ id, status, type }: { id: string; status: string; type: 'mentorship' | 'internship' }) => {
+    mutationFn: async ({ id, status, type, studentId, programName }: { id: string; status: string; type: 'mentorship' | 'internship'; studentId: string; programName: string }) => {
       const table = type === 'mentorship' ? 'mentorship_applications' : 'internship_applications';
       const { error } = await supabase
         .from(table)
@@ -99,11 +99,35 @@ const ApplicationsManagement = () => {
         .eq("id", id);
 
       if (error) throw error;
+
+      // Send notification to student
+      const statusLabel = status === 'approved' ? 'Approved ✅' : 'Rejected ❌';
+      const description = status === 'approved'
+        ? `Congratulations! Your ${type} application for "${programName}" has been approved. You will receive further instructions soon.`
+        : `Your ${type} application for "${programName}" has been rejected. Please contact support for more information.`;
+
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: studentId,
+          type: 'enrollment',
+          title: `${type.charAt(0).toUpperCase() + type.slice(1)} Application ${statusLabel}`,
+          description,
+          action_url: '/dashboard',
+          metadata: {
+            application_id: id,
+            application_type: type,
+            program_name: programName,
+            new_status: status,
+          }
+        });
+
+      if (notifError) console.error('Failed to send notification:', notifError);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mentorship-applications"] });
       queryClient.invalidateQueries({ queryKey: ["internship-applications"] });
-      toast({ title: "Application status updated successfully" });
+      toast({ title: "Application status updated and student notified" });
     },
     onError: (error) => {
       toast({
