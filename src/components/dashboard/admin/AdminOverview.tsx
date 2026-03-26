@@ -158,10 +158,7 @@ const AdminOverview = ({ periodFilter, currency = 'NGN' }: AdminOverviewProps) =
               <p className="text-sm font-medium text-gray-500">
                 Total Users
               </p>
-              <p className="text-2xl font-bold">{data.totalUsers}</p>
-              {/* <p className="text-xs mt-1">
-                <span className="text-green-600">+{data.newUsers} new</span> in this {periodFilter}
-              </p> */}
+              <p className="text-3xl font-bold mt-2">{data.totalUsers}</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
               <Users className="h-6 w-6 text-blue-600" />
