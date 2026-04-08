@@ -167,3 +167,13 @@
   font-size: 1.25rem;
   line-height: 1.75rem;
 }
+
+/* Ensure chatbot widget is not hidden under any top bar */
+#chatbot-studio-widget,
+#chatbot-studio-widget * {
+  z-index: 9999 !important;
+}
+
+#chatbot-studio-widget iframe {
+  max-height: calc(100vh - 120px) !important;
+}
