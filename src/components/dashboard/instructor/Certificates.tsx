@@ -165,9 +165,35 @@ const InstructorCertificates = () => {
       });
     },
   });
+  // Bulk generate certificates for all instructor courses
+  const generateBulkMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('issue_certificates_for_instructor', {
+        instructor_id_param: user?.id,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => {
+      toast({
+        title: "Certificates Generated",
+        description: count > 0
+          ? `${count} new certificate(s) have been issued successfully.`
+          : "All eligible students already have certificates.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['instructor-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor-certificate-stats'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate certificates.",
+        variant: "destructive",
+      });
+    },
+  });
 
 
-  // Filter certificates based on search
   const filteredCertificates = certificates?.filter(cert => 
     cert.course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cert.certificate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||

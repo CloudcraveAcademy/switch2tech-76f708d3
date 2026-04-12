@@ -490,6 +490,44 @@ const AdminCertificates = () => {
 
           <Dialog>
             <DialogTrigger asChild>
+              <Button variant="default">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Generate Certificates
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Certificates by Course</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Select a course to generate certificates for all students who completed it but don't have one yet.
+                </p>
+                <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {certificateEnabledCourses?.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  className="w-full"
+                  disabled={!selectedCourseId || generateBulkMutation.isPending}
+                  onClick={() => generateBulkMutation.mutate(selectedCourseId)}
+                >
+                  {generateBulkMutation.isPending ? "Generating..." : "Generate Certificates"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
               <Button variant="outline">
                 <Eye className="mr-2 h-4 w-4" />
                 Verify Certificate
