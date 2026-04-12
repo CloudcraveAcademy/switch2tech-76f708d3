@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Search, Download, Eye, Users, FileText } from "lucide-react";
+import { Award, Search, Download, Eye, Users, FileText, RefreshCw } from "lucide-react";
 import { generateCertificateHTML } from "@/components/common/CertificateTemplate";
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -165,9 +165,35 @@ const InstructorCertificates = () => {
       });
     },
   });
+  // Bulk generate certificates for all instructor courses
+  const generateBulkMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('issue_certificates_for_instructor', {
+        instructor_id_param: user?.id,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => {
+      toast({
+        title: "Certificates Generated",
+        description: count > 0
+          ? `${count} new certificate(s) have been issued successfully.`
+          : "All eligible students already have certificates.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['instructor-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor-certificate-stats'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate certificates.",
+        variant: "destructive",
+      });
+    },
+  });
 
 
-  // Filter certificates based on search
   const filteredCertificates = certificates?.filter(cert => 
     cert.course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cert.certificate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -192,14 +218,23 @@ const InstructorCertificates = () => {
           <p className="text-gray-600">Manage certificates for your courses</p>
         </div>
         
-        <div className="relative mt-4 md:mt-0 w-full md:w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            placeholder="Search certificates..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
+          <Button
+            onClick={() => generateBulkMutation.mutate()}
+            disabled={generateBulkMutation.isPending}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${generateBulkMutation.isPending ? 'animate-spin' : ''}`} />
+            {generateBulkMutation.isPending ? "Generating..." : "Generate Certificates"}
+          </Button>
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search certificates..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 

@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Search, Download, Eye, Trash2, FileText, Users, TrendingUp, Palette, Printer } from "lucide-react";
+import { Award, Search, Download, Eye, Trash2, FileText, Users, TrendingUp, Palette, Printer, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import CertificateTemplatePreview from "./CertificateTemplatePreview";
 
@@ -36,6 +37,7 @@ const AdminCertificates = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [verificationNumber, setVerificationNumber] = useState("");
   const [verificationResult, setVerificationResult] = useState(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -115,7 +117,48 @@ const AdminCertificates = () => {
     },
   });
 
-  // Delete certificate
+  // Fetch certificate-enabled courses for the dropdown
+  const { data: certificateEnabledCourses } = useQuery({
+    queryKey: ['admin-certificate-courses'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title')
+        .eq('certificate_enabled', true)
+        .order('title');
+      if (error) { console.error(error); return []; }
+      return data || [];
+    },
+  });
+
+  // Bulk generate certificates for a course
+  const generateBulkMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      const { data, error } = await supabase.rpc('issue_certificates_for_course', {
+        course_id_param: courseId,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => {
+      toast({
+        title: "Certificates Generated",
+        description: count > 0
+          ? `${count} new certificate(s) have been issued successfully.`
+          : "All eligible students already have certificates.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-certificate-stats'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate certificates.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (certificateId: string) => {
       const { error } = await supabase
@@ -441,6 +484,44 @@ const AdminCertificates = () => {
               </DialogHeader>
               <div className="mt-4">
                 <CertificateTemplatePreview />
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="default">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Generate Certificates
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Certificates by Course</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Select a course to generate certificates for all students who completed it but don't have one yet.
+                </p>
+                <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {certificateEnabledCourses?.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  className="w-full"
+                  disabled={!selectedCourseId || generateBulkMutation.isPending}
+                  onClick={() => generateBulkMutation.mutate(selectedCourseId)}
+                >
+                  {generateBulkMutation.isPending ? "Generating..." : "Generate Certificates"}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
