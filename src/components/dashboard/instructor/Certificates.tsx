@@ -218,14 +218,23 @@ const InstructorCertificates = () => {
           <p className="text-gray-600">Manage certificates for your courses</p>
         </div>
         
-        <div className="relative mt-4 md:mt-0 w-full md:w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            placeholder="Search certificates..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
+          <Button
+            onClick={() => generateBulkMutation.mutate()}
+            disabled={generateBulkMutation.isPending}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${generateBulkMutation.isPending ? 'animate-spin' : ''}`} />
+            {generateBulkMutation.isPending ? "Generating..." : "Generate Certificates"}
+          </Button>
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search certificates..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
