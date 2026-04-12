@@ -37,6 +37,7 @@ const AdminCertificates = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [verificationNumber, setVerificationNumber] = useState("");
   const [verificationResult, setVerificationResult] = useState(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
