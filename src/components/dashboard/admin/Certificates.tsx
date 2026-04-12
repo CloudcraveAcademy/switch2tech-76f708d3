@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Search, Download, Eye, Trash2, FileText, Users, TrendingUp, Palette, Printer } from "lucide-react";
+import { Award, Search, Download, Eye, Trash2, FileText, Users, TrendingUp, Palette, Printer, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import CertificateTemplatePreview from "./CertificateTemplatePreview";
 
