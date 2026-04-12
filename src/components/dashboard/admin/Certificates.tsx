@@ -117,7 +117,48 @@ const AdminCertificates = () => {
     },
   });
 
-  // Delete certificate
+  // Fetch certificate-enabled courses for the dropdown
+  const { data: certificateEnabledCourses } = useQuery({
+    queryKey: ['admin-certificate-courses'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title')
+        .eq('certificate_enabled', true)
+        .order('title');
+      if (error) { console.error(error); return []; }
+      return data || [];
+    },
+  });
+
+  // Bulk generate certificates for a course
+  const generateBulkMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      const { data, error } = await supabase.rpc('issue_certificates_for_course', {
+        course_id_param: courseId,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => {
+      toast({
+        title: "Certificates Generated",
+        description: count > 0
+          ? `${count} new certificate(s) have been issued successfully.`
+          : "All eligible students already have certificates.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-certificate-stats'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate certificates.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (certificateId: string) => {
       const { error } = await supabase
