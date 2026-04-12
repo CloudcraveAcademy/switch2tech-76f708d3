@@ -2083,6 +2083,14 @@ export type Database = {
         Returns: boolean
       }
       is_user_admin: { Args: never; Returns: boolean }
+      issue_certificates_for_course: {
+        Args: { course_id_param: string }
+        Returns: number
+      }
+      issue_certificates_for_instructor: {
+        Args: { instructor_id_param: string }
+        Returns: number
+      }
       issue_missing_certificates: { Args: never; Returns: undefined }
       update_course_announcement: {
         Args: {
