@@ -1,0 +1,3 @@
+UPDATE public.student_success_stories SET image_url = 'https://drive.google.com/thumbnail?id=10FAIy5AgovR8Lzi3U1JKOckCv_ypSw6C&sz=w800', updated_at = now() WHERE name = 'Micheal';
+UPDATE public.student_success_stories SET image_url = 'https://drive.google.com/thumbnail?id=1PmCr7HSe16NyUPX3pvWarq_e_USXrDrn&sz=w800', updated_at = now() WHERE name = 'Faith O.';
+UPDATE public.student_success_stories SET image_url = 'https://drive.google.com/thumbnail?id=146zqDEY861CGSnxlzDNMQ1Op35nVG-pa&sz=w800', updated_at = now() WHERE name = 'Ibrahim';
