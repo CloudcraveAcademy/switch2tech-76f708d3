@@ -1,0 +1,20 @@
+INSERT INTO public.student_success_stories (name, role, company, story, image_url, is_featured, is_approved, approved_at)
+VALUES
+('Micheal',
+ 'Front-end Developer',
+ 'Freelance',
+ 'Switch2Tech''s practical approach and hands-on projects have been instrumental in my professional development. The curriculum provided a solid foundation and allowed for practical application of learned skills. Engaging with real-world projects instilled confidence and prepared me for the demands of the industry. This experience has been invaluable in my journey as a frontend web developer. I am now equipped with the knowledge and practical experience necessary to excel in this field.',
+ 'https://drive.google.com/uc?export=view&id=10FAIy5AgovR8Lzi3U1JKOckCv_ypSw6C',
+ true, true, now()),
+('Faith O.',
+ 'Software Quality Assurance',
+ 'IT Firm',
+ 'Switch2tech completely transformed my career path in Software Quality Assurance. When I joined the program, I was a novice in SQA, but the immersive, hands-on training and expert mentorship quickly built my knowledge base. The practical experience was invaluable, and it gave me the confidence to excel.',
+ 'https://drive.google.com/uc?export=view&id=1PmCr7HSe16NyUPX3pvWarq_e_USXrDrn',
+ true, true, now()),
+('Ibrahim',
+ 'Software Testing',
+ 'Financial Institution',
+ 'The IT training I received from Switch2tech significantly deepened my knowledge, equipping me with the skills to successfully complete my professional certifications. This achievement, combined with the hands-on expertise gained through the program at Switch2tech, contributed directly to my recent promotion at work.',
+ 'https://drive.google.com/uc?export=view&id=146zqDEY861CGSnxlzDNMQ1Op35nVG-pa',
+ true, true, now());
