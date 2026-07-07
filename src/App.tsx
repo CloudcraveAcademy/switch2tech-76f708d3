@@ -47,6 +47,7 @@ const App = () => (
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/verify-certificate" element={<VerifyCertificate />} />
+            <Route path="/success-stories" element={<SuccessStories />} />
             <Route path="*" element={<NotFound />} />
             </Routes>
           </ThemeProvider>
