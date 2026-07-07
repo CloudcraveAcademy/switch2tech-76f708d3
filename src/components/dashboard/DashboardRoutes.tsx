@@ -18,6 +18,7 @@ import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
 import InstructorMyCourses from "./MyCourses";
 import LessonForm from "./course/LessonForm";
+import ShareStory from "./student/ShareStory";
 
 // Import certificate components
 import InstructorCertificates from "./instructor/Certificates";
