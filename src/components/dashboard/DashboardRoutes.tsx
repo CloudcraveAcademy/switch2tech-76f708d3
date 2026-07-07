@@ -89,6 +89,7 @@ const DashboardRoutes = () => {
       <Route path="/certificates" element={<Certificates />} />
       <Route path="/class-schedule" element={<LiveClassCalendar />} />
       <Route path="/courses/:courseId" element={<CourseView />} />
+      <Route path="/share-story" element={<ShareStory />} />
     </>
   ), []);
 
