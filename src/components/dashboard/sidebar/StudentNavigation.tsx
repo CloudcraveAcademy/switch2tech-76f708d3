@@ -34,6 +34,12 @@ const StudentNavigation = ({ isActive }: StudentNavigationProps) => {
         label="Messages"
         isActive={isActive("/dashboard/messages")}
       />
+      <SidebarMenuItem
+        to="/dashboard/share-story"
+        icon={Sparkles}
+        label="Share Your Story"
+        isActive={isActive("/dashboard/share-story")}
+      />
     </>
   );
 };
