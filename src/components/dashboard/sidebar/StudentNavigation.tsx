@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, GraduationCap, Calendar, MessageSquare } from "lucide-react";
+import { BookOpen, GraduationCap, Calendar, MessageSquare, Sparkles } from "lucide-react";
 import SidebarMenuItem from './SidebarMenuItem';
 
 interface StudentNavigationProps {
@@ -33,6 +33,12 @@ const StudentNavigation = ({ isActive }: StudentNavigationProps) => {
         icon={MessageSquare}
         label="Messages"
         isActive={isActive("/dashboard/messages")}
+      />
+      <SidebarMenuItem
+        to="/dashboard/share-story"
+        icon={Sparkles}
+        label="Share Your Story"
+        isActive={isActive("/dashboard/share-story")}
       />
     </>
   );

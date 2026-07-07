@@ -21,6 +21,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import SuccessStories from "./pages/SuccessStories";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/verify-certificate" element={<VerifyCertificate />} />
+            <Route path="/success-stories" element={<SuccessStories />} />
             <Route path="*" element={<NotFound />} />
             </Routes>
           </ThemeProvider>

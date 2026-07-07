@@ -18,6 +18,7 @@ import CourseView from "@/components/CourseView";
 import { useAuth } from "@/contexts/AuthContext";
 import InstructorMyCourses from "./MyCourses";
 import LessonForm from "./course/LessonForm";
+import ShareStory from "./student/ShareStory";
 
 // Import certificate components
 import InstructorCertificates from "./instructor/Certificates";
@@ -88,6 +89,7 @@ const DashboardRoutes = () => {
       <Route path="/certificates" element={<Certificates />} />
       <Route path="/class-schedule" element={<LiveClassCalendar />} />
       <Route path="/courses/:courseId" element={<CourseView />} />
+      <Route path="/share-story" element={<ShareStory />} />
     </>
   ), []);
 
