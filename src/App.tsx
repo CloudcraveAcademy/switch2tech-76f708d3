@@ -21,6 +21,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import SuccessStories from "./pages/SuccessStories";
 
 const queryClient = new QueryClient();
 
