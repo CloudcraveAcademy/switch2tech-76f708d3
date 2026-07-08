@@ -25,29 +25,30 @@ const useAllApprovedStories = () =>
     },
   });
 
-const StoryCard = ({ story }: { story: StudentSuccessStory }) => (
+const StoryCard = ({ story }: { story: StudentSuccessStory }) => {
+  const src = normalizeImageUrl(story.image_url);
+  return (
   <article className="bg-brand/10 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-    <div className="h-56 relative overflow-hidden">
-      <img
-        src={story.image_url || FALLBACK_IMG}
-        alt={story.name}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={(e) => {
-          const t = e.currentTarget;
-          if (!t.dataset.fallback) {
-            t.dataset.fallback = "1";
-            t.src = FALLBACK_IMG;
-          }
-        }}
-        className="w-full h-full object-cover object-center"
-      />
+    <div className="h-56 relative overflow-hidden bg-brand/20">
+      {src && (
+        <img
+          src={src}
+          alt={story.name}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+          className="w-full h-full object-cover object-center"
+        />
+      )}
       {story.is_featured && (
         <span className="absolute top-3 right-3 inline-flex items-center gap-1 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
           <Star className="h-3 w-3" /> Featured
         </span>
       )}
     </div>
+
     <div className="p-6 flex flex-col flex-grow">
       <Quote className="h-6 w-6 text-white/70 mb-4" />
       <blockquote className="text-white mb-6 flex-grow italic">"{story.story}"</blockquote>
