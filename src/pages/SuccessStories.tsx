@@ -7,9 +7,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import type { StudentSuccessStory } from "@/hooks/useStudentSuccessStories";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
-const FALLBACK_IMG =
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80";
 
 const useAllApprovedStories = () =>
   useQuery({
