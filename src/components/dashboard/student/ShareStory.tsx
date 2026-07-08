@@ -155,10 +155,69 @@ const ShareStory = () => {
             </div>
 
             <div>
-              <Label htmlFor="image_url">Photo URL (optional)</Label>
-              <Input id="image_url" placeholder="https://..." value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+              <Label>Your Photo (optional)</Label>
+              <Tabs defaultValue="url" className="mt-2">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="url">Image URL</TabsTrigger>
+                  <TabsTrigger value="upload">Upload File</TabsTrigger>
+                </TabsList>
+                <TabsContent value="url" className="mt-3">
+                  <Input
+                    id="image_url"
+                    placeholder="https://..."
+                    value={form.image_url}
+                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Google Drive share links are supported.
+                  </p>
+                </TabsContent>
+                <TabsContent value="upload" className="mt-3">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileUpload(f);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploading}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    {uploading ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+                    ) : (
+                      <><Upload className="mr-2 h-4 w-4" /> Choose image</>
+                    )}
+                  </Button>
+                </TabsContent>
+              </Tabs>
+              {form.image_url && (
+                <div className="mt-3 flex items-center gap-3">
+                  <img
+                    src={form.image_url}
+                    alt="Preview"
+                    className="h-16 w-16 rounded-full object-cover border"
+                    referrerPolicy="no-referrer"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setForm({ ...form, image_url: "" })}
+                  >
+                    <X className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                </div>
+              )}
               {errors.image_url && <p className="text-sm text-destructive mt-1">{errors.image_url}</p>}
             </div>
+
 
             <div>
               <Label htmlFor="story">Your Story</Label>
