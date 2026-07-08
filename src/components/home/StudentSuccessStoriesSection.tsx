@@ -114,7 +114,9 @@ const StudentSuccessStoriesSection = () => {
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
+
         </div>
         
         <div className="mt-12 text-center space-y-4">
