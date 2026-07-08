@@ -66,7 +66,9 @@ const StoryCard = ({ story }: { story: StudentSuccessStory }) => {
       </div>
     </div>
   </article>
-);
+  );
+};
+
 
 const SuccessStories = () => {
   const { user } = useAuth();
