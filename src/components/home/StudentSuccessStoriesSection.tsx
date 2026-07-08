@@ -68,28 +68,27 @@ const StudentSuccessStoriesSection = () => {
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">
-          {stories.map((story) => (
+          {stories.map((story) => {
+            const src = normalizeImageUrl(story.image_url);
+            return (
             <div 
               key={story.id} 
               className="bg-brand/10 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full"
             >
-              <div className="h-48 relative overflow-hidden">
-                <img 
-                  src={story.image_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80"} 
-                  alt={story.name}
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (!target.dataset.fallback) {
-                      target.dataset.fallback = "1";
-                      target.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80";
-                    }
-                  }}
-                  className="w-full h-full object-cover object-center"
-                />
+              <div className="h-48 relative overflow-hidden bg-brand/20">
+                {src && (
+                  <img 
+                    src={src}
+                    alt={story.name}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    className="w-full h-full object-cover object-center"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
               </div>
+
               
               <div className="p-6 flex flex-col flex-grow">
                 <div className="mb-4 text-white/80">
