@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useStudentSuccessStories } from "@/hooks/useStudentSuccessStories";
 import { Skeleton } from "@/components/ui/skeleton";
+import { normalizeImageUrl } from "@/utils/imageUrl";
+
 
 const StudentSuccessStoriesSection = () => {
   const { data: stories, isLoading, error } = useStudentSuccessStories();
