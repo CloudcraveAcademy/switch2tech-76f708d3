@@ -17,10 +17,10 @@ const About = () => {
               Empowering Ambitious Individuals to Transition into Tech with Confidence
             </h2>
             <p className="text-lg text-gray-700 leading-relaxed mb-4">
-              Switch2Tech is a career-transforming platform designed to help beginners, non-tech professionals, and aspiring technologists acquire the practical, in-demand skills needed to thrive in today's global digital economy.
+              Switch2Tech is a free, career-transforming community designed to help beginners, non-tech professionals, and aspiring technologists acquire the practical, in-demand skills needed to thrive in today's global digital economy.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
-              We provide high-quality training, mentorship, and project-based learning programs that equip learners with the technical competence, industry exposure, and confidence required to build meaningful careers in technology.
+              We provide high-quality, free training, mentorship, and project-based learning programs that equip learners with the technical competence, industry exposure, and confidence required to build meaningful careers in technology.
             </p>
           </section>
 
@@ -97,10 +97,10 @@ const About = () => {
               <h2 className="text-2xl font-semibold">Building the Next Generation of Tech Talent</h2>
             </div>
             <p className="text-lg leading-relaxed mb-4">
-              Our mission is to close the digital skills gap by providing accessible, practical, and industry-relevant training.
+              Our mission is to close the digital skills gap by providing accessible, practical, and industry-relevant training — completely free.
             </p>
             <p className="text-lg leading-relaxed">
-              Through our cyclical training model, we empower emerging talent and create an environment where success is shared, scalable, and impactful across Africa, the UK, and globally.
+              Through our free, cyclical training model, we empower emerging talent and create an environment where success is shared, scalable, and impactful across Africa, the UK, and globally.
             </p>
           </section>
           

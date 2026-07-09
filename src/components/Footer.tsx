@@ -13,7 +13,7 @@ const Footer = () => {
               <span className="ml-2 text-xl font-bold text-brand-dark">Switch2Tech</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-md">
-              Learn. Build. Transform Your Career. Switch2Tech is your gateway to a successful career in technology through structured courses, mentorship, internship, and certification.
+              Learn. Build. Transform Your Career. Switch2Tech is your free gateway to a successful career in technology through structured courses, mentorship, internship, and certification.
             </p>
           </div>
           
