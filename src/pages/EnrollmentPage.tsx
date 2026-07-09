@@ -1270,25 +1270,8 @@ const EnrollmentPage = () => {
 
                     <div className="border-t pt-4">
                       <div className="flex flex-col">
-                        {hasDiscount ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xl text-brand-600">
-                                {formatPrice(displayPrice, watchedCurrency)}
-                              </span>
-                              <Badge className="bg-red-500 text-white text-xs">
-                                {Math.round(((course.price! - course.discounted_price!) / course.price!) * 100)}% OFF
-                              </Badge>
-                            </div>
-                            <span className="text-sm line-through text-gray-500">
-                              {formatPrice(watchedCurrency === 'USD' ? course.price! : convertPrice(course.price!, watchedCurrency), watchedCurrency)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="font-bold text-xl text-brand-600">
-                            {isFree ? "Free" : formatPrice(displayPrice, watchedCurrency)}
-                          </span>
-                        )}
+                        <span className="font-bold text-2xl text-green-600">Free</span>
+                        <p className="text-sm text-muted-foreground mt-1">No payment required to enroll.</p>
                       </div>
                     </div>
                   </div>
