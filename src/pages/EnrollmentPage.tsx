@@ -218,24 +218,15 @@ const EnrollmentPage = () => {
   });
 
   const getEffectivePrice = () => {
-    if (!course) return 0;
-    
-    if (course.discounted_price !== undefined && 
-        course.discounted_price !== null && 
-        course.discounted_price > 0) {
-      return course.discounted_price;
-    }
-    
-    return course.price || 0;
+    return 0;
   };
 
-  const basePriceUSD = getEffectivePrice();
-  const isFree = basePriceUSD === 0;
-  
+  const basePriceUSD = 0;
+  const isFree = true;
+
   const displayPrice = React.useMemo(() => {
-    if (isFree) return 0;
-    return watchedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, watchedCurrency);
-  }, [basePriceUSD, watchedCurrency, isFree]);
+    return 0;
+  }, []);
 
   const completeEnrollment = async (userId: string, paymentData?: { 
     transactionId?: string, 
