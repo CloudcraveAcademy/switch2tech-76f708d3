@@ -1185,31 +1185,6 @@ const EnrollmentPage = () => {
 
                         <FormField
                           control={form.control}
-                          name="currency"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Preferred Currency</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select currency" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {SUPPORTED_CURRENCIES.map((currency) => (
-                                    <SelectItem key={currency.code} value={currency.code}>
-                                      {currency.symbol} {currency.name} ({currency.code})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
                           name="motivation"
                           render={({ field }) => (
                             <FormItem>
