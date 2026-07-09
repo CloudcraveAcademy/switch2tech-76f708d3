@@ -260,7 +260,7 @@ const Courses = () => {
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">All Courses</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Discover our comprehensive collection of courses designed to help you master new skills and advance your career.
+              Explore our growing collection of free courses designed to help you build practical skills and launch your tech career.
             </p>
           </div>
 

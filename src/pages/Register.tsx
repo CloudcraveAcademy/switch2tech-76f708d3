@@ -77,8 +77,8 @@ const Register = () => {
     <Layout>
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">Create Your Account</h1>
-          <p className="text-gray-600 mt-2">Join our learning community today</p>
+          <h1 className="text-2xl font-bold">Create Your Free Account</h1>
+          <p className="text-gray-600 mt-2">Join our free learning community today</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">

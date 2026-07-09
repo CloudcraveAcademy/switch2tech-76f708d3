@@ -218,24 +218,15 @@ const EnrollmentPage = () => {
   });
 
   const getEffectivePrice = () => {
-    if (!course) return 0;
-    
-    if (course.discounted_price !== undefined && 
-        course.discounted_price !== null && 
-        course.discounted_price > 0) {
-      return course.discounted_price;
-    }
-    
-    return course.price || 0;
+    return 0;
   };
 
-  const basePriceUSD = getEffectivePrice();
-  const isFree = basePriceUSD === 0;
-  
+  const basePriceUSD = 0;
+  const isFree = true;
+
   const displayPrice = React.useMemo(() => {
-    if (isFree) return 0;
-    return watchedCurrency === 'USD' ? basePriceUSD : convertPrice(basePriceUSD, watchedCurrency);
-  }, [basePriceUSD, watchedCurrency, isFree]);
+    return 0;
+  }, []);
 
   const completeEnrollment = async (userId: string, paymentData?: { 
     transactionId?: string, 
@@ -1194,31 +1185,6 @@ const EnrollmentPage = () => {
 
                         <FormField
                           control={form.control}
-                          name="currency"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Preferred Currency</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select currency" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {SUPPORTED_CURRENCIES.map((currency) => (
-                                    <SelectItem key={currency.code} value={currency.code}>
-                                      {currency.symbol} {currency.name} ({currency.code})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
                           name="motivation"
                           render={({ field }) => (
                             <FormItem>
@@ -1304,25 +1270,8 @@ const EnrollmentPage = () => {
 
                     <div className="border-t pt-4">
                       <div className="flex flex-col">
-                        {hasDiscount ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xl text-brand-600">
-                                {formatPrice(displayPrice, watchedCurrency)}
-                              </span>
-                              <Badge className="bg-red-500 text-white text-xs">
-                                {Math.round(((course.price! - course.discounted_price!) / course.price!) * 100)}% OFF
-                              </Badge>
-                            </div>
-                            <span className="text-sm line-through text-gray-500">
-                              {formatPrice(watchedCurrency === 'USD' ? course.price! : convertPrice(course.price!, watchedCurrency), watchedCurrency)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="font-bold text-xl text-brand-600">
-                            {isFree ? "Free" : formatPrice(displayPrice, watchedCurrency)}
-                          </span>
-                        )}
+                        <span className="font-bold text-2xl text-green-600">Free</span>
+                        <p className="text-sm text-muted-foreground mt-1">No payment required to enroll.</p>
                       </div>
                     </div>
                   </div>

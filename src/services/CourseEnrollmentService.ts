@@ -53,38 +53,11 @@ export const CourseEnrollmentService = {
         };
       }
 
-      // Check if course is free
-      console.log("CourseEnrollmentService: Checking course pricing");
-      const { data: courseData, error: courseError } = await supabase
-        .from("courses")
-        .select("price, discounted_price")
-        .eq("id", courseId)
-        .maybeSingle();
+      // All Switch2Tech courses are free
+      console.log("CourseEnrollmentService: All courses are free");
+      const isFree = true;
 
-      if (courseError) {
-        console.error("CourseEnrollmentService: Error fetching course:", courseError);
-        return {
-          success: false,
-          error: courseError.message
-        };
-      }
-
-      const effectivePrice = courseData?.discounted_price || courseData?.price || 0;
-      const isFree = effectivePrice === 0;
-      console.log("CourseEnrollmentService: Course is free:", isFree, "Price:", effectivePrice);
-
-      // If course is not free, redirect to enrollment page for payment
-      if (!isFree) {
-        console.log("CourseEnrollmentService: Payment required, redirecting to enrollment page");
-        return {
-          success: false,
-          error: "Payment required",
-          requiresPayment: true,
-          courseId: courseId
-        };
-      }
-
-      // Create new enrollment record (only for free courses)
+      // Create new enrollment record for free courses
       console.log("CourseEnrollmentService: Creating enrollment record");
       const { data: enrollment, error } = await supabase
         .from("enrollments")
@@ -226,49 +199,25 @@ export const CourseEnrollmentService = {
       }
 
       if (!enrollmentId) {
-        // Attempt automatic enrollment for free courses
-        const { data: coursePricing, error: coursePricingError } = await supabase
-          .from("courses")
-          .select("price, discounted_price")
-          .eq("id", courseId)
-          .maybeSingle();
+        // Switch2Tech courses are all free, so auto-enroll
+        const { data: newEnrollment, error: createEnrollError } = await supabase
+          .from("enrollments")
+          .insert({
+            course_id: courseId,
+            student_id: userId,
+            progress: 0,
+            enrollment_date: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
 
-        if (coursePricingError) {
-          console.error("Error fetching course pricing:", coursePricingError);
+        if (createEnrollError || !newEnrollment) {
+          console.error("Failed to auto-enroll in free course:", createEnrollError);
           return false;
         }
 
-        const effectivePrice = coursePricing?.discounted_price || coursePricing?.price || 0;
-        const isFree = effectivePrice === 0;
-
-        if (isFree) {
-          const { data: newEnrollment, error: createEnrollError } = await supabase
-            .from("enrollments")
-            .insert({
-              course_id: courseId,
-              student_id: userId,
-              progress: 0,
-              enrollment_date: new Date().toISOString(),
-            })
-            .select("id")
-            .single();
-
-          if (createEnrollError || !newEnrollment) {
-            console.error("Failed to auto-enroll in free course:", createEnrollError);
-            return false;
-          }
-
-          console.log("Auto-enrolled user in free course");
-          enrollmentId = newEnrollment.id;
-        } else {
-          console.error("No enrollment found and course requires payment");
-          toast?.({
-            title: "Enrollment required",
-            description: "Please enroll to save your progress.",
-            variant: "destructive",
-          });
-          return false;
-        }
+        console.log("Auto-enrolled user in free course");
+        enrollmentId = newEnrollment.id;
       }
 
       console.log("Found enrollment:", enrollment);

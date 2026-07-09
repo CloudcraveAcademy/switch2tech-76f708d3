@@ -569,34 +569,8 @@ const CourseDetails = () => {
             <Card className="sticky top-4">
               <CardContent className="p-6">
                 <div className="text-center mb-6">
-                  {getDisplayPrice() > 0 ? (
-                    <div>
-                      {hasDiscount() ? (
-                        <div className="space-y-2">
-                          <div className="text-3xl font-bold text-brand-600">
-                            {formatPrice(getDisplayPrice())}
-                          </div>
-                          <div className="flex items-center justify-center gap-2">
-                            <span className="text-lg line-through text-gray-500">
-                              {formatPrice(getOriginalPrice())}
-                            </span>
-                            <Badge className="bg-red-500 text-white">
-                              {Math.round(((getOriginalPrice() - getDisplayPrice()) / getOriginalPrice()) * 100)}% OFF
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-green-600 font-medium">
-                            You save {formatPrice(getOriginalPrice() - getDisplayPrice())}!
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-3xl font-bold text-brand-600">
-                          {formatPrice(getDisplayPrice())}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-3xl font-bold text-brand-600">Free</div>
-                  )}
+                  <div className="text-3xl font-bold text-green-600">Free</div>
+                  <p className="text-sm text-muted-foreground mt-2">All courses are free to join</p>
                 </div>
 
                 <CourseEnrollButton

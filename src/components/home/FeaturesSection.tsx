@@ -1,26 +1,31 @@
 
-import { Book, Users, Briefcase, Medal } from "lucide-react";
+import { Book, Users, Briefcase, Medal, Gift } from "lucide-react";
 
 const features = [
   {
     icon: <Book className="h-6 w-6" />,
     title: "Expert-Led Courses",
-    description: "Learn from industry professionals with real-world experience"
+    description: "Learn from industry professionals with real-world experience — 100% free."
   },
   {
     icon: <Users className="h-6 w-6" />,
     title: "Mentorship Programs",
-    description: "Get personalized guidance from experienced mentors"
+    description: "Get personalized guidance from experienced mentors at no cost."
   },
   {
     icon: <Briefcase className="h-6 w-6" />,
     title: "Internship Opportunities",
-    description: "Gain practical experience with leading companies"
+    description: "Gain practical experience with leading companies."
   },
   {
     icon: <Medal className="h-6 w-6" />,
     title: "Certifications",
-    description: "Earn recognized certificates upon course completion"
+    description: "Earn recognized certificates upon course completion."
+  },
+  {
+    icon: <Gift className="h-6 w-6" />,
+    title: "Always Free",
+    description: "All courses, mentorship, and community resources are free for everyone."
   }
 ];
 
@@ -28,8 +33,8 @@ const FeaturesSection = () => {
   return (
     <div className="py-24 bg-brand-dark w-full">
       <div className="container mx-auto px-6">
-        <h2 className="text-3xl font-bold text-white text-center mb-12">Why Choose Our Platform?</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <h2 className="text-3xl font-bold text-white text-center mb-12">Why Choose Our Free Platform?</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
           {features.map((feature, index) => (
             <div key={index} className="bg-brand/10 p-6 rounded-lg shadow-sm hover:shadow-md transition-all">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 text-primary">
