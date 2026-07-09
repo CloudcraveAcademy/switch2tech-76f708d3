@@ -164,13 +164,9 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
             <Badge className="bg-brand-500 text-white">Featured</Badge>
           </div>
         )}
-        {hasDiscount() && (
-          <div className="absolute top-0 left-0 m-2">
-            <Badge className="bg-red-500 text-white">
-              {Math.round(((getOriginalPrice() - getDisplayPrice()) / getOriginalPrice()) * 100)}% OFF
-            </Badge>
-          </div>
-        )}
+        <div className="absolute top-0 left-0 m-2">
+          <Badge className="bg-green-500 text-white">Free</Badge>
+        </div>
         <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/70 to-transparent p-3">
           <Badge className={`${levelColor} mb-1 mr-1`}>{level}</Badge>
           <Badge className={`${modeColor} mb-1`}>
@@ -220,14 +216,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
 
       <CardFooter className="border-t p-5 flex items-center justify-between">
         <div className="flex flex-col">
-          {hasDiscount() ? (
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-xl text-brand-600">{formatPrice(getDisplayPrice())}</span>
-              <span className="text-sm line-through text-gray-500">{formatPrice(getOriginalPrice())}</span>
-            </div>
-          ) : (
-            <span className="font-bold text-xl text-brand-600">{formatPrice(getDisplayPrice())}</span>
-          )}
+          <span className="font-bold text-xl text-green-600">Free</span>
         </div>
         <Link 
           to={`/courses/${id}`}
