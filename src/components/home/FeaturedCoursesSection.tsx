@@ -171,10 +171,10 @@ const FeaturedCoursesSection = () => {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-primary font-semibold">FEATURED COURSES</span>
           <h2 className="text-4xl font-bold mt-2 mb-6 text-foreground">
-            Learn From Industry Experts
+            Free Learning From Industry Experts
           </h2>
           <p className="text-xl text-muted-foreground">
-            Explore our most popular courses designed to help you build practical skills 
+            Explore our most popular free courses designed to help you build practical skills 
             and advance your career.
           </p>
         </div>
