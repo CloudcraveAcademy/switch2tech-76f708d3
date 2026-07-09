@@ -53,38 +53,11 @@ export const CourseEnrollmentService = {
         };
       }
 
-      // Check if course is free
-      console.log("CourseEnrollmentService: Checking course pricing");
-      const { data: courseData, error: courseError } = await supabase
-        .from("courses")
-        .select("price, discounted_price")
-        .eq("id", courseId)
-        .maybeSingle();
+      // All Switch2Tech courses are free
+      console.log("CourseEnrollmentService: All courses are free");
+      const isFree = true;
 
-      if (courseError) {
-        console.error("CourseEnrollmentService: Error fetching course:", courseError);
-        return {
-          success: false,
-          error: courseError.message
-        };
-      }
-
-      const effectivePrice = courseData?.discounted_price || courseData?.price || 0;
-      const isFree = effectivePrice === 0;
-      console.log("CourseEnrollmentService: Course is free:", isFree, "Price:", effectivePrice);
-
-      // If course is not free, redirect to enrollment page for payment
-      if (!isFree) {
-        console.log("CourseEnrollmentService: Payment required, redirecting to enrollment page");
-        return {
-          success: false,
-          error: "Payment required",
-          requiresPayment: true,
-          courseId: courseId
-        };
-      }
-
-      // Create new enrollment record (only for free courses)
+      // Create new enrollment record for free courses
       console.log("CourseEnrollmentService: Creating enrollment record");
       const { data: enrollment, error } = await supabase
         .from("enrollments")
