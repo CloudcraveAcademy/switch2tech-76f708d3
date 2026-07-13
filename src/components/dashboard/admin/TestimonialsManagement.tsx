@@ -31,7 +31,7 @@ import { toast } from "@/hooks/use-toast";
 const TestimonialsManagement = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin";
+  const canEdit = user?.role === "super_admin" || user?.role === "admin";
   const [editing, setEditing] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -52,7 +52,17 @@ const TestimonialsManagement = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      const ids = Array.from(new Set((data || []).map((t: any) => t.submitted_by).filter(Boolean)));
+      let roleMap: Record<string, string> = {};
+      if (ids.length) {
+        const { data: profiles } = await supabase
+          .from("user_profiles")
+          .select("id, role")
+          .in("id", ids as string[]);
+        (profiles || []).forEach((p: any) => { roleMap[p.id] = p.role; });
+      }
+      return (data || []).map((t: any) => ({ ...t, author_role: t.submitted_by ? roleMap[t.submitted_by] : null }));
     },
   });
 
@@ -241,7 +251,7 @@ const TestimonialsManagement = () => {
           {testimonial.is_featured ? 'Unfeature' : 'Feature'}
         </Button>
         
-        {isSuperAdmin && (
+        {canEdit && (
           <Button
             variant="secondary"
             onClick={() => openEdit(testimonial)}
@@ -316,6 +326,7 @@ const TestimonialsManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Author Type</TableHead>
                 <TableHead>Role & Company</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Featured</TableHead>
@@ -326,16 +337,21 @@ const TestimonialsManagement = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                  <TableCell colSpan={7} className="text-center">Loading...</TableCell>
                 </TableRow>
               ) : testimonials?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">No testimonials found</TableCell>
+                  <TableCell colSpan={7} className="text-center">No testimonials found</TableCell>
                 </TableRow>
               ) : (
                 testimonials?.map((testimonial) => (
                   <TableRow key={testimonial.id}>
                     <TableCell>{testimonial.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {testimonial.author_role || "unknown"}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       {testimonial.role} at {testimonial.company}
                     </TableCell>
@@ -371,7 +387,7 @@ const TestimonialsManagement = () => {
         </CardContent>
       </Card>
 
-      {isSuperAdmin && (
+      {canEdit && (
         <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
