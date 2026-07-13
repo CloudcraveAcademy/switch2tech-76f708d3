@@ -122,7 +122,7 @@ const StudentSuccessStoriesSection = () => {
         <div className="mt-12 text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-brand/20 text-white px-4 py-2 rounded-full">
             <Award className="h-5 w-5" />
-            <span className="font-medium">Join 1,000+ successful career changers</span>
+            <span className="font-medium">Join 700+ successful career changers</span>
           </div>
           <div>
             <Button asChild variant="secondary">
