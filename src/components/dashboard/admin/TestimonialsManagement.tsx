@@ -109,6 +109,43 @@ const TestimonialsManagement = () => {
     },
   });
 
+  // Edit testimonial content (super admin only)
+  const editTestimonial = useMutation({
+    mutationFn: async ({ id, values }: { id: string; values: typeof editForm }) => {
+      const { error } = await supabase
+        .from("student_success_stories")
+        .update({
+          name: values.name,
+          role: values.role,
+          company: values.company,
+          story: values.story,
+          image_url: values.image_url || null,
+          video_url: values.video_url || null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student-success-stories"] });
+      toast({ title: "Testimonial content updated" });
+      setEditing(null);
+    },
+    onError: (error: any) =>
+      toast({ title: "Error saving changes", description: error.message, variant: "destructive" }),
+  });
+
+  const openEdit = (t: any) => {
+    setEditForm({
+      name: t.name || "",
+      role: t.role || "",
+      company: t.company || "",
+      story: t.story || "",
+      image_url: t.image_url || "",
+      video_url: t.video_url || "",
+    });
+    setEditing(t);
+  };
+
   const getStatusBadge = (isApproved: boolean) => {
     return (
       <Badge variant={isApproved ? "default" : "outline"}>
