@@ -48,11 +48,21 @@ const TestimonialsManagement = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("student_success_stories")
-        .select("*, author:user_profiles!student_success_stories_submitted_by_fkey(role)")
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      const ids = Array.from(new Set((data || []).map((t: any) => t.submitted_by).filter(Boolean)));
+      let roleMap: Record<string, string> = {};
+      if (ids.length) {
+        const { data: profiles } = await supabase
+          .from("user_profiles")
+          .select("id, role")
+          .in("id", ids as string[]);
+        (profiles || []).forEach((p: any) => { roleMap[p.id] = p.role; });
+      }
+      return (data || []).map((t: any) => ({ ...t, author_role: t.submitted_by ? roleMap[t.submitted_by] : null }));
     },
   });
 
