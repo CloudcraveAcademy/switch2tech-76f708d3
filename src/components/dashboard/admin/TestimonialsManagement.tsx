@@ -241,6 +241,17 @@ const TestimonialsManagement = () => {
           {testimonial.is_featured ? 'Unfeature' : 'Feature'}
         </Button>
         
+        {isSuperAdmin && (
+          <Button
+            variant="secondary"
+            onClick={() => openEdit(testimonial)}
+            className="flex items-center gap-2"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit Content
+          </Button>
+        )}
+
         <Button
           variant="destructive"
           onClick={() => deleteTestimonial.mutate(testimonial.id)}
