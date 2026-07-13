@@ -115,7 +115,7 @@ const SuccessStories = () => {
           <div className="mt-16 text-center">
             <div className="inline-flex items-center gap-2 bg-brand/20 text-white px-4 py-2 rounded-full">
               <Award className="h-5 w-5" />
-              <span className="font-medium">Join 1,000+ successful career changers</span>
+              <span className="font-medium">Join 700+ successful career changers</span>
             </div>
           </div>
         </div>

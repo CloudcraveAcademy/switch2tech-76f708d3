@@ -1,9 +1,13 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -16,15 +20,27 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Eye, CheckCircle, XCircle, Star, MessageSquare, User } from "lucide-react";
+import { Eye, CheckCircle, XCircle, Star, MessageSquare, User, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const TestimonialsManagement = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin";
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    role: "",
+    company: "",
+    story: "",
+    image_url: "",
+    video_url: "",
+  });
 
   // Fetch student success stories (testimonials)
   const { data: testimonials, isLoading } = useQuery({
@@ -92,6 +108,43 @@ const TestimonialsManagement = () => {
       });
     },
   });
+
+  // Edit testimonial content (super admin only)
+  const editTestimonial = useMutation({
+    mutationFn: async ({ id, values }: { id: string; values: typeof editForm }) => {
+      const { error } = await supabase
+        .from("student_success_stories")
+        .update({
+          name: values.name,
+          role: values.role,
+          company: values.company,
+          story: values.story,
+          image_url: values.image_url || null,
+          video_url: values.video_url || null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["student-success-stories"] });
+      toast({ title: "Testimonial content updated" });
+      setEditing(null);
+    },
+    onError: (error: any) =>
+      toast({ title: "Error saving changes", description: error.message, variant: "destructive" }),
+  });
+
+  const openEdit = (t: any) => {
+    setEditForm({
+      name: t.name || "",
+      role: t.role || "",
+      company: t.company || "",
+      story: t.story || "",
+      image_url: t.image_url || "",
+      video_url: t.video_url || "",
+    });
+    setEditing(t);
+  };
 
   const getStatusBadge = (isApproved: boolean) => {
     return (
@@ -188,6 +241,17 @@ const TestimonialsManagement = () => {
           {testimonial.is_featured ? 'Unfeature' : 'Feature'}
         </Button>
         
+        {isSuperAdmin && (
+          <Button
+            variant="secondary"
+            onClick={() => openEdit(testimonial)}
+            className="flex items-center gap-2"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit Content
+          </Button>
+        )}
+
         <Button
           variant="destructive"
           onClick={() => deleteTestimonial.mutate(testimonial.id)}
@@ -306,6 +370,54 @@ const TestimonialsManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {isSuperAdmin && (
+        <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Testimonial</DialogTitle>
+              <DialogDescription>Super admin content edit</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Role</Label>
+                  <Input value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Company</Label>
+                <Input value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} />
+              </div>
+              <div>
+                <Label>Image URL</Label>
+                <Input value={editForm.image_url} onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })} />
+              </div>
+              <div>
+                <Label>Video URL</Label>
+                <Input value={editForm.video_url} onChange={(e) => setEditForm({ ...editForm, video_url: e.target.value })} />
+              </div>
+              <div>
+                <Label>Story</Label>
+                <Textarea rows={8} value={editForm.story} onChange={(e) => setEditForm({ ...editForm, story: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button
+                onClick={() => editing && editTestimonial.mutate({ id: editing.id, values: editForm })}
+                disabled={editTestimonial.isPending}
+              >
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

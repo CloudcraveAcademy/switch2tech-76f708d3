@@ -106,6 +106,7 @@ const DashboardRoutes = () => {
       <Route path="/assignments" element={<InstructorAssignments />} />
       <Route path="/quizzes" element={<InstructorQuizzes />} />
       <Route path="/discussions" element={<InstructorDiscussions />} />
+      <Route path="/share-story" element={<ShareStory />} />
     </>
   ), []);
 
