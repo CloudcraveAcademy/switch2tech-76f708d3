@@ -241,7 +241,7 @@ const TestimonialsManagement = () => {
           {testimonial.is_featured ? 'Unfeature' : 'Feature'}
         </Button>
         
-        {isSuperAdmin && (
+        {canEdit && (
           <Button
             variant="secondary"
             onClick={() => openEdit(testimonial)}
@@ -371,7 +371,7 @@ const TestimonialsManagement = () => {
         </CardContent>
       </Card>
 
-      {isSuperAdmin && (
+      {canEdit && (
         <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
