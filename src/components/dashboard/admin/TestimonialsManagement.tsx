@@ -31,7 +31,7 @@ import { toast } from "@/hooks/use-toast";
 const TestimonialsManagement = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === "super_admin";
+  const canEdit = user?.role === "super_admin" || user?.role === "admin";
   const [editing, setEditing] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
