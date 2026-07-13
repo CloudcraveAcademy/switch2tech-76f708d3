@@ -326,6 +326,7 @@ const TestimonialsManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Author Type</TableHead>
                 <TableHead>Role & Company</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Featured</TableHead>
