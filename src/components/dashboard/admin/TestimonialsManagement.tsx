@@ -337,11 +337,11 @@ const TestimonialsManagement = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                  <TableCell colSpan={7} className="text-center">Loading...</TableCell>
                 </TableRow>
               ) : testimonials?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">No testimonials found</TableCell>
+                  <TableCell colSpan={7} className="text-center">No testimonials found</TableCell>
                 </TableRow>
               ) : (
                 testimonials?.map((testimonial) => (
