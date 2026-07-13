@@ -1,9 +1,13 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -16,15 +20,27 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Eye, CheckCircle, XCircle, Star, MessageSquare, User } from "lucide-react";
+import { Eye, CheckCircle, XCircle, Star, MessageSquare, User, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const TestimonialsManagement = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin";
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    role: "",
+    company: "",
+    story: "",
+    image_url: "",
+    video_url: "",
+  });
 
   // Fetch student success stories (testimonials)
   const { data: testimonials, isLoading } = useQuery({
