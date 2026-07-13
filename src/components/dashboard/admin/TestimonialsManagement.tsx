@@ -48,7 +48,7 @@ const TestimonialsManagement = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("student_success_stories")
-        .select("*")
+        .select("*, author:user_profiles!student_success_stories_submitted_by_fkey(role)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
