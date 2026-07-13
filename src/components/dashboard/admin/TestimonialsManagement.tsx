@@ -370,6 +370,54 @@ const TestimonialsManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {isSuperAdmin && (
+        <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Testimonial</DialogTitle>
+              <DialogDescription>Super admin content edit</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Role</Label>
+                  <Input value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Company</Label>
+                <Input value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} />
+              </div>
+              <div>
+                <Label>Image URL</Label>
+                <Input value={editForm.image_url} onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })} />
+              </div>
+              <div>
+                <Label>Video URL</Label>
+                <Input value={editForm.video_url} onChange={(e) => setEditForm({ ...editForm, video_url: e.target.value })} />
+              </div>
+              <div>
+                <Label>Story</Label>
+                <Textarea rows={8} value={editForm.story} onChange={(e) => setEditForm({ ...editForm, story: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button
+                onClick={() => editing && editTestimonial.mutate({ id: editing.id, values: editForm })}
+                disabled={editTestimonial.isPending}
+              >
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
