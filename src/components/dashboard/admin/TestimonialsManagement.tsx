@@ -348,6 +348,11 @@ const TestimonialsManagement = () => {
                   <TableRow key={testimonial.id}>
                     <TableCell>{testimonial.name}</TableCell>
                     <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {testimonial.author_role || "unknown"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       {testimonial.role} at {testimonial.company}
                     </TableCell>
                     <TableCell>{getStatusBadge(testimonial.is_approved)}</TableCell>
