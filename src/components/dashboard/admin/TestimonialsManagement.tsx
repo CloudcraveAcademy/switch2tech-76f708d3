@@ -411,8 +411,42 @@ const TestimonialsManagement = () => {
                 <Input value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} />
               </div>
               <div>
-                <Label>Image URL</Label>
-                <Input value={editForm.image_url} onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })} />
+                <Label>Image</Label>
+                {editForm.image_url && (
+                  <img src={editForm.image_url} alt="preview" className="w-24 h-24 object-cover rounded-md mb-2 border" />
+                )}
+                <Input
+                  placeholder="Image URL"
+                  value={editForm.image_url}
+                  onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })}
+                />
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploadingImage ? (
+                      <><Loader className="h-4 w-4 mr-1 animate-spin" /> Uploading...</>
+                    ) : (
+                      <><Upload className="h-4 w-4 mr-1" /> Upload Image</>
+                    )}
+                  </Button>
+                  {editForm.image_url && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditForm({ ...editForm, image_url: "" })}>
+                      Remove
+                    </Button>
+                  )}
+                </div>
               </div>
               <div>
                 <Label>Video URL</Label>
