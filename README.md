@@ -19,7 +19,7 @@ Switch2Tech operates on a **train-the-trainer model**: learners who complete the
 
 ---
 
-## Origin Story
+## Origin Story.
 
 Switch2Tech was founded in **January 2024** by Issa Ajao following CloudCrave Solutions' acquisition of Staunch Technologies Limited in late 2023.
 
